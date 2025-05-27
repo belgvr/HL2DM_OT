@@ -1,0 +1,4 @@
+^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SERVER\SPAWN_HELPER.NUT
+python ..\..\devtools\bin\texttoarray.py D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\server\spawn_helper.nut g_Script_spawn_helper> spawn_helper_nut.h
+^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SERVER\VSCRIPT_SERVER.NUT
+python ..\..\devtools\bin\texttoarray.py D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\server\vscript_server.nut g_Script_vscript_server> vscript_server_nut.h

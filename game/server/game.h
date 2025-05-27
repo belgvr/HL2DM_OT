@@ -1,0 +1,46 @@
+//========= Copyright Valve Corporation, All rights reserved. ============//
+//
+// Purpose: 
+//
+// $NoKeywords: $
+//
+//=============================================================================//
+
+#ifndef GAME_H
+#define GAME_H
+
+
+#include "globals.h"
+
+extern void GameDLLInit( void );
+
+extern ConVar	displaysoundlist;
+extern ConVar	mapcyclefile;
+extern ConVar	servercfgfile;
+extern ConVar	lservercfgfile;
+
+// multiplayer server rules
+extern ConVar	teamplay;
+extern ConVar	fraglimit;
+extern ConVar	falldamage;
+extern ConVar	weaponstay;
+extern ConVar	forcerespawn;
+extern ConVar	footsteps;
+extern ConVar	flashlight;
+extern ConVar	aimcrosshair;
+extern ConVar	decalfrequency;
+extern ConVar	teamlist;
+extern ConVar	teamoverride;
+extern ConVar	defaultteam;
+extern ConVar	allowNPCs;
+extern ConVar	sv_propflying;
+extern ConVar	mp_smg1_alt_glass;
+extern ConVar	mp_ar2_alt_glass;
+extern ConVar	sv_hudtargetid;
+extern ConVar sv_hudtargetid_channel;
+
+extern ConVar	suitvolume;
+
+// Engine Cvars
+extern const ConVar *g_pDeveloper;
+#endif		// GAME_H
