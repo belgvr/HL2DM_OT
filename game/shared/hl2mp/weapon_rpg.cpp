@@ -55,7 +55,9 @@ static ConVar sk_apc_missile_damage("sk_apc_missile_damage", "15");
 
 
 ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
-
+// CVars para o sistema secundário da RPG
+ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
+ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_REPLICATED | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 500.0f, true, 5000.0f);
 
 //-----------------------------------------------------------------------------
 // Laser Dot
@@ -125,6 +127,9 @@ CLaserDot* GetLaserDotList()
 
 BEGIN_DATADESC(CMissile)
 
+
+DEFINE_FIELD(m_bDumbFireMode, FIELD_BOOLEAN),  // ADICIONAR ESTA LINHA
+
 DEFINE_FIELD(m_hOwner, FIELD_EHANDLE),
 DEFINE_FIELD(m_hRocketTrail, FIELD_EHANDLE),
 DEFINE_FIELD(m_flAugerTime, FIELD_TIME),
@@ -141,6 +146,8 @@ DEFINE_FUNCTION(SeekThink),
 
 END_DATADESC()
 
+
+
 LINK_ENTITY_TO_CLASS(rpg_missile, CMissile);
 
 class CWeaponRPG;
@@ -151,6 +158,7 @@ class CWeaponRPG;
 CMissile::CMissile()
 {
 	m_hRocketTrail = NULL;
+	m_bDumbFireMode = false;  // ADICIONAR ESTA LINHA
 }
 
 CMissile::~CMissile()
@@ -288,7 +296,9 @@ void CMissile::AccelerateThink(void)
 	// SetEffects( EF_LIGHT );
 
 	AngleVectors(GetLocalAngles(), &vecForward);
-	SetAbsVelocity(vecForward * RPG_SPEED);
+	//SetAbsVelocity(vecForward * RPG_SPEED);
+	float velocity = m_bDumbFireMode ? sv_rpg_secondary_missile_velocity.GetFloat() : RPG_SPEED;
+	SetAbsVelocity(vecForward * velocity);
 
 	SetThink(&CMissile::SeekThink);
 	SetNextThink(gpGlobals->curtime + 0.1f);
@@ -467,7 +477,9 @@ void CMissile::IgniteThink(void)
 	EmitSound("Missile.Ignite");
 
 	AngleVectors(GetLocalAngles(), &vecForward);
-	SetAbsVelocity(vecForward * RPG_SPEED);
+	//SetAbsVelocity(vecForward * RPG_SPEED);
+	float velocity = m_bDumbFireMode ? sv_rpg_secondary_missile_velocity.GetFloat() : RPG_SPEED;
+	SetAbsVelocity(vecForward * velocity);
 
 	SetThink(&CMissile::SeekThink);
 	SetNextThink(gpGlobals->curtime);
@@ -508,6 +520,12 @@ void CMissile::GetShootPosition(CLaserDot* pLaserDot, Vector* pShootPosition)
 
 void CMissile::ComputeActualDotPosition(CLaserDot* pLaserDot, Vector* pActualDotPosition, float* pHomingSpeed)
 {
+	if (m_bDumbFireMode)
+	{
+		*pActualDotPosition = GetAbsOrigin();
+		*pHomingSpeed = 0.0f;
+		return;
+	}
 	*pHomingSpeed = RPG_HOMING_SPEED;
 	if (pLaserDot->GetTargetEntity())
 	{
@@ -556,6 +574,12 @@ void CMissile::ComputeActualDotPosition(CLaserDot* pLaserDot, Vector* pActualDot
 //-----------------------------------------------------------------------------
 void CMissile::SeekThink(void)
 {
+	if (m_bDumbFireMode)
+	{
+		SetNextThink(gpGlobals->curtime + 0.1f);
+		return;
+	}
+	
 	CBaseEntity* pBestDot = NULL;
 	float		flBestDist = MAX_TRACE_LENGTH;
 	float		dotDist;
@@ -1336,6 +1360,7 @@ CWeaponRPG::CWeaponRPG()
 	m_bInitialStateUpdate = false;
 	m_bHideGuiding = false;
 	m_bGuiding = false;
+	m_bLaserToggleMode = true;  // ADICIONAR ESTA LINHA
 
 	m_fMinRange1 = m_fMinRange2 = 40 * 12;
 	m_fMaxRange1 = m_fMaxRange2 = 500 * 12;
@@ -1465,6 +1490,12 @@ void CWeaponRPG::PrimaryAttack(void)
 	CMissile* pMissile = CMissile::Create(muzzlePoint, vecAngles, GetOwner()->edict());
 	pMissile->m_hOwner = this;
 
+	// Set missile mode based on laser toggle state
+	if (!m_bLaserToggleMode)
+	{
+		pMissile->SetDumbFireMode(true);
+	}
+
 	// If the shot is clear to the player, give the missile a grace period
 	trace_t	tr;
 	Vector vecEye = pOwner->EyePosition();
@@ -1485,6 +1516,38 @@ void CWeaponRPG::PrimaryAttack(void)
 
 	// player "shoot" animation
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Secondary Attack - Toggle laser mode
+//-----------------------------------------------------------------------------
+void CWeaponRPG::SecondaryAttack(void)
+{
+	// Check if secondary mode is enabled
+	if (!sv_rpg_secondary_mode.GetBool())
+		return;
+
+	// Can't toggle while missile is active
+	if (m_hMissile != NULL)
+		return;
+
+	// Toggle laser mode
+	m_bLaserToggleMode = !m_bLaserToggleMode;
+
+	if (m_bLaserToggleMode == true)
+	{
+		// Turn laser ON
+		StartGuiding();
+		WeaponSound(SPECIAL1);
+	}
+	else
+	{
+		// Turn laser OFF
+		StopGuiding();
+		WeaponSound(SPECIAL2);
+	}
+
+	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
 }
 
 //-----------------------------------------------------------------------------
@@ -1560,7 +1623,8 @@ void CWeaponRPG::ItemPostFrame(void)
 	}
 
 	// Supress our guiding effects if we're lowered
-	if (GetIdealActivity() == ACT_VM_IDLE_LOWERED)
+	if (GetIdealActivity() == ACT_VM_IDLE_LOWERED || !m_bLaserToggleMode)
+
 	{
 		SuppressGuiding();
 	}
@@ -1665,7 +1729,7 @@ bool CWeaponRPG::Holster(CBaseCombatWeapon* pSwitchingTo)
 void CWeaponRPG::StartGuiding(void)
 {
 	// Don't start back up if we're overriding this
-	if (m_bHideGuiding)
+	if (m_bHideGuiding || !m_bLaserToggleMode)
 		return;
 
 	m_bGuiding = true;
