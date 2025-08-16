@@ -30,17 +30,17 @@
 // ==================================================================================================
 // CVARS PARA CONTROLE DE DELAYS DO SLAM/SATCHEL - VALORES PADRÃO = ORIGINAL HARDCODED
 // ==================================================================================================
-ConVar sv_slam_deploy_delay("sv_slam_deploy_delay", "1.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Deploy delay when switching to SLAM (default: 1.5 = original SequenceDuration)");
-ConVar sv_slam_secondary_delay("sv_slam_secondary_delay", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay between secondary attacks/detonations (default: 0.5 = original SequenceDuration)");
-ConVar sv_slam_primary_delay("sv_slam_primary_delay", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay between primary attacks (default: 1.0 = original SequenceDuration)");
-ConVar sv_slam_switch_mode_delay("sv_slam_switch_mode_delay", "1.2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay when switching between tripmine/satchel modes (default: 1.2 = original SequenceDuration)");
+ConVar sv_slam_deploy_delay("sv_slam_deploy_delay", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Deploy delay when switching to SLAM (default: 1.5 = original SequenceDuration)");
+ConVar sv_slam_secondary_delay("sv_slam_secondary_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between secondary attacks/detonations (default: 0.5 = original SequenceDuration)");
+ConVar sv_slam_primary_delay("sv_slam_primary_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between primary attacks (default: 1.0 = original SequenceDuration)");
+ConVar sv_slam_switch_mode_delay("sv_slam_switch_mode_delay", "1.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between tripmine/satchel modes (default: 1.2 = original SequenceDuration)");
 
 // CVARS PARA DELAYS DE TROCA DE ARMA E RESPONSIVIDADE
-ConVar sv_slam_holster_delay("sv_slam_holster_delay", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay when holstering SLAM to switch to another weapon (default: 0.5)");
-ConVar sv_slam_idle_delay("sv_slam_idle_delay", "0.3", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay between weapon idle animations and actions (default: 0.3)");
-ConVar sv_slam_ready_delay("sv_slam_ready_delay", "0.2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay before weapon becomes fully ready after deploy (default: 0.2)");
-ConVar sv_slam_wall_switch_delay("sv_slam_wall_switch_delay", "0.8", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay for automatic wall detection switching (default: 0.8)");
-ConVar sv_slam_detonate_ready_delay("sv_slam_detonate_ready_delay", "1.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Time in seconds after deploying SLAM before detonation is allowed (0=instant, default: 1.5=original behavior)");
+ConVar sv_slam_holster_delay("sv_slam_holster_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when holstering SLAM to switch to another weapon (default: 0.5)");
+ConVar sv_slam_idle_delay("sv_slam_idle_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between weapon idle animations and actions (default: 0.3)");
+ConVar sv_slam_ready_delay("sv_slam_ready_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before weapon becomes fully ready after deploy (default: 0.2)");
+ConVar sv_slam_wall_switch_delay("sv_slam_wall_switch_delay", "0.8", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay for automatic wall detection switching (default: 0.8)");
+ConVar sv_slam_detonate_ready_delay("sv_slam_detonate_ready_delay", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds after deploying SLAM before detonation is allowed (0=instant, default: 1.5=original behavior)");
 // ==================================================================================================
 
 IMPLEMENT_NETWORKCLASS_ALIASED(Weapon_SLAM, DT_Weapon_SLAM)

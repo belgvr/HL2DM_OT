@@ -26,19 +26,19 @@ ConVar    sk_satchel_radius("sk_satchel_radius", "0");
 // ==================================================================================================
 // NOVAS CVARS PARA CUSTOMIZAÇÃO DA SATCHEL
 // ==================================================================================================
-ConVar sv_satchel_glow_sprite("sv_satchel_glow_sprite", "sprites/glow1.vmt", FCVAR_REPLICATED | FCVAR_NOTIFY, "Sprite material for the satchel's glow");
-ConVar sv_satchel_glow_color("sv_satchel_glow_color", "255,80,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Color of the satchel's glow in R,G,B,A format");
+ConVar sv_satchel_glow_sprite("sv_satchel_glow_sprite", "sprites/glow1.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the satchel's glow");
+ConVar sv_satchel_glow_color("sv_satchel_glow_color", "255,80,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the satchel's glow in R,G,B,A format");
 
 // CVARS PARA CORES POR TIME (só funciona quando mp_teamplay está 1)
-ConVar sv_satchel_byteams("sv_satchel_byteams", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enable team-based colors for satchel when mp_teamplay is 1 (0=disabled, 1=enabled)");
-ConVar sv_satchel_rebels_glow_color("sv_satchel_rebels_glow_color", "255,0,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Glow color for rebels team satchel in R,G,B,A format");
-ConVar sv_satchel_combine_glow_color("sv_satchel_combine_glow_color", "0,100,255,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Glow color for combine team satchel in R,G,B,A format");
+ConVar sv_satchel_byteams("sv_satchel_byteams", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable team-based colors for satchel when mp_teamplay is 1 (0=disabled, 1=enabled)");
+ConVar sv_satchel_rebels_glow_color("sv_satchel_rebels_glow_color", "255,0,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for rebels team satchel in R,G,B,A format");
+ConVar sv_satchel_combine_glow_color("sv_satchel_combine_glow_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for combine team satchel in R,G,B,A format");
 
 // CVARS PARA CONTROLE DO GLOW
-ConVar sv_satchel_glow_brightness("sv_satchel_glow_brightness", "255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Brightness of the satchel glow (0-255)");
-ConVar sv_satchel_glow_scale("sv_satchel_glow_scale", "0.2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Scale of the satchel glow sprite");
-ConVar sv_satchel_glow_width("sv_satchel_glow_width", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Width/thickness of the satchel glow");
-ConVar sv_satchel_glow_strobe("sv_satchel_glow_strobe", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enable strobe effect for satchel glow (0=solid, 1=strobe)");
+ConVar sv_satchel_glow_brightness("sv_satchel_glow_brightness", "255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Brightness of the satchel glow (0-255)");
+ConVar sv_satchel_glow_scale("sv_satchel_glow_scale", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Scale of the satchel glow sprite");
+ConVar sv_satchel_glow_width("sv_satchel_glow_width", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Width/thickness of the satchel glow");
+ConVar sv_satchel_glow_strobe("sv_satchel_glow_strobe", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable strobe effect for satchel glow (0=solid, 1=strobe)");
 // ==================================================================================================
 
 BEGIN_DATADESC(CSatchelCharge)

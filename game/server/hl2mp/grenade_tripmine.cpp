@@ -25,17 +25,17 @@ ConVar    sk_tripmine_radius("sk_tripmine_radius", "0");
 // ==================================================================================================
 // CVARS PARA CUSTOMIZAÇÃO DO TRIPMINE - ALPHA CONTROLA O BRILHO
 // ==================================================================================================
-ConVar sv_tripmine_laser_color("sv_tripmine_laser_color", "255,80,0,128", FCVAR_REPLICATED | FCVAR_NOTIFY, "Color of the tripmine laser in R,G,B,A format (A = brightness 0-255)");
-ConVar sv_tripmine_laser_width("sv_tripmine_laser_width", "0.35", FCVAR_REPLICATED | FCVAR_NOTIFY, "Width/thickness of the tripmine laser beam");
+ConVar sv_tripmine_laser_color("sv_tripmine_laser_color", "255,80,0,128", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the tripmine laser in R,G,B,A format (A = brightness 0-255)");
+ConVar sv_tripmine_laser_width("sv_tripmine_laser_width", "0.35", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Width/thickness of the tripmine laser beam");
 
 // CVARS PARA CORES POR TIME (só funciona quando mp_teamplay está 1) - ALPHA CONTROLA O BRILHO
-ConVar sv_tripmine_byteams("sv_tripmine_byteams", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enable team-based colors for tripmine when mp_teamplay is 1 (0=disabled, 1=enabled)");
-ConVar sv_tripmine_rebels_laser_color("sv_tripmine_rebels_laser_color", "255,0,0,128", FCVAR_REPLICATED | FCVAR_NOTIFY, "Laser color for rebels team tripmine in R,G,B,A format (A = brightness 0-255)");
-ConVar sv_tripmine_combine_laser_color("sv_tripmine_combine_laser_color", "0,100,255,128", FCVAR_REPLICATED | FCVAR_NOTIFY, "Laser color for combine team tripmine in R,G,B,A format (A = brightness 0-255)");
+ConVar sv_tripmine_byteams("sv_tripmine_byteams", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable team-based colors for tripmine when mp_teamplay is 1 (0=disabled, 1=enabled)");
+ConVar sv_tripmine_rebels_laser_color("sv_tripmine_rebels_laser_color", "255,0,0,128", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Laser color for rebels team tripmine in R,G,B,A format (A = brightness 0-255)");
+ConVar sv_tripmine_combine_laser_color("sv_tripmine_combine_laser_color", "0,100,255,128", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Laser color for combine team tripmine in R,G,B,A format (A = brightness 0-255)");
 
 // CVARS PARA CONTROLE DE TIMING
-ConVar sv_tripmine_arm_delay("sv_tripmine_arm_delay", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Time in seconds before tripmine arms and activates laser (default: 2.0)");
-ConVar sv_tripmine_explode_delay("sv_tripmine_explode_delay", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Time in seconds between laser break detection and explosion (default: 0.25)");
+ConVar sv_tripmine_arm_delay("sv_tripmine_arm_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds before tripmine arms and activates laser (default: 2.0)");
+ConVar sv_tripmine_explode_delay("sv_tripmine_explode_delay", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds between laser break detection and explosion (default: 0.25)");
 
 // Força remoção de CVars antigas (remover depois de confirmar que funcionou)
 CON_COMMAND(sv_tripmine_cleanup_old_cvars, "Remove old tripmine cvars from memory")

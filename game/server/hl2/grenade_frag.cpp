@@ -30,22 +30,22 @@ ConVar sk_fraggrenade_radius("sk_fraggrenade_radius", "0");
 // ==================================================================================================
 // INÍCIO DAS MODIFICAÇÕES: NOVAS VARIAVEIS DE CONSOLE PARA CUSTOMIZAÇÃO
 // ==================================================================================================
-ConVar sv_grenade_frag_glow_sprite("sv_grenade_frag_glow_sprite", "sprites/glow01.vmt", FCVAR_REPLICATED | FCVAR_NOTIFY, "Sprite material for the frag grenade's glow.");
-ConVar sv_grenade_frag_trail_sprite("sv_grenade_frag_trail_sprite", "sprites/laser.vmt", FCVAR_REPLICATED | FCVAR_NOTIFY, "Sprite material for the frag grenade's trail.");
-ConVar sv_grenade_frag_glow_color("sv_grenade_frag_glow_color", "255,80,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Color of the frag grenade's glow in R,G,B,A format.");
-ConVar sv_grenade_frag_trail_color("sv_grenade_frag_trail_color", "255,80,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Color of the frag grenade's trail in R,G,B,A format.");
+ConVar sv_grenade_frag_glow_sprite("sv_grenade_frag_glow_sprite", "sprites/glow01.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the frag grenade's glow.");
+ConVar sv_grenade_frag_trail_sprite("sv_grenade_frag_trail_sprite", "sprites/laser.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the frag grenade's trail.");
+ConVar sv_grenade_frag_glow_color("sv_grenade_frag_glow_color", "255,80,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the frag grenade's glow in R,G,B,A format.");
+ConVar sv_grenade_frag_trail_color("sv_grenade_frag_trail_color", "255,80,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the frag grenade's trail in R,G,B,A format.");
 
 // NOVAS VARIAVEIS DE CONSOLE PARA O RASTRO (TRAIL)
-ConVar sv_grenade_frag_trail_lifetime("sv_grenade_frag_trail_lifetime", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Lifetime in seconds of the grenade trail, affecting its length.");
-ConVar sv_grenade_frag_trail_startwidth("sv_grenade_frag_trail_startwidth", "8.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Starting width of the grenade trail.");
-ConVar sv_grenade_frag_trail_endwidth("sv_grenade_frag_trail_endwidth", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Ending width of the grenade trail.");
+ConVar sv_grenade_frag_trail_lifetime("sv_grenade_frag_trail_lifetime", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lifetime in seconds of the grenade trail, affecting its length.");
+ConVar sv_grenade_frag_trail_startwidth("sv_grenade_frag_trail_startwidth", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Starting width of the grenade trail.");
+ConVar sv_grenade_frag_trail_endwidth("sv_grenade_frag_trail_endwidth", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ending width of the grenade trail.");
 
 // NOVAS VARIAVEIS DE CONSOLE PARA CORES POR TIME (só funciona quando mp_teamplay está 1)
-ConVar sv_grenade_frag_byteams("sv_grenade_frag_byteams", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Enable team-based colors for frag grenades when mp_teamplay is 1 (0=disabled, 1=enabled)");
-ConVar sv_grenade_frag_rebels_trail_color("sv_grenade_frag_rebels_trail_color", "255,0,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Trail color for rebels team grenades in R,G,B,A format");
-ConVar sv_grenade_frag_rebels_glow_color("sv_grenade_frag_rebels_glow_color", "255,0,0,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Glow color for rebels team grenades in R,G,B,A format");
-ConVar sv_grenade_frag_combine_trail_color("sv_grenade_frag_combine_trail_color", "0,100,255,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Trail color for combine team grenades in R,G,B,A format");
-ConVar sv_grenade_frag_combine_glow_color("sv_grenade_frag_combine_glow_color", "0,100,255,255", FCVAR_REPLICATED | FCVAR_NOTIFY, "Glow color for combine team grenades in R,G,B,A format");
+ConVar sv_grenade_frag_byteams("sv_grenade_frag_byteams", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable team-based colors for frag grenades when mp_teamplay is 1 (0=disabled, 1=enabled)");
+ConVar sv_grenade_frag_rebels_trail_color("sv_grenade_frag_rebels_trail_color", "255,0,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trail color for rebels team grenades in R,G,B,A format");
+ConVar sv_grenade_frag_rebels_glow_color("sv_grenade_frag_rebels_glow_color", "255,0,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for rebels team grenades in R,G,B,A format");
+ConVar sv_grenade_frag_combine_trail_color("sv_grenade_frag_combine_trail_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trail color for combine team grenades in R,G,B,A format");
+ConVar sv_grenade_frag_combine_glow_color("sv_grenade_frag_combine_glow_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for combine team grenades in R,G,B,A format");
 // ==================================================================================================
 // FIM DAS MODIFICAÇÕES
 // ==================================================================================================

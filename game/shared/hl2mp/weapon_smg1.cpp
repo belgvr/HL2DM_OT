@@ -27,23 +27,23 @@
 #include "tier0/memdbgon.h"
 
 //- V V V - CONVARS - V V V -
-ConVar sv_smg1_damage_grenade("sv_smg1_damage_grenade", "100", FCVAR_REPLICATED | FCVAR_NOTIFY, "Damage of the SMG1's secondary grenade.");
-ConVar sv_smg1_radius_grenade("sv_smg1_radius_grenade", "250", FCVAR_REPLICATED | FCVAR_NOTIFY, "Radius of the SMG1's secondary grenade damage.");
-ConVar sv_smg1_firerate("sv_smg1_firerate", "0.075", FCVAR_REPLICATED | FCVAR_NOTIFY, "Fire rate of the SMG1 (13.3hz default).");
-ConVar sv_smg1_spread("sv_smg1_spread", "5.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Bullet spread cone for the SMG1 in degrees.");
-ConVar sv_smg1_min_burst("sv_smg1_min_burst", "2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum burst size for SMG1 NPCs.");
-ConVar sv_smg1_max_burst("sv_smg1_max_burst", "5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum burst size for SMG1 NPCs.");
-ConVar sv_smg1_npc_max_range("sv_smg1_npc_max_range", "1400", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum range for NPCs using the SMG1.");
-ConVar sv_smg1_grenade_throw_velocity("sv_smg1_grenade_throw_velocity", "1000", FCVAR_REPLICATED | FCVAR_NOTIFY, "Initial velocity of the thrown grenade.");
+ConVar sv_smg1_damage_grenade("sv_smg1_damage_grenade", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage of the SMG1's secondary grenade.");
+ConVar sv_smg1_radius_grenade("sv_smg1_radius_grenade", "250", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Radius of the SMG1's secondary grenade damage.");
+ConVar sv_smg1_firerate("sv_smg1_firerate", "0.075", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fire rate of the SMG1 (13.3hz default).");
+ConVar sv_smg1_spread("sv_smg1_spread", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Bullet spread cone for the SMG1 in degrees.");
+ConVar sv_smg1_min_burst("sv_smg1_min_burst", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum burst size for SMG1 NPCs.");
+ConVar sv_smg1_max_burst("sv_smg1_max_burst", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum burst size for SMG1 NPCs.");
+ConVar sv_smg1_npc_max_range("sv_smg1_npc_max_range", "1400", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum range for NPCs using the SMG1.");
+ConVar sv_smg1_grenade_throw_velocity("sv_smg1_grenade_throw_velocity", "1000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial velocity of the thrown grenade.");
 
 // View Kick CVars
-ConVar sv_smg1_kick_dampen("sv_smg1_kick_dampen", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Dampening factor for view kick.");
-ConVar sv_smg1_kick_max_vertical("sv_smg1_kick_max_vertical", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum vertical kick in degrees.");
-ConVar sv_smg1_kick_slide_limit("sv_smg1_kick_slide_limit", "2.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Slide limit for view kick in seconds.");
+ConVar sv_smg1_kick_dampen("sv_smg1_kick_dampen", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dampening factor for view kick.");
+ConVar sv_smg1_kick_max_vertical("sv_smg1_kick_max_vertical", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical kick in degrees.");
+ConVar sv_smg1_kick_slide_limit("sv_smg1_kick_slide_limit", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slide limit for view kick in seconds.");
 
 // Secondary Attack Timing CVars
-ConVar sv_smg1_grenade_next_primary_delay("sv_smg1_grenade_next_primary_delay", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay before primary fire is available after grenade launch.");
-ConVar sv_smg1_grenade_next_secondary_delay("sv_smg1_grenade_next_secondary_delay", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay before another grenade can be launched.");
+ConVar sv_smg1_grenade_next_primary_delay("sv_smg1_grenade_next_primary_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before primary fire is available after grenade launch.");
+ConVar sv_smg1_grenade_next_secondary_delay("sv_smg1_grenade_next_secondary_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before another grenade can be launched.");
 //- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 class CWeaponSMG1 : public CHL2MPMachineGun

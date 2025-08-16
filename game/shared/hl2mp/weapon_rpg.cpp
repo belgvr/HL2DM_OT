@@ -54,7 +54,7 @@ static ConVar sk_apc_missile_damage("sk_apc_missile_damage", "15");
 #endif
 
 
-ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
+ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
 
 
 //-----------------------------------------------------------------------------

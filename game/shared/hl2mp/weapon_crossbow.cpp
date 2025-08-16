@@ -42,8 +42,8 @@ extern ConVar sk_npc_dmg_crossbow;
 extern ConVar sv_crossbow_zoom_fov;
 extern ConVar sv_crossbow_recoil_pitch;
 
-ConVar sv_crossbow_zoom_fov("sv_crossbow_zoom_fov", "20", FCVAR_REPLICATED | FCVAR_NOTIFY, "Crossbow zoom FOV (smaller values = more zoom). Default: 20");
-ConVar sv_crossbow_recoil_pitch("sv_crossbow_recoil_pitch", "-2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Crossbow recoil pitch angle (negative values = kick upward). Default: -2");
+ConVar sv_crossbow_zoom_fov("sv_crossbow_zoom_fov", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Crossbow zoom FOV (smaller values = more zoom). Default: 20");
+ConVar sv_crossbow_recoil_pitch("sv_crossbow_recoil_pitch", "-2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Crossbow recoil pitch angle (negative values = kick upward). Default: -2");
 
 void TE_StickyBolt(IRecipientFilter& filter, float delay, Vector vecDirection, const Vector* origin);
 

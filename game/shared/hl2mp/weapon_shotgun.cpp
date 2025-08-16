@@ -24,7 +24,7 @@ extern ConVar sk_auto_reload_time;
 extern ConVar sk_plr_num_shotgun_pellets;
 extern ConVar sv_shotgun_swap_fix;
 
-ConVar sv_shotgun_swap_fix("sv_shotgun_swap_fix", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Prevent shotgun from reloading when quickly weapon swapped after firing (0 = disabled, 1 = enabled)");
+ConVar sv_shotgun_swap_fix("sv_shotgun_swap_fix", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Prevent shotgun from reloading when quickly weapon swapped after firing (0 = disabled, 1 = enabled)");
 
 class CWeaponShotgun : public CBaseHL2MPCombatWeapon
 {

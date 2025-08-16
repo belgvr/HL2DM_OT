@@ -27,63 +27,63 @@
 ConVar sv_357_firerate_delay(
 	"sv_357_firerate_delay",
 	"0.75",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Delay between primary .357 shots (in seconds)"
 );
 
 ConVar sv_357_zoom_enable(
 	"sv_357_zoom_enable",
 	"0",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Enable zoom functionality for .357 Magnum (0=disabled, 1=enabled)"
 );
 
 ConVar sv_357_zoom_level(
 	"sv_357_zoom_level",
 	"30",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"FOV level when zoomed with .357 Magnum (lower = more zoom)"
 );
 
 ConVar sv_357_recoil_punch_vertical(
 	"sv_357_recoil_punch_vertical",
 	"8.0",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Vertical recoil punch intensity for .357 Magnum"
 );
 
 ConVar sv_357_recoil_punch_horizontal(
 	"sv_357_recoil_punch_horizontal",
 	"2.0",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Horizontal recoil punch spread for .357 Magnum"
 );
 
 ConVar sv_357_recoil_view_vertical(
 	"sv_357_recoil_view_vertical",
 	"1.0",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Vertical view angle recoil intensity for .357 Magnum"
 );
 
 ConVar sv_357_recoil_view_horizontal(
 	"sv_357_recoil_view_horizontal",
 	"1.0",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Horizontal view angle recoil intensity for .357 Magnum"
 );
 
 ConVar sv_357_recoil_enable_viewpunch(
 	"sv_357_recoil_enable_viewpunch",
 	"1",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Enable viewpunch recoil for .357 Magnum (0=disabled, 1=enabled)"
 );
 
 ConVar sv_357_recoil_enable_viewangle(
 	"sv_357_recoil_enable_viewangle",
 	"1",
-	FCVAR_REPLICATED | FCVAR_NOTIFY,
+	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Enable view angle recoil for .357 Magnum (0=disabled, 1=enabled)"
 );
 

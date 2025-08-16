@@ -17,18 +17,18 @@
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 
 //- V V V - CONVARS - V V V -
-ConVar sv_pistol_refire_time("sv_pistol_refire_time", "0.1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum time between pistol shots.");
-ConVar sv_pistol_dry_refire_time("sv_pistol_dry_refire_time", "0.2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum time between empty pistol clicks.");
+ConVar sv_pistol_refire_time("sv_pistol_refire_time", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum time between pistol shots.");
+ConVar sv_pistol_dry_refire_time("sv_pistol_dry_refire_time", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum time between empty pistol clicks.");
 
-ConVar sv_pistol_spread_min("sv_pistol_spread_min", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum bullet spread cone in degrees (perfect accuracy).");
-ConVar sv_pistol_spread_max("sv_pistol_spread_max", "6.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum bullet spread cone in degrees (full penalty).");
+ConVar sv_pistol_spread_min("sv_pistol_spread_min", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum bullet spread cone in degrees (perfect accuracy).");
+ConVar sv_pistol_spread_max("sv_pistol_spread_max", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum bullet spread cone in degrees (full penalty).");
 
-ConVar sv_pistol_viewkick_pitch_min("sv_pistol_viewkick_pitch_min", "0.25", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum vertical view kick (pitch).");
-ConVar sv_pistol_viewkick_pitch_max("sv_pistol_viewkick_pitch_max", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum vertical view kick (pitch).");
-ConVar sv_pistol_viewkick_yaw("sv_pistol_viewkick_yaw", "0.6", FCVAR_REPLICATED | FCVAR_NOTIFY, "Magnitude of random horizontal view kick (yaw).");
-ConVar sv_pistol_viewkick_roll("sv_pistol_viewkick_roll", "0.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Magnitude of random view roll. (Default: 0)");
+ConVar sv_pistol_viewkick_pitch_min("sv_pistol_viewkick_pitch_min", "0.25", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum vertical view kick (pitch).");
+ConVar sv_pistol_viewkick_pitch_max("sv_pistol_viewkick_pitch_max", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical view kick (pitch).");
+ConVar sv_pistol_viewkick_yaw("sv_pistol_viewkick_yaw", "0.6", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Magnitude of random horizontal view kick (yaw).");
+ConVar sv_pistol_viewkick_roll("sv_pistol_viewkick_roll", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Magnitude of random view roll. (Default: 0)");
 
-ConVar sv_pistol_acc_penalty_initial("sv_pistol_acc_penalty_initial", "0.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Initial accuracy penalty. Set to 0 for perfect accuracy on first shot.");
+ConVar sv_pistol_acc_penalty_initial("sv_pistol_acc_penalty_initial", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial accuracy penalty. Set to 0 for perfect accuracy on first shot.");
 //- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 #define	PISTOL_ACCURACY_SHOT_PENALTY_TIME		0.2f	// Applied amount of time each shot adds to the time we must recover from

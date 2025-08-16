@@ -27,34 +27,34 @@
 
 //- V V V - CONVARS - V V V -
 // Primary Fire
-ConVar sv_ar2_kick_dampen("sv_ar2_kick_dampen", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Dampening factor for AR2 view kick.");
-ConVar sv_ar2_kick_max_vertical("sv_ar2_kick_max_vertical", "8.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum vertical kick in degrees for AR2.");
-ConVar sv_ar2_kick_slide_limit("sv_ar2_kick_slide_limit", "5.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Slide limit for AR2 view kick in seconds.");
+ConVar sv_ar2_kick_dampen("sv_ar2_kick_dampen", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dampening factor for AR2 view kick.");
+ConVar sv_ar2_kick_max_vertical("sv_ar2_kick_max_vertical", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical kick in degrees for AR2.");
+ConVar sv_ar2_kick_slide_limit("sv_ar2_kick_slide_limit", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slide limit for AR2 view kick in seconds.");
 
 // Secondary Fire (Combine Ball)
-ConVar sv_ar2_alt_fire_radius("sv_ar2_alt_fire_radius", "10", FCVAR_REPLICATED | FCVAR_NOTIFY, "Radius of the AR2's alt-fire combine ball.");
-ConVar sv_ar2_alt_fire_duration("sv_ar2_alt_fire_duration", "4", FCVAR_REPLICATED | FCVAR_NOTIFY, "Duration of the AR2's alt-fire combine ball.");
-ConVar sv_ar2_alt_fire_mass("sv_ar2_alt_fire_mass", "150", FCVAR_REPLICATED | FCVAR_NOTIFY, "Mass of the AR2's alt-fire combine ball.");
-ConVar sv_ar2_alt_fire_velocity("sv_ar2_alt_fire_velocity", "1000", FCVAR_REPLICATED | FCVAR_NOTIFY, "Initial velocity of the AR2's alt-fire combine ball.");
-ConVar sv_ar2_alt_fire_charge_time("sv_ar2_alt_fire_charge_time", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Charge-up time for the AR2's alt-fire.");
-ConVar sv_ar2_alt_fire_cost("sv_ar2_alt_fire_cost", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Ammo cost for the AR2's alt-fire.");
+ConVar sv_ar2_alt_fire_radius("sv_ar2_alt_fire_radius", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Radius of the AR2's alt-fire combine ball.");
+ConVar sv_ar2_alt_fire_duration("sv_ar2_alt_fire_duration", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Duration of the AR2's alt-fire combine ball.");
+ConVar sv_ar2_alt_fire_mass("sv_ar2_alt_fire_mass", "150", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Mass of the AR2's alt-fire combine ball.");
+ConVar sv_ar2_alt_fire_velocity("sv_ar2_alt_fire_velocity", "1000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial velocity of the AR2's alt-fire combine ball.");
+ConVar sv_ar2_alt_fire_charge_time("sv_ar2_alt_fire_charge_time", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Charge-up time for the AR2's alt-fire.");
+ConVar sv_ar2_alt_fire_cost("sv_ar2_alt_fire_cost", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ammo cost for the AR2's alt-fire.");
 
 // Secondary Fire Cooldowns
-ConVar sv_ar2_alt_fire_next_primary_delay("sv_ar2_alt_fire_next_primary_delay", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay before primary fire is available after alt-fire.");
-ConVar sv_ar2_alt_fire_next_secondary_delay("sv_ar2_alt_fire_next_secondary_delay", "1.0", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay before another alt-fire can be launched.");
-ConVar sv_ar2_alt_fire_dryfire_delay("sv_ar2_alt_fire_dryfire_delay", "0.5", FCVAR_REPLICATED | FCVAR_NOTIFY, "Delay for alt-fire dryfire sound.");
+ConVar sv_ar2_alt_fire_next_primary_delay("sv_ar2_alt_fire_next_primary_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before primary fire is available after alt-fire.");
+ConVar sv_ar2_alt_fire_next_secondary_delay("sv_ar2_alt_fire_next_secondary_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before another alt-fire can be launched.");
+ConVar sv_ar2_alt_fire_dryfire_delay("sv_ar2_alt_fire_dryfire_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay for alt-fire dryfire sound.");
 
 // Secondary Fire View Punch
-ConVar sv_ar2_alt_punch_pitch_min("sv_ar2_alt_punch_pitch_min", "-12", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum vertical view punch for alt-fire.");
-ConVar sv_ar2_alt_punch_pitch_max("sv_ar2_alt_punch_pitch_max", "-8", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum vertical view punch for alt-fire.");
-ConVar sv_ar2_alt_punch_yaw_min("sv_ar2_alt_punch_yaw_min", "1", FCVAR_REPLICATED | FCVAR_NOTIFY, "Minimum horizontal view punch for alt-fire.");
-ConVar sv_ar2_alt_punch_yaw_max("sv_ar2_alt_punch_yaw_max", "2", FCVAR_REPLICATED | FCVAR_NOTIFY, "Maximum horizontal view punch for alt-fire.");
+ConVar sv_ar2_alt_punch_pitch_min("sv_ar2_alt_punch_pitch_min", "-12", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum vertical view punch for alt-fire.");
+ConVar sv_ar2_alt_punch_pitch_max("sv_ar2_alt_punch_pitch_max", "-8", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical view punch for alt-fire.");
+ConVar sv_ar2_alt_punch_yaw_min("sv_ar2_alt_punch_yaw_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum horizontal view punch for alt-fire.");
+ConVar sv_ar2_alt_punch_yaw_max("sv_ar2_alt_punch_yaw_max", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum horizontal view punch for alt-fire.");
 
 // NPC Ranges
-ConVar sv_ar2_npc_min_range1("sv_ar2_npc_min_range1", "65", FCVAR_REPLICATED | FCVAR_NOTIFY, "NPC minimum primary fire range.");
-ConVar sv_ar2_npc_max_range1("sv_ar2_npc_max_range1", "2048", FCVAR_REPLICATED | FCVAR_NOTIFY, "NPC maximum primary fire range.");
-ConVar sv_ar2_npc_min_range2("sv_ar2_npc_min_range2", "256", FCVAR_REPLICATED | FCVAR_NOTIFY, "NPC minimum secondary fire range.");
-ConVar sv_ar2_npc_max_range2("sv_ar2_npc_max_range2", "1024", FCVAR_REPLICATED | FCVAR_NOTIFY, "NPC maximum secondary fire range.");
+ConVar sv_ar2_npc_min_range1("sv_ar2_npc_min_range1", "65", FCVAR_GAMEDLL | FCVAR_NOTIFY, "NPC minimum primary fire range.");
+ConVar sv_ar2_npc_max_range1("sv_ar2_npc_max_range1", "2048", FCVAR_GAMEDLL | FCVAR_NOTIFY, "NPC maximum primary fire range.");
+ConVar sv_ar2_npc_min_range2("sv_ar2_npc_min_range2", "256", FCVAR_GAMEDLL | FCVAR_NOTIFY, "NPC minimum secondary fire range.");
+ConVar sv_ar2_npc_max_range2("sv_ar2_npc_max_range2", "1024", FCVAR_GAMEDLL | FCVAR_NOTIFY, "NPC maximum secondary fire range.");
 //- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 
