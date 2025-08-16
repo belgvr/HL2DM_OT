@@ -1,6 +1,4 @@
-// TEST FROM LAPTOP
-// 
-// 
+// GARBAGE
 // //========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
