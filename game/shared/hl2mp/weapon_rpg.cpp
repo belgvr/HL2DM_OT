@@ -59,13 +59,6 @@ ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR
 ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
 ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_REPLICATED | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 500.0f, true, 5000.0f);
 
-// CVars para o sistema de alternância de modos - SONS SEPARADOS
-ConVar sv_rpg_laser_on_sound("sv_rpg_laser_on_sound", "weapons/sniper/sniper_zoomin.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound to play when turning laser ON");
-ConVar sv_rpg_laser_off_sound("sv_rpg_laser_off_sound", "weapons/sniper/sniper_zoomout.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound to play when turning laser OFF");
-
-// CVars para o sistema de alternância de modos - Delay
-ConVar sv_rpg_toggle_delay("sv_rpg_toggle_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between RPG mode toggles in seconds", true, 0.2f, true, 1.0f);
-
 //-----------------------------------------------------------------------------
 // Laser Dot
 //-----------------------------------------------------------------------------
@@ -1367,8 +1360,7 @@ CWeaponRPG::CWeaponRPG()
 	m_bInitialStateUpdate = false;
 	m_bHideGuiding = false;
 	m_bGuiding = false;
-	m_bLaserToggleMode = true;
-	m_bSecondaryWasPressed = false;  // ADICIONAR ESTA LINHA
+	m_bLaserToggleMode = true;  // ADICIONAR ESTA LINHA
 
 	m_fMinRange1 = m_fMinRange2 = 40 * 12;
 	m_fMaxRange1 = m_fMaxRange2 = 500 * 12;
@@ -1398,43 +1390,6 @@ void CWeaponRPG::Precache(void)
 	PrecacheScriptSound("Missile.Ignite");
 	PrecacheScriptSound("Missile.Accelerate");
 
-	// PRECACHE OBRIGATÓRIO DOS SONS PADRÃO - sempre fazer precache dos sons padrão
-	PrecacheScriptSound("weapons/sniper/sniper_zoomin.wav");
-	PrecacheScriptSound("weapons/sniper/sniper_zoomout.wav");
-
-	// Força precache usando enginesound também
-	enginesound->PrecacheSound("weapons/sniper/sniper_zoomin.wav", true);
-	enginesound->PrecacheSound("weapons/sniper/sniper_zoomout.wav", true);
-
-	// Precache usando CBaseEntity também
-	CBaseEntity::PrecacheSound("weapons/sniper/sniper_zoomin.wav");
-	CBaseEntity::PrecacheSound("weapons/sniper/sniper_zoomout.wav");
-
-	// Agora precache dos sons customizados dos ConVars (se diferentes dos padrão)
-	const char* laserOnSound = sv_rpg_laser_on_sound.GetString();
-	if (laserOnSound && strlen(laserOnSound) > 0)
-	{
-		// Só faz precache se for diferente do padrão
-		if (Q_stricmp(laserOnSound, "weapons/sniper/sniper_zoomin.wav") != 0)
-		{
-			PrecacheScriptSound(laserOnSound);
-			enginesound->PrecacheSound(laserOnSound, true);
-			CBaseEntity::PrecacheSound(laserOnSound);
-		}
-	}
-
-	const char* laserOffSound = sv_rpg_laser_off_sound.GetString();
-	if (laserOffSound && strlen(laserOffSound) > 0)
-	{
-		// Só faz precache se for diferente do padrão
-		if (Q_stricmp(laserOffSound, "weapons/sniper/sniper_zoomout.wav") != 0)
-		{
-			PrecacheScriptSound(laserOffSound);
-			enginesound->PrecacheSound(laserOffSound, true);
-			CBaseEntity::PrecacheSound(laserOffSound);
-		}
-	}
-
 	// Laser dot...
 	PrecacheModel(RPG_LASER_SPRITE);
 	PrecacheModel(RPG_BEAM_SPRITE);
@@ -1443,6 +1398,7 @@ void CWeaponRPG::Precache(void)
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther("rpg_missile");
 #endif
+
 }
 
 
@@ -1565,9 +1521,6 @@ void CWeaponRPG::PrimaryAttack(void)
 //-----------------------------------------------------------------------------
 // Purpose: Secondary Attack - Toggle laser mode
 //-----------------------------------------------------------------------------
-//-----------------------------------------------------------------------------
-// Purpose: Secondary Attack - Toggle laser mode
-//-----------------------------------------------------------------------------
 void CWeaponRPG::SecondaryAttack(void)
 {
 	// Check if secondary mode is enabled
@@ -1578,48 +1531,23 @@ void CWeaponRPG::SecondaryAttack(void)
 	if (m_hMissile != NULL)
 		return;
 
-	// Verifica delay mínimo entre alternâncias
-	if (gpGlobals->curtime < m_flNextSecondaryAttack)
-		return;
-
 	// Toggle laser mode
 	m_bLaserToggleMode = !m_bLaserToggleMode;
 
-	if (m_bLaserToggleMode)
+	if (m_bLaserToggleMode == true)
 	{
+		// Turn laser ON
 		StartGuiding();
-
-		// Som de ligar - SEM canal específico (como tripmine faz)
-		const char* sound = sv_rpg_laser_on_sound.GetString();
-		if (sound && strlen(sound) > 0)
-		{
-			EmitSound(sound);
-		}
-		else
-		{
-			// Fallback para som padrão
-			EmitSound("weapons/sniper/sniper_zoomin.wav");
-		}
+		WeaponSound(SPECIAL1);
 	}
 	else
 	{
+		// Turn laser OFF
 		StopGuiding();
-
-		// Som de desligar - SEM canal específico (como tripmine faz)
-		const char* sound = sv_rpg_laser_off_sound.GetString();
-		if (sound && strlen(sound) > 0)
-		{
-			EmitSound(sound);
-		}
-		else
-		{
-			// Fallback para som padrão
-			EmitSound("weapons/sniper/sniper_zoomout.wav");
-		}
+		WeaponSound(SPECIAL2);
 	}
 
-	// Delay to prevent rapid toggling
-	m_flNextSecondaryAttack = gpGlobals->curtime + sv_rpg_toggle_delay.GetFloat();
+	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
 }
 
 //-----------------------------------------------------------------------------
@@ -1678,33 +1606,14 @@ bool CWeaponRPG::Lower(void)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-
 void CWeaponRPG::ItemPostFrame(void)
 {
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-	if (pPlayer == NULL)
-	{
-		BaseClass::ItemPostFrame();
-		return;
-	}
-
-	// Controle manual do botão secundário para evitar alternância contínua
-	bool bSecondaryCurrentlyPressed = (pPlayer->m_nButtons & IN_ATTACK2) ? true : false;
-
-	// Se o botão foi pressionado E não estava sendo pressionado antes
-	if (bSecondaryCurrentlyPressed && !m_bSecondaryWasPressed)
-	{
-		// Executa o ataque secundário apenas uma vez
-		SecondaryAttack();
-		m_bSecondaryWasPressed = true; // Marca que já processamos esta pressionada
-	}
-	// Se o botão foi solto
-	else if (!bSecondaryCurrentlyPressed && m_bSecondaryWasPressed)
-	{
-		m_bSecondaryWasPressed = false; // Reseta para permitir nova pressionada
-	}
-
 	BaseClass::ItemPostFrame();
+
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	if (pPlayer == NULL)
+		return;
 
 	//If we're pulling the weapon out for the first time, wait to draw the laser
 	if ((m_bInitialStateUpdate) && (GetActivity() != ACT_VM_DRAW))
@@ -1715,6 +1624,7 @@ void CWeaponRPG::ItemPostFrame(void)
 
 	// Supress our guiding effects if we're lowered
 	if (GetIdealActivity() == ACT_VM_IDLE_LOWERED || !m_bLaserToggleMode)
+
 	{
 		SuppressGuiding();
 	}
@@ -1825,8 +1735,11 @@ void CWeaponRPG::StartGuiding(void)
 	m_bGuiding = true;
 
 #ifndef CLIENT_DLL
+	WeaponSound(SPECIAL1);
+
 	CreateLaserPointer();
 #endif
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1837,6 +1750,9 @@ void CWeaponRPG::StopGuiding(void)
 	m_bGuiding = false;
 
 #ifndef CLIENT_DLL
+
+	WeaponSound(SPECIAL2);
+
 	// Kill the dot completely
 	if (m_hLaserDot != NULL)
 	{
@@ -1847,12 +1763,14 @@ void CWeaponRPG::StopGuiding(void)
 #else
 	if (m_pBeam)
 	{
+		//Tell it to die right away and let the beam code free it.
 		m_pBeam->brightness = 0.0f;
 		m_pBeam->flags &= ~FBEAM_FOREVER;
 		m_pBeam->die = gpGlobals->curtime - 0.1;
 		m_pBeam = NULL;
 	}
 #endif
+
 }
 
 //-----------------------------------------------------------------------------
