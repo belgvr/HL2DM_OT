@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+Ôªø//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -28,7 +28,7 @@ ConVar sk_npc_dmg_fraggrenade("sk_npc_dmg_fraggrenade", "0");
 ConVar sk_fraggrenade_radius("sk_fraggrenade_radius", "0");
 
 // ==================================================================================================
-// INÕCIO DAS MODIFICA«’ES: NOVAS VARIAVEIS DE CONSOLE PARA CUSTOMIZA«√O
+// IN√çCIO DAS MODIFICA√á√ïES: NOVAS VARIAVEIS DE CONSOLE PARA CUSTOMIZA√á√ÉO
 // ==================================================================================================
 ConVar sv_grenade_frag_glow_sprite("sv_grenade_frag_glow_sprite", "sprites/glow01.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the frag grenade's glow.");
 ConVar sv_grenade_frag_trail_sprite("sv_grenade_frag_trail_sprite", "sprites/laser.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the frag grenade's trail.");
@@ -40,16 +40,17 @@ ConVar sv_grenade_frag_trail_lifetime("sv_grenade_frag_trail_lifetime", "0.5", F
 ConVar sv_grenade_frag_trail_startwidth("sv_grenade_frag_trail_startwidth", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Starting width of the grenade trail.");
 ConVar sv_grenade_frag_trail_endwidth("sv_grenade_frag_trail_endwidth", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ending width of the grenade trail.");
 
-// NOVAS VARIAVEIS DE CONSOLE PARA CORES POR TIME (sÛ funciona quando mp_teamplay est· 1)
+// NOVAS VARIAVEIS DE CONSOLE PARA CORES POR TIME (s√≥ funciona quando mp_teamplay est√° 1)
 ConVar sv_grenade_frag_byteams("sv_grenade_frag_byteams", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable team-based colors for frag grenades when mp_teamplay is 1 (0=disabled, 1=enabled)");
 ConVar sv_grenade_frag_rebels_trail_color("sv_grenade_frag_rebels_trail_color", "255,0,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trail color for rebels team grenades in R,G,B,A format");
 ConVar sv_grenade_frag_rebels_glow_color("sv_grenade_frag_rebels_glow_color", "255,0,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for rebels team grenades in R,G,B,A format");
 ConVar sv_grenade_frag_combine_trail_color("sv_grenade_frag_combine_trail_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trail color for combine team grenades in R,G,B,A format");
 ConVar sv_grenade_frag_combine_glow_color("sv_grenade_frag_combine_glow_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Glow color for combine team grenades in R,G,B,A format");
 // ==================================================================================================
-// FIM DAS MODIFICA«’ES
+// FIM DAS MODIFICA√á√ïES
 // ==================================================================================================
 
+extern ConVar mp_teamplay;
 
 #define GRENADE_MODEL "models/Weapons/w_grenade.mdl"
 
@@ -85,8 +86,13 @@ public:
 
 	void	InputSetTimer(inputdata_t& inputdata);
 
+	void ChangeTeamOwnership(CBasePlayer* pNewOwner);
+	float GetOriginalTimerLength() { return m_flOriginalTimer; }
+
+
 private:
 	void	GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail);
+	float m_flOriginalTimer; // Armazenar timer original
 
 protected:
 	CHandle<CSprite>		m_pMainGlow;
@@ -96,6 +102,7 @@ protected:
 	bool	m_inSolid;
 	bool	m_combineSpawned;
 	bool	m_punted;
+
 };
 
 LINK_ENTITY_TO_CLASS(npc_grenade_frag, CGrenadeFrag);
@@ -109,12 +116,15 @@ DEFINE_FIELD(m_flNextBlipTime, FIELD_TIME),
 DEFINE_FIELD(m_inSolid, FIELD_BOOLEAN),
 DEFINE_FIELD(m_combineSpawned, FIELD_BOOLEAN),
 DEFINE_FIELD(m_punted, FIELD_BOOLEAN),
+DEFINE_FIELD(m_flOriginalTimer, FIELD_FLOAT), // ‚Üê ADICIONAR ESTA LINHA
 
 // Function Pointers
 DEFINE_THINKFUNC(DelayThink),
 
 // Inputs
 DEFINE_INPUTFUNC(FIELD_FLOAT, "SetTimer", InputSetTimer),
+
+
 
 END_DATADESC()
 
@@ -178,11 +188,11 @@ void CGrenadeFrag::OnRestore(void)
 //-----------------------------------------------------------------------------
 void CGrenadeFrag::GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail)
 {
-	// Verificar se mp_teamplay est· ativo
+	// Verificar se mp_teamplay est√° ativo
 	ConVar* mp_teamplay = cvar->FindVar("mp_teamplay");
 	bool isTeamplayActive = (mp_teamplay && mp_teamplay->GetBool());
 
-	// Se teamplay estiver desativo OU byteams desabilitado, usar cores padr„o
+	// Se teamplay estiver desativo OU byteams desabilitado, usar cores padr√£o
 	if (!isTeamplayActive || !sv_grenade_frag_byteams.GetBool())
 	{
 		const char* colorString = isTrail ? sv_grenade_frag_trail_color.GetString() : sv_grenade_frag_glow_color.GetString();
@@ -194,7 +204,7 @@ void CGrenadeFrag::GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail)
 		return;
 	}
 
-	// Determinar time baseado no owner (sÛ quando teamplay ativo)
+	// Determinar time baseado no owner (s√≥ quando teamplay ativo)
 	bool isCombineTeam = false;
 
 	if (GetOwnerEntity() && GetOwnerEntity()->IsPlayer())
@@ -233,7 +243,7 @@ void CGrenadeFrag::GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail)
 // Purpose: 
 //-----------------------------------------------------------------------------
 // ==================================================================================================
-// INÕCIO DAS MODIFICA«’ES: FunÁ„o CreateEffects modificada para usar cores por time
+// IN√çCIO DAS MODIFICA√á√ïES: Fun√ß√£o CreateEffects modificada para usar cores por time
 // ==================================================================================================
 void CGrenadeFrag::CreateEffects(void)
 {
@@ -279,7 +289,7 @@ void CGrenadeFrag::CreateEffects(void)
 	}
 }
 // ==================================================================================================
-// FIM DAS MODIFICA«’ES
+// FIM DAS MODIFICA√á√ïES
 // ==================================================================================================
 
 
@@ -374,7 +384,7 @@ void CGrenadeFrag::VPhysicsUpdate(IPhysicsObject* pPhysics)
 }
 
 // ==================================================================================================
-// INÕCIO DAS MODIFICA«’ES: FunÁ„o Precache modificada
+// IN√çCIO DAS MODIFICA√á√ïES: Fun√ß√£o Precache modificada
 // ==================================================================================================
 void CGrenadeFrag::Precache(void)
 {
@@ -389,11 +399,17 @@ void CGrenadeFrag::Precache(void)
 	BaseClass::Precache();
 }
 // ==================================================================================================
-// FIM DAS MODIFICA«’ES
+// FIM DAS MODIFICA√á√ïES
 // ==================================================================================================
 
 void CGrenadeFrag::SetTimer(float detonateDelay, float warnDelay)
 {
+	// Salvar timer original na primeira vez
+	if (m_flOriginalTimer <= 0)
+	{
+		m_flOriginalTimer = detonateDelay;
+	}
+
 	m_flDetonateTime = gpGlobals->curtime + detonateDelay;
 	m_flWarnAITime = gpGlobals->curtime + warnDelay;
 	SetThink(&CGrenadeFrag::DelayThink);
@@ -404,6 +420,9 @@ void CGrenadeFrag::SetTimer(float detonateDelay, float warnDelay)
 
 void CGrenadeFrag::OnPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
 {
+	// NOVA FUNCIONALIDADE: Verificar mudan√ßa de time
+	ChangeTeamOwnership(pPhysGunUser);
+
 	SetThrower(pPhysGunUser);
 
 #ifdef HL2MP
@@ -523,4 +542,53 @@ bool Fraggrenade_WasCreatedByCombine(const CBaseEntity* pEntity)
 	}
 
 	return false;
+}
+
+void CGrenadeFrag::ChangeTeamOwnership(CBasePlayer* pNewOwner)
+{
+	ConVar* mp_teamplay = cvar->FindVar("mp_teamplay");
+	if (!mp_teamplay || !mp_teamplay->GetBool())
+		return; // S√≥ funciona em teamplay
+
+	CBasePlayer* pOriginalOwner = ToBasePlayer(GetOwnerEntity());
+
+	if (!pOriginalOwner || !pNewOwner)
+		return;
+
+	// Verificar se s√£o de times diferentes
+	if (pOriginalOwner->GetTeamNumber() != pNewOwner->GetTeamNumber())
+	{
+		// Trocar dono
+		SetOwnerEntity(pNewOwner);
+		SetThrower(pNewOwner);
+
+		// Resetar timer da granada para o valor original
+		if (m_flOriginalTimer > 0)
+		{
+			SetTimer(m_flOriginalTimer, m_flOriginalTimer - FRAG_GRENADE_WARN_TIME);
+		}
+
+		// Recrear efeitos visuais com nova cor do time
+		if (m_pMainGlow.Get())
+		{
+			m_pMainGlow->Remove();
+			m_pMainGlow = NULL;
+		}
+		if (m_pGlowTrail.Get())
+		{
+			m_pGlowTrail->Remove();
+			m_pGlowTrail = NULL;
+		}
+
+		// Criar novos efeitos com cor do novo time
+		CreateEffects();
+
+		// Som de mudan√ßa de time
+		EmitSound("Grenade.Blip"); // Ou crie um som espec√≠fico
+
+		// Debug/feedback
+		DevMsg("Granada trocou de time: %s -> %s\n",
+			pOriginalOwner->GetPlayerName(),
+			pNewOwner->GetPlayerName());
+	}
 }

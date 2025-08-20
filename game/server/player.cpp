@@ -102,6 +102,8 @@ ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCV
 
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
+ConVar sv_ear_ring("sv_ear_ring",	"0",	FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Ativa/Desativa o efeito de ear ringing quando o player leva explosão (0 = off, 1 = on)");
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1437,31 +1439,35 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 // Purpose: 
 // Input  : &info - 
 //-----------------------------------------------------------------------------
-void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
+void CBasePlayer::OnDamagedByExplosion(const CTakeDamageInfo& info)
 {
-	float lastDamage = info.GetDamage();
+	// se cvar estiver 0, não faz nada
+	if (sv_ear_ring.GetInt() == 0)
+		return;
 
+	float lastDamage = info.GetDamage();
 	float distanceFromPlayer = 9999.0f;
 
-	CBaseEntity *inflictor = info.GetInflictor();
-	if ( inflictor )
+	CBaseEntity* inflictor = info.GetInflictor();
+	if (inflictor)
 	{
 		Vector delta = GetAbsOrigin() - inflictor->GetAbsOrigin();
 		distanceFromPlayer = delta.Length();
 	}
 
-	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE ? true : false;
+	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE;
 	bool shock = lastDamage >= MIN_SHOCK_AND_CONFUSION_DAMAGE;
 
-	if ( !shock && !ear_ringing )
+	if (!shock && !ear_ringing)
 		return;
 
-	int effect = shock ? 
-		random->RandomInt( 35, 37 ) : 
-		random->RandomInt( 32, 34 );
+	int effect = shock ?
+		random->RandomInt(35, 37) :
+		random->RandomInt(32, 34);
 
-	CSingleUserRecipientFilter user( this );
-	enginesound->SetPlayerDSP( user, effect, false );
+	CSingleUserRecipientFilter user(this);
+	enginesound->SetPlayerDSP(user, effect, false);
+	iDamageTime = gpGlobals->curtime;
 }
 
 //=========================================================

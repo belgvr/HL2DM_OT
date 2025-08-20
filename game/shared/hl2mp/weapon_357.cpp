@@ -33,7 +33,7 @@ ConVar sv_357_firerate_delay(
 
 ConVar sv_357_zoom_enable(
 	"sv_357_zoom_enable",
-	"0",
+	"1",
 	FCVAR_GAMEDLL | FCVAR_NOTIFY,
 	"Enable zoom functionality for .357 Magnum (0=disabled, 1=enabled)"
 );

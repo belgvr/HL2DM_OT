@@ -31,6 +31,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+ConVar sv_fall_death_blackscreen(	"sv_fall_death_blackscreen",	"0",	FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Enable black screen effect when player dies from fall damage (0=disabled, 1=enabled)");
+
 extern IPhysicsCollision *physcollision;
 
 
@@ -390,12 +392,12 @@ bool CMoveHelperServer::PlayerFallingDamage( void )
 
     }
 
-	if ( m_pHostPlayer->m_iHealth <= 0 )
+	if (m_pHostPlayer->m_iHealth <= 0)
 	{
-		if ( g_pGameRules->FlPlayerFallDeathDoesScreenFade( m_pHostPlayer ) )
+		if (g_pGameRules->FlPlayerFallDeathDoesScreenFade(m_pHostPlayer) && sv_fall_death_blackscreen.GetBool())
 		{
-			color32 black = {0, 0, 0, 255};
-			UTIL_ScreenFade( m_pHostPlayer, black, 0, 9999, FFADE_OUT | FFADE_STAYOUT );
+			color32 black = { 0, 0, 0, 255 };
+			UTIL_ScreenFade(m_pHostPlayer, black, 0, 9999, FFADE_OUT | FFADE_STAYOUT);
 		}
 		return(false);
 	}

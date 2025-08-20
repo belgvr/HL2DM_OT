@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -55,9 +55,17 @@ static ConVar sk_apc_missile_damage("sk_apc_missile_damage", "15");
 
 
 ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
-// CVars para o sistema secund�rio da RPG
+// CVars para o sistema secundário da RPG
 ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
-ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_REPLICATED | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 500.0f, true, 5000.0f);
+ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 1.0f, true, 10000.0f);
+ConVar sv_rpg_missile_shotdown("sv_rpg_missile_shotdown", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable or disable the ability to shoot down RPG missiles. 1 = Yes, 0 = No");
+
+ConVar sv_rpg_missile_kill_credit("sv_rpg_missile_kill_credit", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Who gets kill credit when missile is shot down. 0=Original shooter, 1=Who shot it down");
+ConVar sv_rpg_missile_hitbox_scale("sv_rpg_missile_hitbox_scale", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Scale factor for RPG missile hitbox. Higher = easier to hit", true, 1.0f, true, 50.0f);
+
+ConVar sv_rpg_weapon_switch("sv_rpg_weapon_switch", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Allow weapon switching while RPG missile is active. 0=Block switching, 1=Allow switching");
+ConVar sv_rpg_missile_shotdown_explode("sv_rpg_missile_shotdown_explode", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Shot down missiles explode on ground impact. 0=No explosion, 1=Explode normally");
+
 
 //-----------------------------------------------------------------------------
 // Laser Dot
@@ -126,10 +134,8 @@ CLaserDot* GetLaserDotList()
 }
 
 BEGIN_DATADESC(CMissile)
-
-
-DEFINE_FIELD(m_bDumbFireMode, FIELD_BOOLEAN),  // ADICIONAR ESTA LINHA
-
+DEFINE_FIELD(m_bDumbFireMode, FIELD_BOOLEAN),
+DEFINE_FIELD(m_hAttacker, FIELD_EHANDLE),
 DEFINE_FIELD(m_hOwner, FIELD_EHANDLE),
 DEFINE_FIELD(m_hRocketTrail, FIELD_EHANDLE),
 DEFINE_FIELD(m_flAugerTime, FIELD_TIME),
@@ -143,8 +149,8 @@ DEFINE_FUNCTION(AccelerateThink),
 DEFINE_FUNCTION(AugerThink),
 DEFINE_FUNCTION(IgniteThink),
 DEFINE_FUNCTION(SeekThink),
-
 END_DATADESC()
+
 
 
 
@@ -158,7 +164,8 @@ class CWeaponRPG;
 CMissile::CMissile()
 {
 	m_hRocketTrail = NULL;
-	m_bDumbFireMode = false;  // ADICIONAR ESTA LINHA
+	m_hAttacker = NULL;
+	m_bDumbFireMode = false;
 }
 
 CMissile::~CMissile()
@@ -190,18 +197,22 @@ void CMissile::Spawn(void)
 
 	SetSolid(SOLID_BBOX);
 	SetModel("models/weapons/w_missile_launch.mdl");
-	UTIL_SetSize(this, -Vector(4, 4, 4), Vector(4, 4, 4));
+
+	// HITBOX CUSTOMIZÁVEL - CORRIGIDO!
+	float scale = sv_rpg_missile_hitbox_scale.GetFloat();
+	Vector hitboxSize = Vector(4, 4, 4) * scale;
+	UTIL_SetSize(this, -hitboxSize, hitboxSize);
 
 	SetTouch(&CMissile::MissileTouch);
 
 	SetMoveType(MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE);
 	SetThink(&CMissile::IgniteThink);
 
-	// DELAY CUSTOMIZADO PARA IGNI��O DO M�SSIL
+	// DELAY CUSTOMIZADO PARA IGNIÇÃO DO MÍSSIL
 	SetNextThink(gpGlobals->curtime + sv_rpg_missile_ignition_delay.GetFloat());
 
-	m_takedamage = DAMAGE_YES;
-	m_iHealth = m_iMaxHealth = 100;
+	m_takedamage = DAMAGE_YES;  // ✅ Já está correto
+	m_iHealth = m_iMaxHealth = 100;  // ✅ Já está correto
 	m_bloodColor = DONT_BLEED;
 	m_flGracePeriodEndsAt = 0;
 
@@ -227,18 +238,27 @@ unsigned int CMissile::PhysicsSolidMaskForEntity(void) const
 //---------------------------------------------------------
 int CMissile::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 {
-	if ((info.GetDamageType() & (DMG_MISSILEDEFENSE | DMG_AIRBOAT)) == false)
+	unsigned int damageMask = (DMG_MISSILEDEFENSE | DMG_AIRBOAT);
+
+	// Se a cvar estiver ativada, adicione os tipos de dano de armas comuns
+	if (sv_rpg_missile_shotdown.GetBool())
+	{
+		damageMask |= (DMG_BULLET | DMG_SLASH | DMG_BLAST);
+	}
+
+	if ((info.GetDamageType() & damageMask) == false)
 		return 0;
+
+	// Salve o atacante para a lógica de crédito de kill.
+	m_hAttacker = info.GetAttacker();
 
 	bool bIsDamaged;
 	if (m_iHealth <= AugerHealth())
 	{
-		// This missile is already damaged (i.e., already running AugerThink)
 		bIsDamaged = true;
 	}
 	else
 	{
-		// This missile isn't damaged enough to wobble in flight yet
 		bIsDamaged = false;
 	}
 
@@ -248,7 +268,7 @@ int CMissile::OnTakeDamage_Alive(const CTakeDamageInfo& info)
 	{
 		if (m_iHealth <= AugerHealth())
 		{
-			ShotDown();
+			ShotDown();  // ✅ Chama ShotDown quando vida baixa
 		}
 	}
 
@@ -374,8 +394,27 @@ void CMissile::ShotDown(void)
 //-----------------------------------------------------------------------------
 void CMissile::DoExplosion(void)
 {
-	// Explode
-	ExplosionCreate(GetAbsOrigin(), GetAbsAngles(), GetOwnerEntity(), GetDamage(), GetDamage() * 2,
+	CBaseEntity* pAttacker = NULL;
+
+	// Verificar quem deve levar o crédito
+	if (m_hAttacker.Get() != NULL) // Míssil foi derrubado
+	{
+		if (sv_rpg_missile_kill_credit.GetInt() == 1)
+		{
+			pAttacker = m_hAttacker.Get(); // Quem derrubou leva a kill
+		}
+		else
+		{
+			pAttacker = GetOwnerEntity(); // Quem disparou leva a kill
+		}
+	}
+	else
+	{
+		pAttacker = GetOwnerEntity(); // Comportamento normal
+	}
+
+	ExplosionCreate(GetAbsOrigin(), GetAbsAngles(), pAttacker,
+		GetDamage(), GetDamage() * 2,
 		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 }
 
@@ -429,6 +468,53 @@ void CMissile::MissileTouch(CBaseEntity* pOther)
 	if (pOther->IsSolidFlagSet(FSOLID_TRIGGER | FSOLID_VOLUME_CONTENTS) && pOther->GetCollisionGroup() != COLLISION_GROUP_WEAPON)
 		return;
 
+	// VERIFICAR SE FOI DERRUBADO E SE DEVE EXPLODIR
+	if (m_hAttacker.Get() != NULL && !sv_rpg_missile_shotdown_explode.GetBool())
+	{
+		// Míssil foi derrubado e não deve explodir - CAIR COMO PROP MORTO
+
+		// Parar o som
+		StopSound("Missile.Ignite");
+
+		// Remover trail de fumaça
+		if (m_hRocketTrail)
+		{
+			m_hRocketTrail->SetLifetime(0.1f);
+			m_hRocketTrail = NULL;
+		}
+
+		// Criar física para o objeto
+		VPhysicsInitNormal(SOLID_VPHYSICS, 0, false);
+
+		// Tornar inofensivo
+		m_takedamage = DAMAGE_NO;
+		SetTouch(NULL); // Não explode mais ao tocar
+		SetThink(NULL); // Parar qualquer pensamento
+
+		// Dar uma pequena rotação para parecer mais realístico
+		Vector vecVelocity = GetAbsVelocity();
+		vecVelocity *= 0.3f; // Reduzir velocidade
+		SetAbsVelocity(vecVelocity);
+
+		// Rotação aleatória
+		QAngle angVelocity;
+		angVelocity.x = random->RandomFloat(-360, 360);
+		angVelocity.y = random->RandomFloat(-360, 360);
+		angVelocity.z = random->RandomFloat(-360, 360);
+		SetLocalAngularVelocity(angVelocity);
+
+		// Notificar a RPG que o míssil "morreu"
+		if (m_hOwner != NULL)
+		{
+			m_hOwner->NotifyRocketDied();
+			m_hOwner = NULL;
+		}
+
+		// Não explodir - míssil agora é um prop morto!
+		return;
+	}
+
+	// Explosão normal se não foi derrubado ou se deve explodir
 	Explode();
 }
 
@@ -1390,7 +1476,7 @@ void CWeaponRPG::Precache(void)
 	PrecacheScriptSound("Missile.Ignite");
 	PrecacheScriptSound("Missile.Accelerate");
 
-	// Laser dot...
+	// Laser dot models
 	PrecacheModel(RPG_LASER_SPRITE);
 	PrecacheModel(RPG_BEAM_SPRITE);
 	PrecacheModel(RPG_BEAM_SPRITE_NOZ);
@@ -1398,7 +1484,6 @@ void CWeaponRPG::Precache(void)
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther("rpg_missile");
 #endif
-
 }
 
 
@@ -1536,15 +1621,19 @@ void CWeaponRPG::SecondaryAttack(void)
 
 	if (m_bLaserToggleMode == true)
 	{
-		// Turn laser ON
 		StartGuiding();
-		WeaponSound(SPECIAL1);
+
+#ifndef CLIENT_DLL
+		EmitSound("Weapon_RPG.LaserOn");
+#endif
 	}
 	else
 	{
-		// Turn laser OFF
 		StopGuiding();
-		WeaponSound(SPECIAL2);
+
+#ifndef CLIENT_DLL
+		EmitSound("Weapon_RPG.LaserOff");
+#endif
 	}
 
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
@@ -1569,26 +1658,35 @@ void CWeaponRPG::SuppressGuiding(bool state)
 	m_bHideGuiding = state;
 
 #ifndef CLIENT_DLL
+	// ✅ CORRIGIDO: Se não tem laser toggle ativo, força parar
+	if (!m_bLaserToggleMode)
+	{
+		if (m_hLaserDot != NULL)
+		{
+			m_hLaserDot->TurnOff();
+			UTIL_Remove(m_hLaserDot);
+			m_hLaserDot = NULL;
+		}
+		return;
+	}
 
-	if (m_hLaserDot == NULL)
+	if (m_hLaserDot == NULL && !state && m_bLaserToggleMode)
 	{
 		StartGuiding();
-
-		//STILL!?
-		if (m_hLaserDot == NULL)
-			return;
 	}
 
-	if (state)
+	if (m_hLaserDot != NULL)
 	{
-		m_hLaserDot->TurnOff();
-	}
-	else
-	{
-		m_hLaserDot->TurnOn();
+		if (state)
+		{
+			m_hLaserDot->TurnOff();
+		}
+		else if (m_bLaserToggleMode) // ✅ CORRIGIDO: Só liga se modo laser ativo
+		{
+			m_hLaserDot->TurnOn();
+		}
 	}
 #endif
-
 }
 
 //-----------------------------------------------------------------------------
@@ -1618,27 +1716,29 @@ void CWeaponRPG::ItemPostFrame(void)
 	//If we're pulling the weapon out for the first time, wait to draw the laser
 	if ((m_bInitialStateUpdate) && (GetActivity() != ACT_VM_DRAW))
 	{
-		StartGuiding();
+		// ✅ CORRIGIDO: Só inicia o laser se estiver no modo laser
+		if (m_bLaserToggleMode)
+		{
+			StartGuiding();
+		}
 		m_bInitialStateUpdate = false;
 	}
 
-	// Supress our guiding effects if we're lowered
-	if (GetIdealActivity() == ACT_VM_IDLE_LOWERED || !m_bLaserToggleMode)
+	// ✅ CORRIGIDO: Melhor lógica para suprimir o laser
+	bool shouldSuppressLaser = (GetIdealActivity() == ACT_VM_IDLE_LOWERED) ||
+		(!m_bLaserToggleMode) ||
+		(pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0);
 
-	{
-		SuppressGuiding();
-	}
-	else
-	{
-		SuppressGuiding(false);
-	}
+	SuppressGuiding(shouldSuppressLaser);
 
 	//Move the laser
 	UpdateLaserPosition();
 
+	// ✅ CORRIGIDO: Para o laser quando não há munição E não há míssil ativo
 	if (pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0 && m_hMissile == NULL)
 	{
 		StopGuiding();
+		m_bLaserToggleMode = false; // Reset do modo quando sem munição
 	}
 }
 
@@ -1701,16 +1801,13 @@ bool CWeaponRPG::Deploy(void)
 {
 	m_bInitialStateUpdate = true;
 
+	// ✅ CORRIGIDO: Garantir que laser está no estado correto
+	if (!m_bLaserToggleMode)
+	{
+		StopGuiding();
+	}
+
 	return BaseClass::Deploy();
-}
-
-bool CWeaponRPG::CanHolster(void)
-{
-	//Can't have an active missile out
-	if (m_hMissile != NULL)
-		return false;
-
-	return BaseClass::CanHolster();
 }
 
 //-----------------------------------------------------------------------------
@@ -1718,6 +1815,7 @@ bool CWeaponRPG::CanHolster(void)
 //-----------------------------------------------------------------------------
 bool CWeaponRPG::Holster(CBaseCombatWeapon* pSwitchingTo)
 {
+	// ✅ CORRIGIDO: Sempre para o laser ao guardar a arma
 	StopGuiding();
 
 	return BaseClass::Holster(pSwitchingTo);
@@ -1728,6 +1826,14 @@ bool CWeaponRPG::Holster(CBaseCombatWeapon* pSwitchingTo)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::StartGuiding(void)
 {
+	// ✅ CORRIGIDO: Verifica se tem munição também
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer || pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+	{
+		m_bLaserToggleMode = false;
+		return;
+	}
+
 	// Don't start back up if we're overriding this
 	if (m_bHideGuiding || !m_bLaserToggleMode)
 		return;
@@ -1735,12 +1841,10 @@ void CWeaponRPG::StartGuiding(void)
 	m_bGuiding = true;
 
 #ifndef CLIENT_DLL
-	WeaponSound(SPECIAL1);
-
 	CreateLaserPointer();
 #endif
-
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Turn off the guiding laser
@@ -1750,9 +1854,6 @@ void CWeaponRPG::StopGuiding(void)
 	m_bGuiding = false;
 
 #ifndef CLIENT_DLL
-
-	WeaponSound(SPECIAL2);
-
 	// Kill the dot completely
 	if (m_hLaserDot != NULL)
 	{
@@ -1763,14 +1864,12 @@ void CWeaponRPG::StopGuiding(void)
 #else
 	if (m_pBeam)
 	{
-		//Tell it to die right away and let the beam code free it.
 		m_pBeam->brightness = 0.0f;
 		m_pBeam->flags &= ~FBEAM_FOREVER;
 		m_pBeam->die = gpGlobals->curtime - 0.1;
 		m_pBeam = NULL;
 	}
 #endif
-
 }
 
 //-----------------------------------------------------------------------------
@@ -1880,6 +1979,23 @@ void CWeaponRPG::CreateLaserPointer(void)
 void CWeaponRPG::NotifyRocketDied(void)
 {
 	m_hMissile = NULL;
+
+	// VERIFICAR SE DEVE RECARREGAR AUTOMATICAMENTE
+	if (sv_rpg_weapon_switch.GetBool())
+	{
+		// Se permite trocar arma, não force reload se não for a arma ativa
+		CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+		if (pOwner && pOwner->GetActiveWeapon() != this)
+		{
+			return; // Não recarregar se não for a arma ativa
+		}
+	}
+
+	// ✅ CORRIGIDO: Restaurar laser após míssil morrer (se estava ativo)
+	if (m_bLaserToggleMode && !m_bGuiding)
+	{
+		StartGuiding();
+	}
 
 	if (GetActivity() == ACT_VM_RELOAD)
 		return;

@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //=============================================================================//
@@ -70,6 +70,7 @@ public:
 	unsigned int PhysicsSolidMaskForEntity(void) const;
 
 	CHandle<CWeaponRPG>		m_hOwner;
+	CHandle<CBaseEntity>	m_hAttacker;		// ADICIONE ESTA LINHA
 
 	static CMissile* Create(const Vector& vecOrigin, const QAngle& vecAngles, edict_t* pentOwner);
 
@@ -81,7 +82,7 @@ protected:
 	// Creates the smoke trail
 	void CreateSmokeTrail(void);
 
-	// Gets the shooting position 
+	// Gets the shooting position
 	void GetShootPosition(CLaserDot* pLaserDot, Vector* pShootPosition);
 
 	CHandle<RocketTrail>	m_hRocketTrail;
@@ -147,7 +148,7 @@ private:
 	float	m_flReachedTargetTime;
 	float	m_flIgnitionTime;
 	bool	m_bGuidingDisabled;
-	float   m_flLastHomingSpeed;
+	float 	m_flLastHomingSpeed;
 	EHANDLE m_hSpecificTarget;
 	string_t m_strHint;
 };

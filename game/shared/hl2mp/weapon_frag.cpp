@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -45,6 +45,13 @@ ConVar sv_grenade_lob_velocity_max("sv_grenade_lob_velocity_max", "600", FCVAR_G
 
 ConVar sv_grenade_lob_upward("sv_grenade_lob_upward", "50", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Upward velocity component for lob throw", true, 0.0f, true, 200.0f);
 ConVar sv_grenade_roll_velocity("sv_grenade_roll_velocity", "700", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Velocity for grenade roll", true, 100.0f, true, 1500.0f);
+
+// Adicione essas CVars junto com as outras no topo do arquivo:
+
+// Valores padrão quando charge está DESABILITADO
+ConVar sv_grenade_throw_velocity("sv_grenade_throw_velocity", "1200", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Default velocity for normal grenade throw when charge is disabled", true, 200.0f, true, 3000.0f);
+
+ConVar sv_grenade_lob_velocity("sv_grenade_lob_velocity", "350", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Default velocity for grenade lob throw when charge is disabled", true, 100.0f, true, 1200.0f);
 
 // Positioning offsets
 ConVar sv_grenade_forward_offset("sv_grenade_forward_offset", "18.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Forward offset for grenade spawn position", true, 5.0f, true, 50.0f);
@@ -521,7 +528,7 @@ void CWeaponFrag::ThrowGrenade(CBasePlayer* pPlayer)
 	}
 	else
 	{
-		throwVelocity = sv_grenade_throw_velocity_min.GetFloat(); // Use minimum as default when charging disabled
+		throwVelocity = sv_grenade_throw_velocity.GetFloat(); // ✅ CORRETO: usando valor padrão
 	}
 	vecThrow += vForward * throwVelocity;
 
@@ -593,7 +600,7 @@ void CWeaponFrag::LobGrenade(CBasePlayer* pPlayer)
 	}
 	else
 	{
-		lobVelocity = sv_grenade_lob_velocity_min.GetFloat(); // Use minimum as default when charging disabled
+		lobVelocity = sv_grenade_lob_velocity.GetFloat(); // ✅ CORRETO: usando valor padrão
 	}
 
 	float upwardVelocity = sv_grenade_lob_upward.GetFloat();
@@ -764,9 +771,11 @@ float CWeaponFrag::GetCurrentChargeVelocity(bool bIsLob)
 
 	if (!chargeEnabled)
 	{
-		return bIsLob ? sv_grenade_lob_velocity_min.GetFloat() : sv_grenade_throw_velocity_min.GetFloat();
+		// Usar valores padrão quando charge está desabilitado
+		return bIsLob ? sv_grenade_lob_velocity.GetFloat() : sv_grenade_throw_velocity.GetFloat();
 	}
 
+	// Usar sistema de charge com min/max quando habilitado
 	float minVel, maxVel;
 
 	if (bIsLob)
@@ -780,6 +789,6 @@ float CWeaponFrag::GetCurrentChargeVelocity(bool bIsLob)
 		maxVel = sv_grenade_throw_velocity_max.GetFloat();
 	}
 
-	// Linear interpolation between min and max based on charge amount
+	// Linear interpolation entre min e max baseado no charge
 	return minVel + (maxVel - minVel) * m_flChargeAmount;
 }
