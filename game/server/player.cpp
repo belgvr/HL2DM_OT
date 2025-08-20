@@ -7762,6 +7762,7 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool b
 		GetTeam()->RemovePlayer( this );
 	}
 #ifdef HL2MP
+/*
 	if ( GameRules()->IsTeamplay() && iTeamNum != 1 && !IsDisconnecting() && !IsCompensatingTeamScoreOnTeamSwitch() )
 	{
 		CTeam *pCombine = g_Teams[ TEAM_COMBINE ];
@@ -7776,6 +7777,7 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool b
 		}
 		CompensateTeamScoreOnTeamSwitch( true );
 	}
+*/
 #endif
 		
 	// Are we being added to a team?

@@ -1443,7 +1443,7 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		{
 			killer_weapon_name = "slam";
 		}
-
+/*
 		if ( IsTeamplay() && pScorer && pScorer->GetTeamNumber() == pVictim->GetTeamNumber() )
 		{
 			CTeam *pKillerTeam = pScorer->GetTeam();
@@ -1453,7 +1453,7 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 				pKillerTeam->AddScore( -2 );
 			}
 		}
-
+*/
 	}
 
 	IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
