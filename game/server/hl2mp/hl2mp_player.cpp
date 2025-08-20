@@ -1056,7 +1056,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		SetPlayerTeamModel();
 		if ( iPrevTeam != TEAM_UNASSIGNED )
 		{
-			bKill = true;
+			bKill = false;
 		}
 	}
 	else
@@ -1120,13 +1120,15 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		LeaveVehicle();
 	}
 
-	if ( bTeamplay && !bIsDead && !IsCompensatingScoreOnTeamSwitch() && iTeam != TEAM_SPECTATOR )
+/*
+ 	if ( bTeamplay && !bIsDead && !IsCompensatingScoreOnTeamSwitch() && iTeam != TEAM_SPECTATOR )
 	{
 		IncrementFragCount( 1 );
 		IncrementDeathCount( -1 );
 
 		CompensateScoreOnTeamSwitch( true );
 	}
+ */
 
 	if ( bKill == true )
 	{
@@ -1479,16 +1481,19 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	CBaseEntity *pAttacker = info.GetAttacker();
 
-	if ( pAttacker )
+	if (HL2MPRules()->IsTeamplay())
 	{
-		int iScoreToAdd = 1;
-
-		if ( pAttacker == this )
+		// Check for the attacker being in team Unassigned to account
+		// for non-player attackers, which are in this team by default.
+		// In TDM, should only happen with deaths to non-player causes.
+		if (pAttacker && !pAttacker->InSameTeam(this) && pAttacker->GetTeamNumber() != TEAM_UNASSIGNED)
 		{
-			iScoreToAdd = -1;
+			pAttacker->GetTeam()->AddScore(1);
 		}
-
-		GetGlobalTeam( pAttacker->GetTeamNumber() )->AddScore( iScoreToAdd );
+		else
+		{
+			GetTeam()->AddScore(-1);
+		}
 	}
 
 	FlashlightTurnOff();
@@ -1550,7 +1555,7 @@ void CHL2MP_Player::DeathSound(const CTakeDamageInfo& info)
 
 	const char* pModelName = STRING(GetModelName());
 
-	// Определяем префикс озвучки в зависимости от модели
+	// ГЋГЇГ°ГҐГ¤ГҐГ«ГїГҐГ¬ ГЇГ°ГҐГґГЁГЄГ± Г®Г§ГўГіГ·ГЄГЁ Гў Г§Г ГўГЁГ±ГЁГ¬Г®Г±ГІГЁ Г®ГІ Г¬Г®Г¤ГҐГ«ГЁ
 	const char* szPrefix = "NPC_Citizen";
 
 	if (Q_stristr(pModelName, "police"))
