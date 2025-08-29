@@ -95,7 +95,10 @@ public:
 	
 	CHL2MPRules();
 	virtual ~CHL2MPRules();
-
+	virtual	void ChangeTeamplayMode(bool bTeamplay);
+	virtual void RecalculateTeamCounts();
+	virtual void ResetAllPlayersScores();
+	virtual void ReassignPlayerTeams();
 	virtual void Precache( void );
 	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );
 	virtual bool ClientCommand( CBaseEntity *pEdict, const CCommand &args );

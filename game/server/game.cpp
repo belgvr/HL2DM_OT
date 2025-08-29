@@ -27,23 +27,19 @@ void MapCycleFileChangedCallback( IConVar *var, const char *pOldString, float fl
 	}
 }
 
-extern void ReloadGameRules();
-static void mp_teamplay_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
+
+void mp_teamplay_changed(IConVar* var, const char* pOldValue, float flOldValue)
 {
+	CHL2MPRules* pGameRules = dynamic_cast<CHL2MPRules*>(g_pGameRules);
+	if (!pGameRules)
+		return;
 
-	ReloadGameRules();
-	HL2MPRules()->RestartGame();
+	ConVarRef teamplay_ref(var);
+	bool bNewTeamplay = teamplay_ref.GetBool();
 
-	for (int i = 0; i <= gpGlobals->maxClients; ++i)
-	{
-		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+	Msg("Teamplay mode changed to: %s\n", bNewTeamplay ? "Team Deathmatch" : "Deathmatch");
 
-		if (pPlayer && !HL2MPRules()->IsTeamplay())
-		{
-			if (!pPlayer->IsHLTV() && !pPlayer->IsObserver() && !g_pGameRules->IsTeamplay() && pPlayer->GetTeamNumber() != TEAM_UNASSIGNED)
-				pPlayer->ChangeTeam(TEAM_UNASSIGNED);
-		}
-	}
+	pGameRules->ChangeTeamplayMode(bNewTeamplay);
 }
 
 void flashlight_changed( IConVar *pConVar, const char *pOldString, float flOldValue )

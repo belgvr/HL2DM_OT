@@ -1767,15 +1767,26 @@ void CHL2MPRules::RestartGame()
 	m_flRestartGameTime = 0.0;		
 	m_bCompleteReset = false;
 
-	IGameEvent * event = gameeventmanager->CreateEvent( "round_start" );
-	if ( event )
+	if (!HL2MPRules()->IsTeamplay())
 	{
-		event->SetInt("fraglimit", 0 );
-		event->SetInt( "priority", 6 ); // HLTV event priority, not transmitted
+		IGameEvent* event = gameeventmanager->CreateEvent("round_start");
+		if (event)
+		{
+			event->SetInt("fraglimit", 0);
+			event->SetInt("priority", 6); // HLTV event priority, not transmitted
 
-		event->SetString("objective","DEATHMATCH");
+			event->SetString("objective", "DEATHMATCH");
 
-		gameeventmanager->FireEvent( event );
+			gameeventmanager->FireEvent(event);
+		}
+	}
+	else
+	{
+		IGameEvent* event = gameeventmanager->CreateEvent("teamplay_round_start");
+		if (event)
+		{
+			gameeventmanager->FireEvent(event);
+		}
 	}
 }
 
@@ -2005,3 +2016,117 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 }
 
 #endif
+void CHL2MPRules::ChangeTeamplayMode(bool bTeamplay)
+{
+	m_bTeamPlayEnabled = bTeamplay;
+
+	Msg("Switching to %s mode...\n", bTeamplay ? "Team Deathmatch" : "Deathmatch");
+
+	ResetAllPlayersScores();
+	RestartGame();
+
+	if (HL2MPRules()->IsTeamplay())
+	{
+		ReassignPlayerTeams();
+		IGameEvent* event = gameeventmanager->CreateEvent("teamplay_round_start");
+		if (event)
+		{
+			gameeventmanager->FireEvent(event);
+		}
+	}
+	else
+	{
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
+			if (pPlayer && !HL2MPRules()->IsTeamplay())
+			{
+				if (!pPlayer->IsHLTV() && !pPlayer->IsObserver() && pPlayer->IsConnected())
+				{
+					pPlayer->ChangeTeam(TEAM_UNASSIGNED);
+				}
+			}
+		}
+	}
+
+	RecalculateTeamCounts();
+
+	UTIL_ClientPrintAll(HUD_PRINTCENTER, bTeamplay ?
+		"Switched to Team Deathmatch!" : "Switched to Deathmatch!");
+}
+
+void CHL2MPRules::ResetAllPlayersScores()
+{
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
+		if (pPlayer)
+		{
+			if (!pPlayer->IsHLTV() && pPlayer->IsConnected())
+			{
+				pPlayer->ResetFragCount();
+				pPlayer->ResetDeathCount();
+			}
+		}
+	}
+
+	for (int team = TEAM_COMBINE; team <= TEAM_REBELS; team++)
+	{
+		GetGlobalTeam(team)->SetScore(0);
+	}
+}
+
+void CHL2MPRules::ReassignPlayerTeams()
+{
+	int iCombineCount = 0, iRebelCount = 0;
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
+		if (pPlayer && HL2MPRules()->IsTeamplay())
+		{
+			if (!pPlayer->IsHLTV() && !pPlayer->IsObserver() && pPlayer->IsConnected())
+			{
+				int newTeam;
+				if (iCombineCount <= iRebelCount)
+				{
+					newTeam = TEAM_COMBINE;
+					iCombineCount++;
+				}
+				else
+				{
+					newTeam = TEAM_REBELS;
+					iRebelCount++;
+				}
+				pPlayer->ChangeTeam(newTeam);
+			}
+		}
+	}
+}
+
+void CHL2MPRules::RecalculateTeamCounts()
+{
+	CTeam* pCombine = GetGlobalTeam(TEAM_COMBINE);
+	CTeam* pRebels = GetGlobalTeam(TEAM_REBELS);
+
+	if (pCombine && pRebels)
+	{
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
+			if (pPlayer && HL2MPRules()->IsTeamplay())
+			{
+				if (!pPlayer->IsHLTV() && !pPlayer->IsObserver() && pPlayer->IsConnected() && pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+				{
+					int team = pPlayer->GetTeamNumber();
+					if (team == TEAM_COMBINE)
+						pCombine->AddPlayer(pPlayer);
+					else if (team == TEAM_REBELS)
+						pRebels->AddPlayer(pPlayer);
+				}
+			}
+		}
+		pCombine->NetworkStateChanged();
+		pRebels->NetworkStateChanged();
+	}
+}
