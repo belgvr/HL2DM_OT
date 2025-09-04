@@ -48,6 +48,8 @@ ConVar	sk_combine_ball_search_radius( "sk_combine_ball_search_radius", "512", FC
 ConVar	sk_combineball_seek_angle( "sk_combineball_seek_angle","15.0", FCVAR_REPLICATED);
 ConVar	sk_combineball_seek_kill( "sk_combineball_seek_kill","0", FCVAR_REPLICATED);
 
+ConVar sv_combine_ball_punt_ownership_fix("sv_combine_ball_punt_ownership_fix", "1", FCVAR_ARCHIVE, "If enabled, players can take ownership of combine balls held by other players by punting them up with the gravity gun.");
+
 // For our ring explosion
 int s_nExplosionTexture = -1;
 
@@ -770,11 +772,19 @@ void CPropCombineBall::SetBallAsLaunched( void )
 	WhizSoundThink();
 }
 
-bool CPropCombineBall::OnAttemptPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )
+bool CPropCombineBall::OnAttemptPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
 {
-	return ( !m_bHeld || pPhysGunUser == GetOwnerEntity() ?
-		CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup( pPhysGunUser, reason ) : false );
+	// Cvar OFF -> comportamento vanilla
+	if (!sv_combine_ball_punt_ownership_fix.GetBool())
+		return CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason);
+
+	// Fix da PR: bloqueia influência externa apenas quando a orb está sendo segurada por outro player
+	return (!m_bHeld || pPhysGunUser == GetOwnerEntity())
+		? CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason)
+		: false;
 }
+
+
 
 //-----------------------------------------------------------------------------
 // Lighten the mass so it's zippy toget to the gun

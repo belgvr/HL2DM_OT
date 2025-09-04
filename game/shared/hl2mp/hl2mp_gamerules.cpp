@@ -1,4 +1,4 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: 
 //
@@ -12,104 +12,179 @@
 #include "ammodef.h"
 
 #ifdef CLIENT_DLL
-	#include "c_hl2mp_player.h"
+#include "c_hl2mp_player.h"
 #else
 
-	#include "nav_mesh.h"
-	#include "eventqueue.h"
-	#include "player.h"
-	#include "gamerules.h"
-	#include "game.h"
-	#include "items.h"
-	#include "entitylist.h"
-	#include "mapentities.h"
-	#include "in_buttons.h"
-	#include <ctype.h>
-	#include "voice_gamemgr.h"
-	#include "iscorer.h"
-	#include "hl2mp_player.h"
-	#include "weapon_hl2mpbasehlmpcombatweapon.h"
-	#include "team.h"
-	#include "voice_gamemgr.h"
-	#include "hl2mp_gameinterface.h"
-	#include "hl2mp_cvars.h"
-	#include "hl2_player.h"
-	#include "game.h"
+#include "nav_mesh.h"
+#include "eventqueue.h"
+#include "player.h"
+#include "gamerules.h"
+#include "game.h"
+#include "items.h"
+#include "entitylist.h"
+#include "mapentities.h"
+#include "in_buttons.h"
+#include <ctype.h>
+#include "voice_gamemgr.h"
+#include "iscorer.h"
+#include "hl2mp_player.h"
+#include "weapon_hl2mpbasehlmpcombatweapon.h"
+#include "team.h"
+#include "voice_gamemgr.h"
+#include "hl2mp_gameinterface.h"
+#include "hl2mp_cvars.h"
+#include "hl2_player.h"
+#include "game.h"
 
-extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
+#include "shareddefs.h"
 
-extern bool FindInList( const char **pStrings, const char *pToFind );
 
-ConVar sv_hl2mp_weapon_respawn_time( "sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 
-ConVar sv_timeleft_enable( "sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0 );
-ConVar sv_timeleft_teamscore( "sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0 );
-ConVar sv_timeleft_r( "sv_timeleft_red", "255", 0, "Red intensity.", true, 0.0, true, 255.0 );
-ConVar sv_timeleft_g( "sv_timeleft_green", "255", 0, "Green intensity.", true, 0.0, true, 255.0 );
-ConVar sv_timeleft_b( "sv_timeleft_blue", "255", 0, "Blue intensity.", true, 0.0, true, 255.0 );
-ConVar sv_timeleft_channel( "sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0 ); // Channels go from 0 to 5 (6 total channels).
-ConVar sv_timeleft_x( "sv_timeleft_x", "-1" );
-ConVar sv_timeleft_y( "sv_timeleft_y", "0.01" );
+extern bool FindInList(const char** pStrings, const char* pToFind);
 
-ConVar sv_equalizer_combine_red("sv_equalizer_combine_red", "0", 0, "Sets the Combine's team red color for equalizer mode");
-ConVar sv_equalizer_combine_green("sv_equalizer_combine_green", "255", 0, "Sets the Combine's team green color for equalizer mode");
-ConVar sv_equalizer_combine_blue("sv_equalizer_combine_blue", "0", 0, "Sets the Combine's team blue color for equalizer mode");
-ConVar sv_equalizer_rebels_red("sv_equalizer_rebels_red", "255", 0, "Sets the Rebels's team red color for equalizer mode");
-ConVar sv_equalizer_rebels_green("sv_equalizer_rebels_green", "0", 0, "Sets the Rebels's team green color for equalizer mode");
-ConVar sv_equalizer_rebels_blue("sv_equalizer_rebels_blue", "0", 0, "Sets the Rebels's team blue color for equalizer mode");
+ConVar sv_hl2mp_weapon_respawn_time("sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_hl2mp_item_respawn_time("sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+
+// TimeLEft ConVars
+ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
+ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
+ConVar sv_timeleft_color("sv_timeleft_color", "255,180,0", 0, "RGB color for timeleft display (format: R,G,B)");
+ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0);
+ConVar sv_timeleft_x("sv_timeleft_x", "-1");
+ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
+
+// Equalizer ConVars
+ConVar sv_equalizer_combine_color("sv_equalizer_combine_color", "0,100,255", 0, "RGB color for Combine team in equalizer mode (format: R,G,B)");
+ConVar sv_equalizer_rebel_color("sv_equalizer_rebel_color", "255,0,0", 0, "RGB color for Rebel team in equalizer mode (format: R,G,B)");
+ConVar sv_equalizer_color("sv_equalizer_color", "255,80,0", 0, "RGB color for players in equalizer mode when teamplay is disabled (format: R,G,B)");
+// Equalizer Model ConVars  
+ConVar sv_equalizer_model_combine("sv_equalizer_model_combine", "models/combine_super_soldier.mdl", 0, "Model for Combine team in equalizer mode");
+ConVar sv_equalizer_model_rebel("sv_equalizer_model_rebel", "models/kleiner.mdl", 0, "Model for Rebel team in equalizer mode");
+ConVar sv_equalizer_model("sv_equalizer_model", "models/alyx.mdl", 0, "Model for all players when teamplay is disabled in equalizer mode");
+
+//New or Old TargetID style.
+ConVar sv_targetid_style("sv_targetid_style", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Target name display style. 0 = Original (name at the bottom), 1 = Custom (HUD at the center of the screen)");
+
+// Damage Display ConVars
+ConVar sv_damage_display("sv_damage_display", "1", FCVAR_NOTIFY, "Enable/disable damage display system. 0 = off, 1 = on");
+ConVar sv_damage_display_area("sv_damage_display_area", "1", FCVAR_NOTIFY, "Area for damage text: 1 = center screen, 2 = hint area, 3 = chat area");
+ConVar sv_damage_display_own("sv_damage_display_own", "0", FCVAR_NOTIFY, "Show your own damage received. 0 = off, 1 = on");
+ConVar sv_damage_display_ff("sv_damage_display_ff", "0", FCVAR_NOTIFY, "Show friendly fire damage. 0 = off, 1 = on");
+ConVar sv_damage_display_kill("sv_damage_display_kill", "1", FCVAR_NOTIFY, "Show KILL message when killing enemy");
+ConVar sv_damage_display_x("sv_damage_display_x", "-1", FCVAR_NOTIFY, "X position for damage info. -1 = center, 0 = left, 1 = right");
+ConVar sv_damage_display_y("sv_damage_display_y", "0.53", FCVAR_NOTIFY, "Y position for damage info. -1 = center, 0 = bottom, 1 = top");
+ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_NOTIFY, "X position for kill message");
+ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.45", FCVAR_NOTIFY, "Y position for kill message");
+ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_NOTIFY, "How long damage info displays");
+ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
+ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_NOTIFY, "Fade in time for damage display");
+ConVar sv_damage_display_fadeout_time("sv_damage_display_fadeout_time", "0.15", FCVAR_NOTIFY, "Fade out time for damage display");
+
+// Health-based color ConVars
+ConVar sv_damage_display_color_high("sv_damage_display_color_high", "0,255,40", FCVAR_NOTIFY, "RGB color for high HP (75-99). Format: R,G,B");
+ConVar sv_damage_display_color_medium("sv_damage_display_color_medium", "255,200,0", FCVAR_NOTIFY, "RGB color for medium HP (27-74). Format: R,G,B");
+ConVar sv_damage_display_color_low("sv_damage_display_color_low", "255,20,0", FCVAR_NOTIFY, "RGB color for low HP (1-25). Format: R,G,B");
+ConVar sv_damage_display_color_dead("sv_damage_display_color_dead", "0,200,255", FCVAR_NOTIFY, "RGB color for 0 HP. Format: R,G,B");
+ConVar sv_damage_display_color_kill("sv_damage_display_color_kill", "255,20,0", FCVAR_NOTIFY, "RGB color for KILL message. Format: R,G,B");
+
+// HP thresholds
+ConVar sv_damage_display_hp_high_min("sv_damage_display_hp_high_min", "75", FCVAR_NOTIFY, "Minimum HP for high color");
+ConVar sv_damage_display_hp_medium_min("sv_damage_display_hp_medium_min", "26", FCVAR_NOTIFY, "Minimum HP for medium color");
+ConVar sv_damage_display_hp_low_min("sv_damage_display_hp_low_min", "1", FCVAR_NOTIFY, "Minimum HP for low color");
+
+//Killer Info ConVars
+ConVar sv_killerinfo_enable("sv_killerinfo_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable killer info display system");
+ConVar sv_killerinfo_show_weapon("sv_killerinfo_show_weapon", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show weapon used to kill");
+ConVar sv_killerinfo_show_health("sv_killerinfo_show_health", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining health");
+ConVar sv_killerinfo_show_armor("sv_killerinfo_show_armor", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining armor");
+ConVar sv_killerinfo_show_distance("sv_killerinfo_show_distance", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show distance to killer");
+ConVar sv_killerinfo_distance_unit("sv_killerinfo_distance_unit", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Distance unit: 0=meters, 1=feet");
+ConVar sv_killerinfo_airkill_velocity_threshold("sv_killerinfo_airkill_velocity_threshold", "200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for airkill detection (units/sec)");
+ConVar sv_killerinfo_airkill_height_threshold("sv_killerinfo_airkill_height_threshold", "48", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for airkill detection (units)");
+ConVar sv_killerinfo_airkill_trace_fraction("sv_killerinfo_airkill_trace_fraction", "0.9", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trace fraction threshold for airkill detection (0.0-1.0)");
+ConVar sv_killerinfo_airkill_ground_override("sv_killerinfo_airkill_ground_override", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Override airkill if player is touching ground (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_airkill_enable("sv_killerinfo_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable airkill detection entirely (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_headshot_enable("sv_killerinfo_headshot_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable headshot detection display (0=disabled, 1=enabled)");
 
 extern ConVar mp_chattime;
 extern ConVar sv_rtv_mintime;
 extern ConVar sv_rtv_mintime;
 extern ConVar sv_rtv_enabled;
+extern ConVar sv_rtv_enabled;
 extern void StartMapVote();
 
-extern CBaseEntity	 *g_pLastCombineSpawn;
-extern CBaseEntity	 *g_pLastRebelSpawn;
+extern CBaseEntity* g_pLastCombineSpawn;
+extern CBaseEntity* g_pLastRebelSpawn;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
 #endif
 
 
-REGISTER_GAMERULES_CLASS( CHL2MPRules );
+void ParseRGBColor(const char* colorString, int& r, int& g, int& b)
+{
+	r = g = b = 255; // valores padrão
 
-BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
+	if (!colorString || !*colorString)
+		return;
 
-	#ifdef CLIENT_DLL
-		RecvPropBool( RECVINFO( m_bTeamPlayEnabled ) ),
-	#else
-		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
-	#endif
+	char tempString[64];
+	Q_strncpy(tempString, colorString, sizeof(tempString));
+
+	char* token = strtok(tempString, ",");
+	if (token) {
+		r = clamp(atoi(token), 0, 255);
+
+		token = strtok(NULL, ",");
+		if (token) {
+			g = clamp(atoi(token), 0, 255);
+
+			token = strtok(NULL, ",");
+			if (token) {
+				b = clamp(atoi(token), 0, 255);
+			}
+		}
+	}
+}
+
+REGISTER_GAMERULES_CLASS(CHL2MPRules);
+
+BEGIN_NETWORK_TABLE_NOBASE(CHL2MPRules, DT_HL2MPRules)
+
+#ifdef CLIENT_DLL
+RecvPropBool(RECVINFO(m_bTeamPlayEnabled)),
+#else
+SendPropBool(SENDINFO(m_bTeamPlayEnabled)),
+#endif
 
 END_NETWORK_TABLE()
 
 
-LINK_ENTITY_TO_CLASS( hl2mp_gamerules, CHL2MPGameRulesProxy );
-IMPLEMENT_NETWORKCLASS_ALIASED( HL2MPGameRulesProxy, DT_HL2MPGameRulesProxy )
+LINK_ENTITY_TO_CLASS(hl2mp_gamerules, CHL2MPGameRulesProxy);
+IMPLEMENT_NETWORKCLASS_ALIASED(HL2MPGameRulesProxy, DT_HL2MPGameRulesProxy)
 
 static HL2MPViewVectors g_HL2MPViewVectors(
-	Vector( 0, 0, 64 ),       //VEC_VIEW (m_vView) 
-							  
-	Vector(-16, -16, 0 ),	  //VEC_HULL_MIN (m_vHullMin)
-	Vector( 16,  16,  72 ),	  //VEC_HULL_MAX (m_vHullMax)
-							  					
-	Vector(-16, -16, 0 ),	  //VEC_DUCK_HULL_MIN (m_vDuckHullMin)
-	Vector( 16,  16,  36 ),	  //VEC_DUCK_HULL_MAX	(m_vDuckHullMax)
-	Vector( 0, 0, 28 ),		  //VEC_DUCK_VIEW		(m_vDuckView)
-							  					
-	Vector(-10, -10, -10 ),	  //VEC_OBS_HULL_MIN	(m_vObsHullMin)
-	Vector( 10,  10,  10 ),	  //VEC_OBS_HULL_MAX	(m_vObsHullMax)
-							  					
-	Vector( 0, 0, 14 ),		  //VEC_DEAD_VIEWHEIGHT (m_vDeadViewHeight)
+	Vector(0, 0, 64),       //VEC_VIEW (m_vView) 
 
-	Vector(-16, -16, 0 ),	  //VEC_CROUCH_TRACE_MIN (m_vCrouchTraceMin)
-	Vector( 16,  16,  60 )	  //VEC_CROUCH_TRACE_MAX (m_vCrouchTraceMax)
+	Vector(-16, -16, 0),	  //VEC_HULL_MIN (m_vHullMin)
+	Vector(16, 16, 72),	  //VEC_HULL_MAX (m_vHullMax)
+
+	Vector(-16, -16, 0),	  //VEC_DUCK_HULL_MIN (m_vDuckHullMin)
+	Vector(16, 16, 36),	  //VEC_DUCK_HULL_MAX	(m_vDuckHullMax)
+	Vector(0, 0, 28),		  //VEC_DUCK_VIEW		(m_vDuckView)
+
+	Vector(-10, -10, -10),	  //VEC_OBS_HULL_MIN	(m_vObsHullMin)
+	Vector(10, 10, 10),	  //VEC_OBS_HULL_MAX	(m_vObsHullMax)
+
+	Vector(0, 0, 14),		  //VEC_DEAD_VIEWHEIGHT (m_vDeadViewHeight)
+
+	Vector(-16, -16, 0),	  //VEC_CROUCH_TRACE_MIN (m_vCrouchTraceMin)
+	Vector(16, 16, 60)	  //VEC_CROUCH_TRACE_MAX (m_vCrouchTraceMax)
 );
 
-static const char *s_PreserveEnts[] =
+static const char* s_PreserveEnts[] =
 {
 	"ai_network",
 	"ai_hint",
@@ -162,51 +237,51 @@ extern int g_votetime;
 extern int g_timetortv;
 extern bool g_rtvbooted;
 extern CUtlDict<int, unsigned short> g_mapVotes;
-extern CUtlVector<CBasePlayer *> g_playersWhoVoted;
+extern CUtlVector<CBasePlayer*> g_playersWhoVoted;
 extern CUtlVector<CUtlString> g_currentVoteMaps;
 extern CUtlDict<CUtlString, unsigned short> g_nominatedMaps;
 
 #ifdef CLIENT_DLL
-	void RecvProxy_HL2MPRules( const RecvProp *pProp, void **pOut, void *pData, int objectID )
-	{
-		CHL2MPRules *pRules = HL2MPRules();
-		Assert( pRules );
-		*pOut = pRules;
-	}
+void RecvProxy_HL2MPRules(const RecvProp* pProp, void** pOut, void* pData, int objectID)
+{
+	CHL2MPRules* pRules = HL2MPRules();
+	Assert(pRules);
+	*pOut = pRules;
+}
 
-	BEGIN_RECV_TABLE( CHL2MPGameRulesProxy, DT_HL2MPGameRulesProxy )
-		RecvPropDataTable( "hl2mp_gamerules_data", 0, 0, &REFERENCE_RECV_TABLE( DT_HL2MPRules ), RecvProxy_HL2MPRules )
-	END_RECV_TABLE()
+BEGIN_RECV_TABLE(CHL2MPGameRulesProxy, DT_HL2MPGameRulesProxy)
+RecvPropDataTable("hl2mp_gamerules_data", 0, 0, &REFERENCE_RECV_TABLE(DT_HL2MPRules), RecvProxy_HL2MPRules)
+END_RECV_TABLE()
 #else
-	void* SendProxy_HL2MPRules( const SendProp *pProp, const void *pStructBase, const void *pData, CSendProxyRecipients *pRecipients, int objectID )
-	{
-		CHL2MPRules *pRules = HL2MPRules();
-		Assert( pRules );
-		return pRules;
-	}
+void* SendProxy_HL2MPRules(const SendProp* pProp, const void* pStructBase, const void* pData, CSendProxyRecipients* pRecipients, int objectID)
+{
+	CHL2MPRules* pRules = HL2MPRules();
+	Assert(pRules);
+	return pRules;
+}
 
-	BEGIN_SEND_TABLE( CHL2MPGameRulesProxy, DT_HL2MPGameRulesProxy )
-		SendPropDataTable( "hl2mp_gamerules_data", 0, &REFERENCE_SEND_TABLE( DT_HL2MPRules ), SendProxy_HL2MPRules )
-	END_SEND_TABLE()
+BEGIN_SEND_TABLE(CHL2MPGameRulesProxy, DT_HL2MPGameRulesProxy)
+SendPropDataTable("hl2mp_gamerules_data", 0, &REFERENCE_SEND_TABLE(DT_HL2MPRules), SendProxy_HL2MPRules)
+END_SEND_TABLE()
 #endif
 
 #ifndef CLIENT_DLL
 
-	class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
+class CVoiceGameMgrHelper : public IVoiceGameMgrHelper
+{
+public:
+	virtual bool		CanPlayerHearPlayer(CBasePlayer* pListener, CBasePlayer* pTalker, bool& bProximity)
 	{
-	public:
-		virtual bool		CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker, bool &bProximity )
-		{
-			return ( pListener->GetTeamNumber() == pTalker->GetTeamNumber() );
-		}
-	};
-	CVoiceGameMgrHelper g_VoiceGameMgrHelper;
-	IVoiceGameMgrHelper *g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
+		return (pListener->GetTeamNumber() == pTalker->GetTeamNumber());
+	}
+};
+CVoiceGameMgrHelper g_VoiceGameMgrHelper;
+IVoiceGameMgrHelper* g_pVoiceGameMgrHelper = &g_VoiceGameMgrHelper;
 
 #endif
 
 // NOTE: the indices here must match TEAM_TERRORIST, TEAM_CT, TEAM_SPECTATOR, etc.
-char *sTeamNames[] =
+char* sTeamNames[] =
 {
 	"Unassigned",
 	"Spectator",
@@ -244,12 +319,12 @@ CHL2MPRules::CHL2MPRules()
 {
 #ifndef CLIENT_DLL
 	// Create the team managers
-	for ( int i = 0; i < ARRAYSIZE( sTeamNames ); i++ )
+	for (int i = 0; i < ARRAYSIZE(sTeamNames); i++)
 	{
-		CTeam *pTeam = static_cast<CTeam*>(CreateEntityByName( "team_manager" ));
-		pTeam->Init( sTeamNames[i], i );
+		CTeam* pTeam = static_cast<CTeam*>(CreateEntityByName("team_manager"));
+		pTeam->Init(sTeamNames[i], i);
 
-		g_Teams.AddToTail( pTeam );
+		g_Teams.AddToTail(pTeam);
 	}
 
 	m_bTeamPlayEnabled = teamplay.GetBool();
@@ -268,7 +343,7 @@ CHL2MPRules::CHL2MPRules()
 	bMapChangeOnGoing = false;
 	bMapChange = false;
 	m_flMapChangeTime = 0.0f;
-	Q_strncpy( m_scheduledMapName, "", sizeof( m_scheduledMapName ) );
+	Q_strncpy(m_scheduledMapName, "", sizeof(m_scheduledMapName));
 
 	g_voters = 0;
 	g_votes = 0;
@@ -293,8 +368,8 @@ const HL2MPViewVectors* CHL2MPRules::GetHL2MPViewVectors()const
 {
 	return &g_HL2MPViewVectors;
 }
-	
-CHL2MPRules::~CHL2MPRules( void )
+
+CHL2MPRules::~CHL2MPRules(void)
 {
 #ifndef CLIENT_DLL
 	// Note, don't delete each team since they are in the gEntList and will 
@@ -303,7 +378,7 @@ CHL2MPRules::~CHL2MPRules( void )
 #endif
 }
 
-void CHL2MPRules::CreateStandardEntities( void )
+void CHL2MPRules::CreateStandardEntities(void)
 {
 
 #ifndef CLIENT_DLL
@@ -315,10 +390,10 @@ void CHL2MPRules::CreateStandardEntities( void )
 	g_pLastRebelSpawn = NULL;
 
 #ifdef DBGFLAG_ASSERT
-	CBaseEntity *pEnt = 
+	CBaseEntity* pEnt =
 #endif
-	CBaseEntity::Create( "hl2mp_gamerules", vec3_origin, vec3_angle );
-	Assert( pEnt );
+		CBaseEntity::Create("hl2mp_gamerules", vec3_origin, vec3_angle);
+	Assert(pEnt);
 #endif
 }
 
@@ -326,13 +401,13 @@ void CHL2MPRules::CreateStandardEntities( void )
 // FlWeaponRespawnTime - what is the time in the future
 // at which this weapon may spawn?
 //=========================================================
-float CHL2MPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
+float CHL2MPRules::FlWeaponRespawnTime(CBaseCombatWeapon* pWeapon)
 {
 #ifndef CLIENT_DLL
-	if ( weaponstay.GetInt() > 0 )
+	if (weaponstay.GetInt() > 0)
 	{
 		// make sure it's only certain weapons
-		if ( !(pWeapon->GetWeaponFlags() & ITEM_FLAG_LIMITINWORLD) )
+		if (!(pWeapon->GetWeaponFlags() & ITEM_FLAG_LIMITINWORLD))
 		{
 			return 0;		// weapon respawns almost instantly
 		}
@@ -345,7 +420,7 @@ float CHL2MPRules::FlWeaponRespawnTime( CBaseCombatWeapon *pWeapon )
 }
 
 
-bool CHL2MPRules::IsIntermission( void )
+bool CHL2MPRules::IsIntermission(void)
 {
 #ifndef CLIENT_DLL
 	return m_flIntermissionEndTime > gpGlobals->curtime;
@@ -354,12 +429,21 @@ bool CHL2MPRules::IsIntermission( void )
 	return false;
 }
 
-void CHL2MPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info )
+void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
 #ifndef CLIENT_DLL
-	if ( IsIntermission() )
+	if (IsIntermission())
 		return;
-	BaseClass::PlayerKilled( pVictim, info );
+
+	// Show kill message
+	CBasePlayer* pAttacker = ToBasePlayer(info.GetAttacker());
+	if (pAttacker && pAttacker != pVictim)
+	{
+		ShowDamageDisplay(pAttacker, pVictim, (int)info.GetDamage(), true, 0);
+	}
+
+	// Apenas chama o sistema base - ele já faz a contagem correta
+	BaseClass::PlayerKilled(pVictim, info);
 #endif
 }
 
@@ -370,10 +454,10 @@ CBaseEntity* FindEntityByName(const char* name)
 }
 #endif
 
-void CHL2MPRules::Think( void )
+void CHL2MPRules::Think(void)
 {
 #ifndef CLIENT_DLL
-	
+
 	CGameRules::Think();
 
 	/*
@@ -381,107 +465,78 @@ void CHL2MPRules::Think( void )
 	*/
 	if (sv_equalizer.GetBool())
 	{
-		// We're not reinventing the wheel, we'll just use what SF has already done, 
-		// find the info_target entity named "sf_equalizer_hax"
 		CBaseEntity* pLightingTarget = FindEntityByName("sf_equalizer_hax");
 
-		if (pLightingTarget)
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
 		{
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+
+			if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-			
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				const char* forcedModel = nullptr;
+
+				// Determine model based on team and mode
+				if (IsTeamplay())
 				{
-					const char* forcedModel = "models/combine_super_soldier.mdl";
-					const char* currentModel = modelinfo->GetModelName(pPlayer->GetModel());
-					BaseClass::Precache();
-					CBaseEntity::PrecacheModel("models/combine_super_soldier.mdl");
-					CBaseEntity::PrecacheScriptSound("NPC_CombineS.Die");
-
-					if (Q_stricmp(currentModel, forcedModel) != 0)
-					{
-						pPlayer->SetModel(forcedModel);
-					}
-
-					// Set render color based on team
 					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
 					{
-						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
-							sv_equalizer_combine_green.GetInt(),
-							sv_equalizer_combine_blue.GetInt());
+						forcedModel = sv_equalizer_model_combine.GetString();
 					}
 					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
 					{
-						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
-							sv_equalizer_rebels_green.GetInt(),
-							sv_equalizer_rebels_blue.GetInt());
+						forcedModel = sv_equalizer_model_rebel.GetString();
 					}
-					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
+					else // TEAM_UNASSIGNED in teamplay
 					{
-						pPlayer->SetRenderColor(0, 255, 0);
+						forcedModel = sv_equalizer_model.GetString();
 					}
-
-					// Apply render mode and glowing effect for better visibility
-					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
-
-					// Access render properties through networked variables
-					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
-					pPlayer->SetRenderColorA(255);  // Full brightness
-
-					// Set the lighting origin using the info_target entity handle
-					pPlayer->SetLightingOrigin(pLightingTarget);
-
 				}
-			}
-		}
-		else
-		{
-
-			for (int i = 1; i <= gpGlobals->maxClients; i++)
-			{
-				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
-
-				if (pPlayer && pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
+				else
 				{
-					const char* forcedModel = "models/combine_super_soldier.mdl";
-					const char* currentModel = modelinfo->GetModelName(pPlayer->GetModel());
-					BaseClass::Precache();
-					CBaseEntity::PrecacheModel("models/combine_super_soldier.mdl");
-					CBaseEntity::PrecacheScriptSound("NPC_CombineS.Die");
+					// Deathmatch mode - everyone uses the same model
+					forcedModel = sv_equalizer_model.GetString();
+				}
 
-					if (Q_stricmp(currentModel, forcedModel) != 0)
-					{
-						pPlayer->SetModel(forcedModel);
-					}
+				const char* currentModel = modelinfo->GetModelName(pPlayer->GetModel());
+				BaseClass::Precache();
+				CBaseEntity::PrecacheModel(forcedModel);
+				CBaseEntity::PrecacheScriptSound("NPC_CombineS.Die");
 
-					// Set render color based on team
+				if (Q_stricmp(currentModel, forcedModel) != 0)
+				{
+					pPlayer->SetModel(forcedModel);
+				}
+
+				// Set render color based on team
+				int r, g, b;
+				if (IsTeamplay())
+				{
 					if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
 					{
-						pPlayer->SetRenderColor(sv_equalizer_combine_red.GetInt(),
-							sv_equalizer_combine_green.GetInt(),
-							sv_equalizer_combine_blue.GetInt());
+						ParseRGBColor(sv_equalizer_combine_color.GetString(), r, g, b);
 					}
 					else if (pPlayer->GetTeamNumber() == TEAM_REBELS)
 					{
-						pPlayer->SetRenderColor(sv_equalizer_rebels_red.GetInt(),
-							sv_equalizer_rebels_green.GetInt(),
-							sv_equalizer_rebels_blue.GetInt());
+						ParseRGBColor(sv_equalizer_rebel_color.GetString(), r, g, b);
 					}
-
 					else if (pPlayer->GetTeamNumber() == TEAM_UNASSIGNED)
 					{
-						pPlayer->SetRenderColor(0, 255, 0);	
+						r = 0; g = 255; b = 0; // Green for unassigned
 					}
+				}
+				else
+				{
+					// Teamplay disabled, use single color
+					ParseRGBColor(sv_equalizer_color.GetString(), r, g, b);
+				}
 
-					// Apply render mode and glowing effect for better visibility
-					pPlayer->SetRenderMode(kRenderTransAdd);  // Additive blending mode for bright glow
+				pPlayer->SetRenderColor(r, g, b);
+				pPlayer->SetRenderMode(kRenderTransAdd);
+				pPlayer->m_nRenderFX = kRenderFxGlowShell;
+				pPlayer->SetRenderColorA(255);
 
-					// Access render properties through networked variables
-					pPlayer->m_nRenderFX = kRenderFxGlowShell; // Add glow effect around the player
-					pPlayer->SetRenderColorA(255);  // Full brightness
-
-					// Set the lighting origin using the info_target entity handle
+				if (pLightingTarget)
+				{
 					pPlayer->SetLightingOrigin(pLightingTarget);
 				}
 			}
@@ -493,20 +548,20 @@ void CHL2MPRules::Think( void )
 	HandlePlayerNetworkCheck();
 	HandleMapVotes();
 
-	if ( sv_rtv_enabled.GetBool() && ( mp_timelimit.GetFloat() > 0 ) && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended && !bAdminMapChange )
+	if (sv_rtv_enabled.GetBool() && (mp_timelimit.GetFloat() > 0) && GetMapRemainingTime() <= 20 && !g_votebegun && !g_votehasended && !bAdminMapChange)
 	{
 		g_votebegun = true;
 
-		UTIL_PrintToAllClients( CHAT_INFO "Voting for next map has started...\n" );
+		UTIL_PrintToAllClients(CHAT_INFO "Voting for next map has started...\n");
 		StartMapVote();
 	}
 
-	if ( g_fGameOver )   // someone else quit the game already
+	if (g_fGameOver)   // someone else quit the game already
 	{
 		// check to see if we should change levels now
-		if ( m_flIntermissionEndTime < gpGlobals->curtime )
+		if (m_flIntermissionEndTime < gpGlobals->curtime)
 		{
-			if ( !m_bChangelevelDone )
+			if (!m_bChangelevelDone)
 			{
 				ChangeLevel(); // intermission is over
 				m_bChangelevelDone = true;
@@ -516,23 +571,23 @@ void CHL2MPRules::Think( void )
 		return;
 	}
 
-//	float flTimeLimit = mp_timelimit.GetFloat() * 60;
+	//	float flTimeLimit = mp_timelimit.GetFloat() * 60;
 	float flFragLimit = fraglimit.GetFloat();
-	
-	if ( GetMapRemainingTime() < 0 )
+
+	if (GetMapRemainingTime() < 0)
 	{
 		GoToIntermission();
 		return;
 	}
 
-	if ( flFragLimit )
+	if (flFragLimit)
 	{
-		if( IsTeamplay() == true )
+		if (IsTeamplay() == true)
 		{
-			CTeam *pCombine = g_Teams[TEAM_COMBINE];
-			CTeam *pRebels = g_Teams[TEAM_REBELS];
+			CTeam* pCombine = g_Teams[TEAM_COMBINE];
+			CTeam* pRebels = g_Teams[TEAM_REBELS];
 
-			if ( pCombine->GetScore() >= flFragLimit || pRebels->GetScore() >= flFragLimit )
+			if (pCombine->GetScore() >= flFragLimit || pRebels->GetScore() >= flFragLimit)
 			{
 				GoToIntermission();
 				return;
@@ -541,11 +596,11 @@ void CHL2MPRules::Think( void )
 		else
 		{
 			// check if any player is over the frag limit
-			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
 			{
-				CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-				if ( pPlayer && pPlayer->FragCount() >= flFragLimit )
+				if (pPlayer && pPlayer->FragCount() >= flFragLimit)
 				{
 					GoToIntermission();
 					return;
@@ -554,22 +609,22 @@ void CHL2MPRules::Think( void )
 		}
 	}
 
-	if ( gpGlobals->curtime > m_tmNextPeriodicThink )
-	{		
+	if (gpGlobals->curtime > m_tmNextPeriodicThink)
+	{
 		CheckAllPlayersReady();
 		CheckRestartGame();
 		m_tmNextPeriodicThink = gpGlobals->curtime + 1.0;
 	}
 
-	if ( m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime )
+	if (m_flRestartGameTime > 0.0f && m_flRestartGameTime <= gpGlobals->curtime)
 	{
 		RestartGame();
 	}
 
-	if( m_bAwaitingReadyRestart && m_bHeardAllPlayersReady )
+	if (m_bAwaitingReadyRestart && m_bHeardAllPlayersReady)
 	{
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "All players ready. Game will restart in 5 seconds" );
-		UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "All players ready. Game will restart in 5 seconds" );
+		UTIL_ClientPrintAll(HUD_PRINTCENTER, "All players ready. Game will restart in 5 seconds");
+		UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "All players ready. Game will restart in 5 seconds");
 
 		m_flRestartGameTime = gpGlobals->curtime + 5;
 		m_bAwaitingReadyRestart = false;
@@ -584,27 +639,27 @@ void CHL2MPRules::Think( void )
 #ifndef CLIENT_DLL
 void CHL2MPRules::HandleMapVotes()
 {
-	if ( !g_rtvbooted )
+	if (!g_rtvbooted)
 	{
 		g_timetortv = gpGlobals->curtime + sv_rtv_mintime.GetInt();
 		g_rtvbooted = true;
 	}
 
-	if ( g_votebegun && !g_votehasended && ( gpGlobals->curtime >= g_votetime ) )
+	if (g_votebegun && !g_votehasended && (gpGlobals->curtime >= g_votetime))
 	{
 		CUtlString winningMap;
 		int totalVotes = g_playersWhoVoted.Count();
 
-		if ( totalVotes == 0 )
+		if (totalVotes == 0)
 		{
-			if ( g_currentVoteMaps.Count() > 0 )
+			if (g_currentVoteMaps.Count() > 0)
 			{
-				winningMap = g_currentVoteMaps[ RandomInt( 0, g_currentVoteMaps.Count() - 1 ) ];
-				UTIL_PrintToAllClients( UTIL_VarArgs( CHAT_ADMIN "No votes were cast. Randomly selecting map: " CHAT_INFO "%s\n", winningMap.Get() ) );
+				winningMap = g_currentVoteMaps[RandomInt(0, g_currentVoteMaps.Count() - 1)];
+				UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_ADMIN "No votes were cast. Randomly selecting map: " CHAT_INFO "%s\n", winningMap.Get()));
 			}
 			else
 			{
-				UTIL_PrintToAllClients( CHAT_RED "No maps available for random selection.\n" );
+				UTIL_PrintToAllClients(CHAT_RED "No maps available for random selection.\n");
 				return;
 			}
 		}
@@ -613,44 +668,44 @@ void CHL2MPRules::HandleMapVotes()
 			CUtlVector<CUtlString> tiedMaps;
 			int highestVotes = 0;
 
-			for ( unsigned int i = 0; i < g_mapVotes.Count(); i++ )
+			for (unsigned int i = 0; i < g_mapVotes.Count(); i++)
 			{
-				int votes = g_mapVotes[ i ];
-				const char *mapName = g_mapVotes.GetElementName( i );
+				int votes = g_mapVotes[i];
+				const char* mapName = g_mapVotes.GetElementName(i);
 
-				if ( votes > highestVotes )
+				if (votes > highestVotes)
 				{
 					highestVotes = votes;
 					winningMap = mapName;
 					tiedMaps.RemoveAll();
-					tiedMaps.AddToTail( mapName );
+					tiedMaps.AddToTail(mapName);
 				}
-				else if ( votes == highestVotes )
+				else if (votes == highestVotes)
 				{
-					tiedMaps.AddToTail( mapName );
+					tiedMaps.AddToTail(mapName);
 				}
 			}
 
-			if ( tiedMaps.Count() > 1 )
+			if (tiedMaps.Count() > 1)
 			{
-				winningMap = tiedMaps[ RandomInt( 0, tiedMaps.Count() - 1 ) ];
+				winningMap = tiedMaps[RandomInt(0, tiedMaps.Count() - 1)];
 			}
 
-			float winningPercentage = ( static_cast< float >( highestVotes ) / totalVotes ) * 100.0f;
+			float winningPercentage = (static_cast<float>(highestVotes) / totalVotes) * 100.0f;
 
-			UTIL_PrintToAllClients( UTIL_VarArgs(
+			UTIL_PrintToAllClients(UTIL_VarArgs(
 				CHAT_ADMIN "Players have spoken! Winning map is " CHAT_INFO "%s " CHAT_DEFAULT "(%.2f%% of %d vote%s).\n",
-				winningMap.Get(), winningPercentage, totalVotes, totalVotes < 2 ? "" : "s" ) );
+				winningMap.Get(), winningPercentage, totalVotes, totalVotes < 2 ? "" : "s"));
 
-			if ( mp_chattime.GetInt() <= 5 )
+			if (mp_chattime.GetInt() <= 5)
 			{
-				mp_chattime.SetValue( 10 );
+				mp_chattime.SetValue(10);
 			}
 
 			GoToIntermission();
 		}
 
-		engine->ServerCommand( CFmtStr( "sa map %s\n", winningMap.Get() ) );
+		engine->ServerCommand(CFmtStr("sa map %s\n", winningMap.Get()));
 
 		g_votebegun = false;
 		g_votehasended = true;
@@ -659,34 +714,34 @@ void CHL2MPRules::HandleMapVotes()
 		g_currentVoteMaps.RemoveAll();
 	}
 
-	if ( IsMapChangeOnGoing() && IsMapChange() )
+	if (IsMapChangeOnGoing() && IsMapChange())
 	{
-		SetMapChange( false );
+		SetMapChange(false);
 		m_flMapChangeTime = gpGlobals->curtime + 5.0f;
 	}
 
-	if ( IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime )
+	if (IsMapChangeOnGoing() && gpGlobals->curtime > m_flMapChangeTime)
 	{
-		SetMapChange( false );
-		SetMapChangeOnGoing( false );
+		SetMapChange(false);
+		SetMapChangeOnGoing(false);
 
-		if ( Q_strlen( m_scheduledMapName ) > 0 )
+		if (Q_strlen(m_scheduledMapName) > 0)
 		{
-			engine->ServerCommand( UTIL_VarArgs( "changelevel %s\n", m_scheduledMapName ) );
+			engine->ServerCommand(UTIL_VarArgs("changelevel %s\n", m_scheduledMapName));
 		}
 	}
 }
 
-bool IsValidPositiveInteger( const char *str )
+bool IsValidPositiveInteger(const char* str)
 {
 	// Check if the string is not empty and doesn't start with '+' or '-'
-	if ( str == nullptr || *str == '\0' || *str == '+' || *str == '-' )
+	if (str == nullptr || *str == '\0' || *str == '+' || *str == '-')
 		return false;
 
 	// Ensure all characters are digits
-	for ( const char *p = str; *p; p++ )
+	for (const char* p = str; *p; p++)
 	{
-		if ( !isdigit( *p ) )
+		if (!isdigit(*p))
 			return false;
 	}
 
@@ -696,59 +751,59 @@ bool IsValidPositiveInteger( const char *str )
 void CHL2MPRules::HandlePlayerNetworkCheck()
 {
 	// We don't want people using 0
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		if ( gpGlobals->curtime > m_tmNextPeriodicThink )
+		if (gpGlobals->curtime > m_tmNextPeriodicThink)
 		{
-			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-			if ( pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV() )
+			if (pPlayer && !pPlayer->IsBot() && !pPlayer->IsHLTV())
 			{
 				// Fetch client-side settings from the player
-				const char *cl_updaterate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_updaterate" );
-				const char *cl_cmdrate = engine->GetClientConVarValue( pPlayer->entindex(), "cl_cmdrate" );
+				const char* cl_updaterate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_updaterate");
+				const char* cl_cmdrate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_cmdrate");
 
 				bool shouldKick = false;
-				char kickReason[ 128 ] = "";
+				char kickReason[128] = "";
 
 				// Validate and convert cl_updaterate
-				if ( !IsValidPositiveInteger( cl_updaterate ) )
+				if (!IsValidPositiveInteger(cl_updaterate))
 				{
 					shouldKick = true;
-					Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %s)", cl_updaterate );
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %s)", cl_updaterate);
 				}
 				else
 				{
-					int updaterate = atoi( cl_updaterate );
-					if ( updaterate <= 0 )
+					int updaterate = atoi(cl_updaterate);
+					if (updaterate <= 0)
 					{
 						shouldKick = true;
-						Q_snprintf( kickReason, sizeof( kickReason ), "cl_updaterate is invalid (value: %d)", updaterate );
+						Q_snprintf(kickReason, sizeof(kickReason), "cl_updaterate is invalid (value: %d)", updaterate);
 					}
 				}
 
 				// Validate and convert cl_cmdrate
-				if ( !IsValidPositiveInteger( cl_cmdrate ) )
+				if (!IsValidPositiveInteger(cl_cmdrate))
 				{
 					shouldKick = true;
-					Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %s)", cl_cmdrate );
+					Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %s)", cl_cmdrate);
 				}
 				else
 				{
-					int cmdrate = atoi( cl_cmdrate );
-					if ( cmdrate <= 0 )
+					int cmdrate = atoi(cl_cmdrate);
+					if (cmdrate <= 0)
 					{
 						shouldKick = true;
-						Q_snprintf( kickReason, sizeof( kickReason ), "cl_cmdrate is invalid (value: %d)", cmdrate );
+						Q_snprintf(kickReason, sizeof(kickReason), "cl_cmdrate is invalid (value: %d)", cmdrate);
 					}
 				}
 
-				if ( shouldKick )
+				if (shouldKick)
 				{
 					// Get the player's user ID instead of the entity index
 					int userID = pPlayer->GetUserID();  // This will provide the correct user ID for kicking
 
-					engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", userID, kickReason ) );  // Use userID instead of entindex()
+					engine->ServerCommand(UTIL_VarArgs("kickid %d %s\n", userID, kickReason));  // Use userID instead of entindex()
 					return;
 				}
 			}
@@ -758,45 +813,49 @@ void CHL2MPRules::HandlePlayerNetworkCheck()
 
 void CHL2MPRules::HandleTimeleft()
 {
-	if ( GetMapRemainingTime() <= 0 || !sv_timeleft_enable.GetBool() )
+	if (GetMapRemainingTime() <= 0 || !sv_timeleft_enable.GetBool())
 		return;
 
-	if ( gpGlobals->curtime <= m_tmNextPeriodicThink )
+	if (gpGlobals->curtime <= m_tmNextPeriodicThink)
 		return;
 
 	hudtextparms_t textParams = CreateTextParams();
 
-	int iTimeRemaining = ( int ) GetMapRemainingTime();
-	char stime[ 64 ];
-	FormatTimeRemaining( iTimeRemaining, stime, sizeof( stime ) );
+	int iTimeRemaining = (int)GetMapRemainingTime();
+	char stime[64];
+	FormatTimeRemaining(iTimeRemaining, stime, sizeof(stime));
 
-	if ( sv_timeleft_teamscore.GetBool() )
+	if (sv_timeleft_teamscore.GetBool())
 	{
-		if ( IsTeamplay() )
+		if (IsTeamplay())
 		{
-			UpdateTeamScoreColors( textParams );
+			UpdateTeamScoreColors(textParams);
 		}
 		else
 		{
-			DisplayUnassignedTeamStats( textParams, stime );
-			DisplaySpectatorStats( textParams, stime );
+			DisplayUnassignedTeamStats(textParams, stime);
+			DisplaySpectatorStats(textParams, stime);
 			return;
 		}
 	}
 
-	SendHudMessagesToPlayers( textParams, stime );
+	SendHudMessagesToPlayers(textParams, stime);
 }
 
 hudtextparms_t CHL2MPRules::CreateTextParams()
 {
 	hudtextparms_t textParams;
 	textParams.channel = sv_timeleft_channel.GetInt();
-	if ( !IsTeamplay() )
+
+	if (!IsTeamplay())
 	{
-		textParams.r1 = sv_timeleft_r.GetInt();
-		textParams.g1 = sv_timeleft_g.GetInt();
-		textParams.b1 = sv_timeleft_b.GetInt();
+		int r, g, b;
+		ParseRGBColor(sv_timeleft_color.GetString(), r, g, b);
+		textParams.r1 = r;
+		textParams.g1 = g;
+		textParams.b1 = b;
 	}
+
 	textParams.a1 = 255;
 	textParams.x = sv_timeleft_x.GetFloat();
 	textParams.y = sv_timeleft_y.GetFloat();
@@ -808,70 +867,70 @@ hudtextparms_t CHL2MPRules::CreateTextParams()
 	return textParams;
 }
 
-void CHL2MPRules::FormatTimeRemaining( int iTimeRemaining, char *buffer, size_t bufferSize )
+void CHL2MPRules::FormatTimeRemaining(int iTimeRemaining, char* buffer, size_t bufferSize)
 {
-	int iMinutes = ( iTimeRemaining / 60 ) % 60;
+	int iMinutes = (iTimeRemaining / 60) % 60;
 	int iSeconds = iTimeRemaining % 60;
-	int iHours = ( iTimeRemaining / 3600 ) % 24;
-	int iDays = ( iTimeRemaining / 86400 );
+	int iHours = (iTimeRemaining / 3600) % 24;
+	int iDays = (iTimeRemaining / 86400);
 
-	if ( IsTeamplay() )
+	if (IsTeamplay())
 	{
-		CTeam *pCombine = g_Teams[ TEAM_COMBINE ];
-		CTeam *pRebels = g_Teams[ TEAM_REBELS ];
+		CTeam* pCombine = g_Teams[TEAM_COMBINE];
+		CTeam* pRebels = g_Teams[TEAM_REBELS];
 
 		int combineScore = pCombine ? pCombine->GetScore() : 0;
 		int rebelsScore = pRebels ? pRebels->GetScore() : 0;
 
-		if ( iTimeRemaining >= 86400 )
+		if (iTimeRemaining >= 86400)
 		{
-			Q_snprintf( buffer, bufferSize, "%d %2.2d:%2.2d:%2.2d:%2.2d %d",
-				combineScore, iDays, iHours, iMinutes, iSeconds, rebelsScore );
+			Q_snprintf(buffer, bufferSize, "%d %2.2d:%2.2d:%2.2d:%2.2d %d",
+				combineScore, iDays, iHours, iMinutes, iSeconds, rebelsScore);
 		}
-		else if ( iTimeRemaining >= 3600 )
+		else if (iTimeRemaining >= 3600)
 		{
-			Q_snprintf( buffer, bufferSize, "%d %2.2d:%2.2d:%2.2d %d",
-				combineScore, iHours, iMinutes, iSeconds, rebelsScore );
+			Q_snprintf(buffer, bufferSize, "%d %2.2d:%2.2d:%2.2d %d",
+				combineScore, iHours, iMinutes, iSeconds, rebelsScore);
 		}
 		else
 		{
-			Q_snprintf( buffer, bufferSize, "%d %d:%2.2d %d",
-				combineScore, iMinutes, iSeconds, rebelsScore );
+			Q_snprintf(buffer, bufferSize, "%d %d:%2.2d %d",
+				combineScore, iMinutes, iSeconds, rebelsScore);
 		}
 	}
 	else
 	{
-		FormatStandardTime( iTimeRemaining, buffer, bufferSize );
+		FormatStandardTime(iTimeRemaining, buffer, bufferSize);
 	}
 }
 
-void CHL2MPRules::FormatStandardTime( int iTimeRemaining, char *buffer, size_t bufferSize )
+void CHL2MPRules::FormatStandardTime(int iTimeRemaining, char* buffer, size_t bufferSize)
 {
-	int iMinutes = ( iTimeRemaining / 60 ) % 60;
+	int iMinutes = (iTimeRemaining / 60) % 60;
 	int iSeconds = iTimeRemaining % 60;
-	int iHours = ( iTimeRemaining / 3600 ) % 24;
-	int iDays = ( iTimeRemaining / 86400 );
+	int iHours = (iTimeRemaining / 3600) % 24;
+	int iDays = (iTimeRemaining / 86400);
 
-	if ( iTimeRemaining >= 86400 )
-		Q_snprintf( buffer, bufferSize, "%2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds );
-	else if ( iTimeRemaining >= 3600 )
-		Q_snprintf( buffer, bufferSize, "%2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds );
+	if (iTimeRemaining >= 86400)
+		Q_snprintf(buffer, bufferSize, "%2.2d:%2.2d:%2.2d:%2.2d", iDays, iHours, iMinutes, iSeconds);
+	else if (iTimeRemaining >= 3600)
+		Q_snprintf(buffer, bufferSize, "%2.2d:%2.2d:%2.2d", iHours, iMinutes, iSeconds);
 	else
-		Q_snprintf( buffer, bufferSize, "%d:%2.2d", iMinutes, iSeconds );
+		Q_snprintf(buffer, bufferSize, "%d:%2.2d", iMinutes, iSeconds);
 }
 
-void CHL2MPRules::UpdateTeamScoreColors( hudtextparms_t &textParams )
+void CHL2MPRules::UpdateTeamScoreColors(hudtextparms_t& textParams)
 {
-	CTeam *pCombine = g_Teams[ TEAM_COMBINE ];
-	CTeam *pRebels = g_Teams[ TEAM_REBELS ];
+	CTeam* pCombine = g_Teams[TEAM_COMBINE];
+	CTeam* pRebels = g_Teams[TEAM_REBELS];
 
-	if ( pCombine->GetScore() > pRebels->GetScore() )
+	if (pCombine->GetScore() > pRebels->GetScore())
 	{
 		textParams.r1 = 159;
 		textParams.g1 = 202;
 		textParams.b1 = 242;
 	}
-	else if ( pRebels->GetScore() > pCombine->GetScore() )
+	else if (pRebels->GetScore() > pCombine->GetScore())
 	{
 		textParams.r1 = 255;
 		textParams.g1 = 50;
@@ -885,119 +944,147 @@ void CHL2MPRules::UpdateTeamScoreColors( hudtextparms_t &textParams )
 	}
 }
 
-void CHL2MPRules::DisplayUnassignedTeamStats( hudtextparms_t &textParams, const char *stime )
+void CHL2MPRules::DisplayUnassignedTeamStats(hudtextparms_t& textParams, const char* stime)
 {
-	CTeam *pTeamUnassigned = g_Teams[ TEAM_UNASSIGNED ];
-	if ( !pTeamUnassigned )
+	CTeam* pTeamUnassigned = g_Teams[TEAM_UNASSIGNED];
+	if (!pTeamUnassigned)
 		return;
 
-	CUtlVector<CBaseMultiplayerPlayer *> unassignedPlayers;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	CUtlVector<CBaseMultiplayerPlayer*> unassignedPlayers;
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-		CBaseMultiplayerPlayer *pMultiplayerPlayer = ToBaseMultiplayerPlayer( pPlayer );
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		CBaseMultiplayerPlayer* pMultiplayerPlayer = ToBaseMultiplayerPlayer(pPlayer);
 
-		if ( pMultiplayerPlayer && pMultiplayerPlayer->GetTeamNumber() == TEAM_UNASSIGNED && !pMultiplayerPlayer->IsObserver() )
+		if (pMultiplayerPlayer && pMultiplayerPlayer->GetTeamNumber() == TEAM_UNASSIGNED && !pMultiplayerPlayer->IsObserver())
 		{
-			unassignedPlayers.AddToTail( pMultiplayerPlayer );
+			unassignedPlayers.AddToTail(pMultiplayerPlayer);
 		}
 	}
 
-	unassignedPlayers.Sort( []( CBaseMultiplayerPlayer *const *a, CBaseMultiplayerPlayer *const *b ) {
-		return ( *b )->FragCount() - ( *a )->FragCount();
-		} );
+	unassignedPlayers.Sort([](CBaseMultiplayerPlayer* const* a, CBaseMultiplayerPlayer* const* b) {
+		return (*b)->FragCount() - (*a)->FragCount();
+		});
 
-	for ( int i = 0; i < unassignedPlayers.Count(); i++ )
+	for (int i = 0; i < unassignedPlayers.Count(); i++)
 	{
-		CBaseMultiplayerPlayer *pCurrentPlayer = unassignedPlayers[ i ];
+		CBaseMultiplayerPlayer* pCurrentPlayer = unassignedPlayers[i];
 		int playerRank = i + 1;
 
-		char playerStatText[ 128 ];
+		char playerStatText[128];
 
-		if ( pCurrentPlayer->FragCount() >= 2 || pCurrentPlayer->FragCount() <= -2 )
-			Q_snprintf( playerStatText, sizeof( playerStatText ), "%s\n%d/%d | %d Frags", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount() );
+		if (pCurrentPlayer->FragCount() >= 2 || pCurrentPlayer->FragCount() <= -2)
+			Q_snprintf(playerStatText, sizeof(playerStatText), "%s\n%d/%d | %d Frags", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount());
 		else
-			Q_snprintf( playerStatText, sizeof( playerStatText ), "%s\n%d/%d | %d Frag", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount() );
+			Q_snprintf(playerStatText, sizeof(playerStatText), "%s\n%d/%d | %d Frag", stime, playerRank, unassignedPlayers.Count(), pCurrentPlayer->FragCount());
 
 
-		UTIL_HudMessage( pCurrentPlayer, textParams, playerStatText );
+		UTIL_HudMessage(pCurrentPlayer, textParams, playerStatText);
 	}
 }
 
-void CHL2MPRules::DisplaySpectatorStats( hudtextparms_t &textParams, const char *stime )
+void CHL2MPRules::DisplaySpectatorStats(hudtextparms_t& textParams, const char* stime)
 {
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-		if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 		{
-			UTIL_HudMessage( pPlayer, textParams, stime );
+			UTIL_HudMessage(pPlayer, textParams, stime);
 		}
 	}
 }
 
-void CHL2MPRules::SendHudMessagesToPlayers( hudtextparms_t &textParams, const char *stime )
+void CHL2MPRules::SendHudMessagesToPlayers(hudtextparms_t& textParams, const char* stime)
 {
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
-		if ( pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot() )
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
+		if (pPlayer && pPlayer->IsConnected() && !pPlayer->IsBot())
 		{
-			UTIL_HudMessage( pPlayer, textParams, stime );
+			UTIL_HudMessage(pPlayer, textParams, stime);
 		}
 	}
 }
 
 void CHL2MPRules::HandleNewTargetID()
 {
-	if ( sv_hudtargetid.GetBool() )
+	if (!sv_hudtargetid.GetBool())
+		return;
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		CHL2MP_Player* pPlayer = dynamic_cast<CHL2MP_Player*>(UTIL_PlayerByIndex(i));
+		if (pPlayer && pPlayer->IsAlive())
 		{
-			CHL2MP_Player *pPlayer = dynamic_cast< CHL2MP_Player * >( UTIL_PlayerByIndex( i ) );
+			Vector vecDir;
+			AngleVectors(pPlayer->EyeAngles(), &vecDir);
+			Vector vecAbsStart = pPlayer->EyePosition();
+			Vector vecAbsEnd = vecAbsStart + (vecDir * 2048);
+			trace_t tr;
+			UTIL_TraceLine(vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
+			CBasePlayer* pPlayerEntity = dynamic_cast<CBasePlayer*>(tr.m_pEnt);
 
-			if ( pPlayer && pPlayer->IsAlive() )
+			if (pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive())
 			{
-				Vector vecDir;
-				AngleVectors( pPlayer->EyeAngles(), &vecDir );
-
-				Vector vecAbsStart = pPlayer->EyePosition();
-				Vector vecAbsEnd = vecAbsStart + ( vecDir * 2048 );
-
-				trace_t tr;
-				UTIL_TraceLine( vecAbsStart, vecAbsEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr );
-
-				CBasePlayer *pPlayerEntity = dynamic_cast< CBasePlayer * >( tr.m_pEnt );
-
-				if ( pPlayerEntity && pPlayerEntity->IsPlayer() && pPlayerEntity->IsAlive() )
+				// Se estilo for 0 (original), usa o sistema simples do HL2DM
+				if (sv_targetid_style.GetInt() == 0)
 				{
-					static CBasePlayer *pLastTarget[ MAX_PLAYERS ] = { nullptr }; // Store last aimed target per player
-					bool isNewTarget = ( pPlayerEntity != pLastTarget[ i ] );
+					// Sistema original - nome simples na parte inferior
+					hudtextparms_s tTextParam;
+					tTextParam.x = -1;  // Centralizado horizontalmente
+					tTextParam.y = 0.73; // Posição inferior como no HL2DM original
+					tTextParam.effect = 0;
+					tTextParam.r1 = 255;
+					tTextParam.g1 = 255;
+					tTextParam.b1 = 255;
+					tTextParam.a1 = 255;
+					tTextParam.r2 = 255;
+					tTextParam.g2 = 255;
+					tTextParam.b2 = 255;
+					tTextParam.a2 = 255;
+					tTextParam.fadeinTime = 0.0;
+					tTextParam.fadeoutTime = 0.0;
+					tTextParam.holdTime = 0.1;
+					tTextParam.fxTime = 0;
+					tTextParam.channel = 1; // Canal fixo para o sistema original
 
-					char entity[ 256 ];
+					// Apenas o nome do jogador
+					char playerName[256];
+					Q_snprintf(playerName, sizeof(playerName), "%s", pPlayerEntity->GetPlayerName());
 
-					if ( GameRules()->IsTeamplay() )
+					UTIL_HudMessage(pPlayer, tTextParam, playerName);
+				}
+				// Se estilo for 1 (customizado), usa o sistema avançado
+				// Se estilo for 1 (customizado), usa o sistema avançado
+				else if (sv_targetid_style.GetInt() == 1)
+				{
+					static CBasePlayer* pLastTarget[MAX_PLAYERS] = { nullptr };
+					bool isNewTarget = (pPlayerEntity != pLastTarget[i]);
+					char entity[256];
+
+					if (GameRules()->IsTeamplay())
 					{
-						if ( pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber() )
+						if (pPlayerEntity->GetTeamNumber() == pPlayer->GetTeamNumber())
 						{
-							if ( pPlayerEntity->ArmorValue() )
-								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue() );
+							if (pPlayerEntity->ArmorValue())
+								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\nAP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth(), pPlayerEntity->ArmorValue());
 							else
-								Q_snprintf( entity, sizeof( entity ), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth() );
+								Q_snprintf(entity, sizeof(entity), "%s\nHP: %.0i\n", pPlayerEntity->GetPlayerName(), pPlayerEntity->GetHealth());
 						}
 						else
 						{
-							Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
+							Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
 						}
 					}
 					else
 					{
-						Q_snprintf( entity, sizeof( entity ), "%s", pPlayerEntity->GetPlayerName() );
+						Q_snprintf(entity, sizeof(entity), "%s", pPlayerEntity->GetPlayerName());
 					}
 
-					// HUD message setup
+					// HUD message setup para sistema customizado
 					hudtextparms_s tTextParam;
-					tTextParam.x = 0.45;
+					tTextParam.x = -1; // CORRIGIDO: Usa -1 para centralizar horizontalmente
 					tTextParam.y = 0.63;
 					tTextParam.effect = 0;
 					tTextParam.r1 = 255;
@@ -1014,13 +1101,38 @@ void CHL2MPRules::HandleNewTargetID()
 					tTextParam.fxTime = 0;
 					tTextParam.channel = sv_hudtargetid_channel.GetInt();
 
-					// Show the HUD immediately if it's a new target or if the update timer expired
-					if ( isNewTarget || gpGlobals->curtime > pPlayer->GetNextHudUpdate() )
+					if (isNewTarget || gpGlobals->curtime > pPlayer->GetNextHudUpdate())
 					{
-						UTIL_HudMessage( pPlayer, tTextParam, entity );
-						pPlayer->SetNextHudUpdate( gpGlobals->curtime + 0.5f ); // Set next update time
-						pLastTarget[ i ] = pPlayerEntity; // Store last target
+						UTIL_HudMessage(pPlayer, tTextParam, entity);
+						pPlayer->SetNextHudUpdate(gpGlobals->curtime + 0.5f);
+						pLastTarget[i] = pPlayerEntity;
 					}
+				}
+			}
+			else
+			{
+				// Limpa qualquer texto quando não está mirando em ninguém
+				if (sv_targetid_style.GetInt() == 0)
+				{
+					hudtextparms_s tTextParam;
+					tTextParam.x = -1;
+					tTextParam.y = 0.73;
+					tTextParam.effect = 0;
+					tTextParam.r1 = 255;
+					tTextParam.g1 = 255;
+					tTextParam.b1 = 255;
+					tTextParam.a1 = 255;
+					tTextParam.r2 = 255;
+					tTextParam.g2 = 255;
+					tTextParam.b2 = 255;
+					tTextParam.a2 = 255;
+					tTextParam.fadeinTime = 0.0;
+					tTextParam.fadeoutTime = 0.0;
+					tTextParam.holdTime = 0.1;
+					tTextParam.fxTime = 0;
+					tTextParam.channel = 1;
+
+					UTIL_HudMessage(pPlayer, tTextParam, "");
 				}
 			}
 		}
@@ -1031,69 +1143,69 @@ void CHL2MPRules::HandleNewTargetID()
 void CHL2MPRules::RemoveAllPlayersEquipment()
 {
 	// Forcefully remove suit and weapons here to account for mp_restartgame
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-		if ( pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+		if (pPlayer && pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 		{
-			pPlayer->RemoveAllItems( true );
+			pPlayer->RemoveAllItems(true);
 		}
 	}
 
 	// Fixes a bug where a specator could spectate another spectator
-	for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+	for (int i = 1; i <= gpGlobals->maxClients; ++i)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-		if ( !pPlayer || !pPlayer->IsConnected() )
+		if (!pPlayer || !pPlayer->IsConnected())
 			continue;
 
-		if ( pPlayer->GetObserverMode() == OBS_MODE_CHASE || pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+		if (pPlayer->GetObserverMode() == OBS_MODE_CHASE || pPlayer->GetObserverMode() == OBS_MODE_IN_EYE)
 		{
-			CBasePlayer *pTarget = ToBasePlayer( pPlayer->GetObserverTarget() );
+			CBasePlayer* pTarget = ToBasePlayer(pPlayer->GetObserverTarget());
 
-			if ( pTarget && pTarget->GetTeamNumber() == TEAM_SPECTATOR )
+			if (pTarget && pTarget->GetTeamNumber() == TEAM_SPECTATOR)
 			{
-				pPlayer->SetObserverMode( OBS_MODE_ROAMING );
-				pPlayer->SetObserverTarget( NULL );
+				pPlayer->SetObserverMode(OBS_MODE_ROAMING);
+				pPlayer->SetObserverTarget(NULL);
 			}
 		}
 	}
 }
 #endif
 
-void CHL2MPRules::GoToIntermission( void )
+void CHL2MPRules::GoToIntermission(void)
 {
 #ifndef CLIENT_DLL
-	if ( g_fGameOver )
+	if (g_fGameOver)
 		return;
 
 	g_fGameOver = true;
 
 	m_flIntermissionEndTime = gpGlobals->curtime + mp_chattime.GetInt();
 
-	for ( int i = 0; i < MAX_PLAYERS; i++ )
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+		CBasePlayer* pPlayer = UTIL_PlayerByIndex(i);
 
-		if ( !pPlayer )
+		if (!pPlayer)
 			continue;
 
-		pPlayer->ShowViewPortPanel( PANEL_SCOREBOARD );
-		pPlayer->AddFlag( FL_FROZEN );
+		pPlayer->ShowViewPortPanel(PANEL_SCOREBOARD);
+		pPlayer->AddFlag(FL_FROZEN);
 	}
 #endif
-	
+
 }
 
 bool CHL2MPRules::CheckGameOver()
 {
 #ifndef CLIENT_DLL
-	if ( g_fGameOver )   // someone else quit the game already
+	if (g_fGameOver)   // someone else quit the game already
 	{
 		// check to see if we should change levels now
-		if ( m_flIntermissionEndTime < gpGlobals->curtime )
+		if (m_flIntermissionEndTime < gpGlobals->curtime)
 		{
 			ChangeLevel(); // intermission is over			
 		}
@@ -1114,16 +1226,16 @@ bool CHL2MPRules::CheckGameOver()
 // now,  otherwise it returns the time at which it can try
 // to spawn again.
 //=========================================================
-float CHL2MPRules::FlWeaponTryRespawn( CBaseCombatWeapon *pWeapon )
+float CHL2MPRules::FlWeaponTryRespawn(CBaseCombatWeapon* pWeapon)
 {
 #ifndef CLIENT_DLL
-	if ( pWeapon && (pWeapon->GetWeaponFlags() & ITEM_FLAG_LIMITINWORLD) )
+	if (pWeapon && (pWeapon->GetWeaponFlags() & ITEM_FLAG_LIMITINWORLD))
 	{
-		if ( gEntList.NumberOfEntities() < (gpGlobals->maxEntities - ENTITY_INTOLERANCE) )
+		if (gEntList.NumberOfEntities() < (gpGlobals->maxEntities - ENTITY_INTOLERANCE))
 			return 0;
 
 		// we're past the entity tolerance level,  so delay the respawn
-		return FlWeaponRespawnTime( pWeapon );
+		return FlWeaponRespawnTime(pWeapon);
 	}
 #endif
 	return 0;
@@ -1133,26 +1245,26 @@ float CHL2MPRules::FlWeaponTryRespawn( CBaseCombatWeapon *pWeapon )
 // VecWeaponRespawnSpot - where should this weapon spawn?
 // Some game variations may choose to randomize spawn locations
 //=========================================================
-Vector CHL2MPRules::VecWeaponRespawnSpot( CBaseCombatWeapon *pWeapon )
+Vector CHL2MPRules::VecWeaponRespawnSpot(CBaseCombatWeapon* pWeapon)
 {
 #ifndef CLIENT_DLL
-	CWeaponHL2MPBase *pHL2Weapon = dynamic_cast< CWeaponHL2MPBase*>( pWeapon );
+	CWeaponHL2MPBase* pHL2Weapon = dynamic_cast<CWeaponHL2MPBase*>(pWeapon);
 
-	if ( pHL2Weapon )
+	if (pHL2Weapon)
 	{
 		return pHL2Weapon->GetOriginalSpawnOrigin();
 	}
 #endif
-	
+
 	return pWeapon->GetAbsOrigin();
 }
 
-QAngle CHL2MPRules::DefaultWeaponRespawnAngle( CBaseCombatWeapon *pWeapon )
+QAngle CHL2MPRules::DefaultWeaponRespawnAngle(CBaseCombatWeapon* pWeapon)
 {
 #ifndef CLIENT_DLL
-	CWeaponHL2MPBase *pHL2Weapon = dynamic_cast< CWeaponHL2MPBase * >( pWeapon );
+	CWeaponHL2MPBase* pHL2Weapon = dynamic_cast<CWeaponHL2MPBase*>(pWeapon);
 
-	if ( pHL2Weapon )
+	if (pHL2Weapon)
 	{
 		return pHL2Weapon->GetOriginalSpawnAngles();
 	}
@@ -1162,33 +1274,33 @@ QAngle CHL2MPRules::DefaultWeaponRespawnAngle( CBaseCombatWeapon *pWeapon )
 
 #ifndef CLIENT_DLL
 
-CItem* IsManagedObjectAnItem( CBaseEntity *pObject )
+CItem* IsManagedObjectAnItem(CBaseEntity* pObject)
 {
-	return dynamic_cast< CItem*>( pObject );
+	return dynamic_cast<CItem*>(pObject);
 }
 
-CWeaponHL2MPBase* IsManagedObjectAWeapon( CBaseEntity *pObject )
+CWeaponHL2MPBase* IsManagedObjectAWeapon(CBaseEntity* pObject)
 {
-	return dynamic_cast< CWeaponHL2MPBase*>( pObject );
+	return dynamic_cast<CWeaponHL2MPBase*>(pObject);
 }
 
-bool GetObjectsOriginalParameters( CBaseEntity *pObject, Vector &vOriginalOrigin, QAngle &vOriginalAngles )
+bool GetObjectsOriginalParameters(CBaseEntity* pObject, Vector& vOriginalOrigin, QAngle& vOriginalAngles)
 {
-	if ( CItem *pItem = IsManagedObjectAnItem( pObject ) )
+	if (CItem* pItem = IsManagedObjectAnItem(pObject))
 	{
-		if ( pItem->m_flNextResetCheckTime > gpGlobals->curtime )
-			 return false;
-		
+		if (pItem->m_flNextResetCheckTime > gpGlobals->curtime)
+			return false;
+
 		vOriginalOrigin = pItem->GetOriginalSpawnOrigin();
 		vOriginalAngles = pItem->GetOriginalSpawnAngles();
 
 		pItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_item_respawn_time.GetFloat();
 		return true;
 	}
-	else if ( CWeaponHL2MPBase *pWeapon = IsManagedObjectAWeapon( pObject )) 
+	else if (CWeaponHL2MPBase* pWeapon = IsManagedObjectAWeapon(pObject))
 	{
-		if ( pWeapon->m_flNextResetCheckTime > gpGlobals->curtime )
-			 return false;
+		if (pWeapon->m_flNextResetCheckTime > gpGlobals->curtime)
+			return false;
 
 		vOriginalOrigin = pWeapon->GetOriginalSpawnOrigin();
 		vOriginalAngles = pWeapon->GetOriginalSpawnAngles();
@@ -1200,31 +1312,31 @@ bool GetObjectsOriginalParameters( CBaseEntity *pObject, Vector &vOriginalOrigin
 	return false;
 }
 
-void CHL2MPRules::ManageObjectRelocation( void )
+void CHL2MPRules::ManageObjectRelocation(void)
 {
 	int iTotal = m_hRespawnableItemsAndWeapons.Count();
 
-	if ( iTotal > 0 )
+	if (iTotal > 0)
 	{
-		for ( int i = 0; i < iTotal; i++ )
+		for (int i = 0; i < iTotal; i++)
 		{
-			CBaseEntity *pObject = m_hRespawnableItemsAndWeapons[i].Get();
-			
-			if ( pObject )
+			CBaseEntity* pObject = m_hRespawnableItemsAndWeapons[i].Get();
+
+			if (pObject)
 			{
 				Vector vSpawOrigin;
 				QAngle vSpawnAngles;
 
-				if ( GetObjectsOriginalParameters( pObject, vSpawOrigin, vSpawnAngles ) == true )
+				if (GetObjectsOriginalParameters(pObject, vSpawOrigin, vSpawnAngles) == true)
 				{
-					float flDistanceFromSpawn = (pObject->GetAbsOrigin() - vSpawOrigin ).Length();
+					float flDistanceFromSpawn = (pObject->GetAbsOrigin() - vSpawOrigin).Length();
 
-					if ( flDistanceFromSpawn > WEAPON_MAX_DISTANCE_FROM_SPAWN )
+					if (flDistanceFromSpawn > WEAPON_MAX_DISTANCE_FROM_SPAWN)
 					{
 						bool shouldReset = false;
-						IPhysicsObject *pPhysics = pObject->VPhysicsGetObject();
+						IPhysicsObject* pPhysics = pObject->VPhysicsGetObject();
 
-						if ( pPhysics )
+						if (pPhysics)
 						{
 							shouldReset = pPhysics->IsAsleep();
 						}
@@ -1233,14 +1345,14 @@ void CHL2MPRules::ManageObjectRelocation( void )
 							shouldReset = (pObject->GetFlags() & FL_ONGROUND) ? true : false;
 						}
 
-						if ( shouldReset )
+						if (shouldReset)
 						{
-							pObject->Teleport( &vSpawOrigin, &vSpawnAngles, NULL );
-							pObject->EmitSound( "AlyxEmp.Charge" );
+							pObject->Teleport(&vSpawOrigin, &vSpawnAngles, NULL);
+							pObject->EmitSound("AlyxEmp.Charge");
 
-							IPhysicsObject *pPhys = pObject->VPhysicsGetObject();
+							IPhysicsObject* pPhys = pObject->VPhysicsGetObject();
 
-							if ( pPhys )
+							if (pPhys)
 							{
 								pPhys->Wake();
 							}
@@ -1255,22 +1367,22 @@ void CHL2MPRules::ManageObjectRelocation( void )
 //=========================================================
 //AddLevelDesignerPlacedWeapon
 //=========================================================
-void CHL2MPRules::AddLevelDesignerPlacedObject( CBaseEntity *pEntity )
+void CHL2MPRules::AddLevelDesignerPlacedObject(CBaseEntity* pEntity)
 {
-	if ( m_hRespawnableItemsAndWeapons.Find( pEntity ) == -1 )
+	if (m_hRespawnableItemsAndWeapons.Find(pEntity) == -1)
 	{
-		m_hRespawnableItemsAndWeapons.AddToTail( pEntity );
+		m_hRespawnableItemsAndWeapons.AddToTail(pEntity);
 	}
 }
 
 //=========================================================
 //RemoveLevelDesignerPlacedWeapon
 //=========================================================
-void CHL2MPRules::RemoveLevelDesignerPlacedObject( CBaseEntity *pEntity )
+void CHL2MPRules::RemoveLevelDesignerPlacedObject(CBaseEntity* pEntity)
 {
-	if ( m_hRespawnableItemsAndWeapons.Find( pEntity ) != -1 )
+	if (m_hRespawnableItemsAndWeapons.Find(pEntity) != -1)
 	{
-		m_hRespawnableItemsAndWeapons.FindAndRemove( pEntity );
+		m_hRespawnableItemsAndWeapons.FindAndRemove(pEntity);
 	}
 }
 
@@ -1278,7 +1390,7 @@ void CHL2MPRules::RemoveLevelDesignerPlacedObject( CBaseEntity *pEntity )
 // Where should this item respawn?
 // Some game variations may choose to randomize spawn locations
 //=========================================================
-Vector CHL2MPRules::VecItemRespawnSpot( CItem *pItem )
+Vector CHL2MPRules::VecItemRespawnSpot(CItem* pItem)
 {
 	return pItem->GetOriginalSpawnOrigin();
 }
@@ -1286,7 +1398,7 @@ Vector CHL2MPRules::VecItemRespawnSpot( CItem *pItem )
 //=========================================================
 // What angles should this item use to respawn?
 //=========================================================
-QAngle CHL2MPRules::VecItemRespawnAngles( CItem *pItem )
+QAngle CHL2MPRules::VecItemRespawnAngles(CItem* pItem)
 {
 	return pItem->GetOriginalSpawnAngles();
 }
@@ -1294,7 +1406,7 @@ QAngle CHL2MPRules::VecItemRespawnAngles( CItem *pItem )
 //=========================================================
 // At what time in the future may this Item respawn?
 //=========================================================
-float CHL2MPRules::FlItemRespawnTime( CItem *pItem )
+float CHL2MPRules::FlItemRespawnTime(CItem* pItem)
 {
 	return sv_hl2mp_item_respawn_time.GetFloat();
 }
@@ -1304,15 +1416,15 @@ float CHL2MPRules::FlItemRespawnTime( CItem *pItem )
 // CanHaveWeapon - returns false if the player is not allowed
 // to pick up this weapon
 //=========================================================
-bool CHL2MPRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pItem )
+bool CHL2MPRules::CanHavePlayerItem(CBasePlayer* pPlayer, CBaseCombatWeapon* pItem)
 {
-	if ( weaponstay.GetInt() > 0 )
+	if (weaponstay.GetInt() > 0)
 	{
-		if ( pPlayer->Weapon_OwnsThisType( pItem->GetClassname(), pItem->GetSubType() ) )
-			 return false;
+		if (pPlayer->Weapon_OwnsThisType(pItem->GetClassname(), pItem->GetSubType()))
+			return false;
 	}
 
-	return BaseClass::CanHavePlayerItem( pPlayer, pItem );
+	return BaseClass::CanHavePlayerItem(pPlayer, pItem);
 }
 
 #endif
@@ -1321,10 +1433,10 @@ bool CHL2MPRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pI
 // WeaponShouldRespawn - any conditions inhibiting the
 // respawning of this weapon?
 //=========================================================
-int CHL2MPRules::WeaponShouldRespawn( CBaseCombatWeapon *pWeapon )
+int CHL2MPRules::WeaponShouldRespawn(CBaseCombatWeapon* pWeapon)
 {
 #ifndef CLIENT_DLL
-	if ( pWeapon->HasSpawnFlags( SF_NORESPAWN ) )
+	if (pWeapon->HasSpawnFlags(SF_NORESPAWN))
 	{
 		return GR_WEAPON_RESPAWN_NO;
 	}
@@ -1336,23 +1448,23 @@ int CHL2MPRules::WeaponShouldRespawn( CBaseCombatWeapon *pWeapon )
 //-----------------------------------------------------------------------------
 // Purpose: Player has just left the game
 //-----------------------------------------------------------------------------
-void CHL2MPRules::ClientDisconnected( edict_t *pClient )
+void CHL2MPRules::ClientDisconnected(edict_t* pClient)
 {
 #ifndef CLIENT_DLL
 	// Msg( "CLIENT DISCONNECTED, REMOVING FROM TEAM.\n" );
 
-	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
-	if ( pPlayer )
+	CBasePlayer* pPlayer = (CBasePlayer*)CBaseEntity::Instance(pClient);
+	if (pPlayer)
 	{
-		FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
+		FireTargets("game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0);
 		// Remove the player from his team
-		if ( pPlayer->GetTeam() )
+		if (pPlayer->GetTeam())
 		{
-			pPlayer->GetTeam()->RemovePlayer( pPlayer );
+			pPlayer->GetTeam()->RemovePlayer(pPlayer);
 		}
 	}
 
-	BaseClass::ClientDisconnected( pClient );
+	BaseClass::ClientDisconnected(pClient);
 
 #endif
 }
@@ -1361,23 +1473,23 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 //=========================================================
 // Deathnotice. 
 //=========================================================
-void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info )
+void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
 #ifndef CLIENT_DLL
 	// Work out what killed the player, and send a message to all clients about it
-	const char *killer_weapon_name = "world";		// by default, the player is killed by the world
+	const char* killer_weapon_name = "world";		// by default, the player is killed by the world
 	int killer_ID = 0;
 
 	// Find the killer & the scorer
-	CBaseEntity *pInflictor = info.GetInflictor();
-	CBaseEntity *pKiller = info.GetAttacker();
-	CBasePlayer *pScorer = GetDeathScorer( pKiller, pInflictor );
+	CBaseEntity* pInflictor = info.GetInflictor();
+	CBaseEntity* pKiller = info.GetAttacker();
+	CBasePlayer* pScorer = GetDeathScorer(pKiller, pInflictor);
 
 	// Custom kill type?
-	if ( info.GetDamageCustom() )
+	if (info.GetDamageCustom())
 	{
-		killer_weapon_name = GetDamageCustomString( info );
-		if ( pScorer )
+		killer_weapon_name = GetDamageCustomString(info);
+		if (pScorer)
 		{
 			killer_ID = pScorer->GetUserID();
 		}
@@ -1385,16 +1497,16 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 	else
 	{
 		// Is the killer a client?
-		if ( pScorer )
+		if (pScorer)
 		{
 			killer_ID = pScorer->GetUserID();
-			
-			if ( pInflictor )
+
+			if (pInflictor)
 			{
-				if ( pInflictor == pScorer )
+				if (pInflictor == pScorer)
 				{
 					// If the inflictor is the killer,  then it must be their current weapon doing the damage
-					if ( pScorer->GetActiveWeapon() )
+					if (pScorer->GetActiveWeapon())
 					{
 						killer_weapon_name = pScorer->GetActiveWeapon()->GetClassname();
 					}
@@ -1411,104 +1523,93 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		}
 
 		// strip the NPC_* or weapon_* from the inflictor's classname
-		if ( strncmp( killer_weapon_name, "weapon_", 7 ) == 0 )
+		if (strncmp(killer_weapon_name, "weapon_", 7) == 0)
 		{
 			killer_weapon_name += 7;
 		}
-		else if ( strncmp( killer_weapon_name, "npc_", 4 ) == 0 )
+		else if (strncmp(killer_weapon_name, "npc_", 4) == 0)
 		{
 			killer_weapon_name += 4;
 		}
-		else if ( strncmp( killer_weapon_name, "func_", 5 ) == 0 )
+		else if (strncmp(killer_weapon_name, "func_", 5) == 0)
 		{
 			killer_weapon_name += 5;
 		}
-		else if ( strstr( killer_weapon_name, "physics" ) )
+		else if (strstr(killer_weapon_name, "physics"))
 		{
 			killer_weapon_name = "physics";
 		}
-		if ( strstr( killer_weapon_name, "physbox" ) )
+		if (strstr(killer_weapon_name, "physbox"))
 		{
 			killer_weapon_name = "physics";
 		}
-		if ( strcmp( killer_weapon_name, "prop_combine_ball" ) == 0 )
+		if (strcmp(killer_weapon_name, "prop_combine_ball") == 0)
 		{
 			killer_weapon_name = "combine_ball";
 		}
-		else if ( strcmp( killer_weapon_name, "grenade_ar2" ) == 0 )
+		else if (strcmp(killer_weapon_name, "grenade_ar2") == 0)
 		{
 			killer_weapon_name = "smg1_grenade";
 		}
-		else if ( strcmp( killer_weapon_name, "satchel" ) == 0 || strcmp( killer_weapon_name, "tripmine" ) == 0)
+		else if (strcmp(killer_weapon_name, "satchel") == 0 || strcmp(killer_weapon_name, "tripmine") == 0)
 		{
 			killer_weapon_name = "slam";
 		}
-/*
-		if ( IsTeamplay() && pScorer && pScorer->GetTeamNumber() == pVictim->GetTeamNumber() )
-		{
-			CTeam *pKillerTeam = pScorer->GetTeam();
-
-			if ( pKillerTeam )
-			{
-				pKillerTeam->AddScore( -2 );
-			}
-		}
-*/
+		// CÓDIGO DE PONTUAÇÃO REMOVIDO - agora está na PlayerKilled
 	}
 
-	IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
-	if( event )
+	IGameEvent* event = gameeventmanager->CreateEvent("player_death");
+	if (event)
 	{
-		event->SetInt("userid", pVictim->GetUserID() );
-		event->SetInt("attacker", killer_ID );
-		event->SetString("weapon", killer_weapon_name );
-		event->SetInt( "priority", 7 );
-		gameeventmanager->FireEvent( event );
+		event->SetInt("userid", pVictim->GetUserID());
+		event->SetInt("attacker", killer_ID);
+		event->SetString("weapon", killer_weapon_name);
+		event->SetInt("priority", 7);
+		gameeventmanager->FireEvent(event);
 	}
 #endif
-
 }
 
-void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
+void CHL2MPRules::ClientSettingsChanged(CBasePlayer* pPlayer)
 {
 #ifndef CLIENT_DLL
-	
-	CHL2MP_Player *pHL2Player = ToHL2MPPlayer( pPlayer );
 
-	if ( pHL2Player == NULL )
+	CHL2MP_Player* pHL2Player = ToHL2MPPlayer(pPlayer);
+
+	if (pHL2Player == NULL)
 		return;
 
-	const char *pCurrentModel = modelinfo->GetModelName( pPlayer->GetModel() );
-	const char *szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( pPlayer->edict() ), "cl_playermodel" );
+	const char* pCurrentModel = modelinfo->GetModelName(pPlayer->GetModel());
+	const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
 
 	//If we're different.
-	if ( stricmp( szModelName, pCurrentModel ) )
+	if (stricmp(szModelName, pCurrentModel))
 	{
 		//Too soon, set the cvar back to what it was.
 		//Note: this will make this function be called again
 		//but since our models will match it'll just skip this whole dealio.
-		if ( pHL2Player->GetNextModelChangeTime() >= gpGlobals->curtime )
+		if (pHL2Player->GetNextModelChangeTime() >= gpGlobals->curtime)
 		{
 			char szReturnString[512];
 
-			Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", pCurrentModel );
-			engine->ClientCommand ( pHL2Player->edict(), szReturnString );
+			Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pCurrentModel);
+			engine->ClientCommand(pHL2Player->edict(), szReturnString);
 
-			Q_snprintf( szReturnString, sizeof( szReturnString ), "Please wait %d more seconds before trying to switch models.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime) );
-			ClientPrint( pHL2Player, HUD_PRINTTALK, szReturnString );
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Please wait %d more seconds before trying to switch models.\n", (int)(pHL2Player->GetNextModelChangeTime() - gpGlobals->curtime));
+			ClientPrint(pHL2Player, HUD_PRINTTALK, szReturnString);
 			return;
 		}
 
-		if ( HL2MPRules()->IsTeamplay() == false )
+		if (HL2MPRules()->IsTeamplay() == false)
 		{
 			pHL2Player->SetPlayerModel();
 
-			const char *pszCurrentModelName = modelinfo->GetModelName( pHL2Player->GetModel() );
+			const char* pszCurrentModelName = modelinfo->GetModelName(pHL2Player->GetModel());
 
 			char szReturnString[128];
-			Q_snprintf( szReturnString, sizeof( szReturnString ), "Your player model is: %s\n", pszCurrentModelName );
+			Q_snprintf(szReturnString, sizeof(szReturnString), "Your player model is: %s\n", pszCurrentModelName);
 
-			ClientPrint( pHL2Player, HUD_PRINTTALK, szReturnString );
+			ClientPrint(pHL2Player, HUD_PRINTTALK, szReturnString);
 		}
 		else
 		{
@@ -1524,25 +1625,25 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 			}
 		}
 	}
-	if ( sv_report_client_settings.GetInt() == 1 )
+	if (sv_report_client_settings.GetInt() == 1)
 	{
-		UTIL_LogPrintf( "\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue( pHL2Player->entindex(), "cl_cmdrate" ));
+		UTIL_LogPrintf("\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue(pHL2Player->entindex(), "cl_cmdrate"));
 	}
 
-	BaseClass::ClientSettingsChanged( pPlayer );
+	BaseClass::ClientSettingsChanged(pPlayer);
 #endif
-	
+
 }
 
-int CHL2MPRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
+int CHL2MPRules::PlayerRelationship(CBaseEntity* pPlayer, CBaseEntity* pTarget)
 {
 #ifndef CLIENT_DLL
 	// half life multiplay has a simple concept of Player Relationships.
 	// you are either on another player's team, or you are not.
-	if ( !pPlayer || !pTarget || !pTarget->IsPlayer() || IsTeamplay() == false )
+	if (!pPlayer || !pTarget || !pTarget->IsPlayer() || IsTeamplay() == false)
 		return GR_NOTTEAMMATE;
 
-	if ( (*GetTeamID(pPlayer) != '\0') && (*GetTeamID(pTarget) != '\0') && !stricmp( GetTeamID(pPlayer), GetTeamID(pTarget) ) )
+	if ((*GetTeamID(pPlayer) != '\0') && (*GetTeamID(pTarget) != '\0') && !stricmp(GetTeamID(pPlayer), GetTeamID(pTarget)))
 	{
 		return GR_TEAMMATE;
 	}
@@ -1551,28 +1652,28 @@ int CHL2MPRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget 
 	return GR_NOTTEAMMATE;
 }
 
-const char *CHL2MPRules::GetGameDescription( void )
-{ 
-	if ( IsTeamplay() )
-		return "Team Deathmatch"; 
+const char* CHL2MPRules::GetGameDescription(void)
+{
+	if (IsTeamplay())
+		return "Team Deathmatch";
 
-	return "Deathmatch"; 
-} 
+	return "Deathmatch";
+}
 
-bool CHL2MPRules::IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer )
+bool CHL2MPRules::IsConnectedUserInfoChangeAllowed(CBasePlayer* pPlayer)
 {
 	return true;
 }
- 
+
 float CHL2MPRules::GetMapRemainingTime()
 {
 	// if timelimit is disabled, return 0
-	if ( mp_timelimit.GetInt() <= 0 )
+	if (mp_timelimit.GetInt() <= 0)
 		return 0;
 
 	// timelimit is in minutes
 
-	float timeleft = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f ) - gpGlobals->curtime;
+	float timeleft = (m_flGameStartTime + mp_timelimit.GetInt() * 60.0f) - gpGlobals->curtime;
 
 	return timeleft;
 }
@@ -1580,15 +1681,15 @@ float CHL2MPRules::GetMapRemainingTime()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2MPRules::Precache( void )
+void CHL2MPRules::Precache(void)
 {
-	CBaseEntity::PrecacheScriptSound( "AlyxEmp.Charge" );
+	CBaseEntity::PrecacheScriptSound("AlyxEmp.Charge");
 }
 
 #ifdef GAME_DLL
-bool CHL2MPRules::IsOfficialMap( void )
-{ 
-	static const char *s_OfficialMaps[] =
+bool CHL2MPRules::IsOfficialMap(void)
+{
+	static const char* s_OfficialMaps[] =
 	{
 		"devtest",
 		"dm_lockdown",
@@ -1602,11 +1703,11 @@ bool CHL2MPRules::IsOfficialMap( void )
 	};
 
 	char szCurrentMap[MAX_MAP_NAME];
-	Q_strncpy( szCurrentMap, STRING( gpGlobals->mapname ), sizeof( szCurrentMap ) );
+	Q_strncpy(szCurrentMap, STRING(gpGlobals->mapname), sizeof(szCurrentMap));
 
-	for ( int i = 0; i < ARRAYSIZE( s_OfficialMaps ); ++i )
+	for (int i = 0; i < ARRAYSIZE(s_OfficialMaps); ++i)
 	{
-		if ( !Q_stricmp( s_OfficialMaps[i], szCurrentMap ) )
+		if (!Q_stricmp(s_OfficialMaps[i], szCurrentMap))
 		{
 			return true;
 		}
@@ -1616,34 +1717,34 @@ bool CHL2MPRules::IsOfficialMap( void )
 }
 #endif
 
-bool CHL2MPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
+bool CHL2MPRules::ShouldCollide(int collisionGroup0, int collisionGroup1)
 {
-	if ( collisionGroup0 > collisionGroup1 )
+	if (collisionGroup0 > collisionGroup1)
 	{
 		// swap so that lowest is always first
-		V_swap(collisionGroup0,collisionGroup1);
+		V_swap(collisionGroup0, collisionGroup1);
 	}
 
-	if ( (collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT) &&
-		collisionGroup1 == COLLISION_GROUP_WEAPON )
+	if ((collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT) &&
+		collisionGroup1 == COLLISION_GROUP_WEAPON)
 	{
 		return false;
 	}
 
-	return BaseClass::ShouldCollide( collisionGroup0, collisionGroup1 ); 
+	return BaseClass::ShouldCollide(collisionGroup0, collisionGroup1);
 
 }
 
-bool CHL2MPRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
+bool CHL2MPRules::ClientCommand(CBaseEntity* pEdict, const CCommand& args)
 {
 #ifndef CLIENT_DLL
-	if( BaseClass::ClientCommand( pEdict, args ) )
+	if (BaseClass::ClientCommand(pEdict, args))
 		return true;
 
 
-	CHL2MP_Player *pPlayer = (CHL2MP_Player *) pEdict;
+	CHL2MP_Player* pPlayer = (CHL2MP_Player*)pEdict;
 
-	if ( pPlayer->ClientCommand( args ) )
+	if (pPlayer->ClientCommand(args))
 		return true;
 #endif
 
@@ -1661,26 +1762,26 @@ bool CHL2MPRules::ClientCommand( CBaseEntity *pEdict, const CCommand &args )
 #define BULLET_IMPULSE(grains, ftpersec)	((ftpersec)*12*BULLET_MASS_GRAINS_TO_KG(grains)*BULLET_IMPULSE_EXAGGERATION)
 
 
-CAmmoDef *GetAmmoDef()
+CAmmoDef* GetAmmoDef()
 {
 	static CAmmoDef def;
 	static bool bInitted = false;
-	
-	if ( !bInitted )
+
+	if (!bInitted)
 	{
 		bInitted = true;
 
-		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			150,		BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			225,		BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			12,			BULLET_IMPULSE(800, 5000),	0 );
-		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			10,			BULLET_IMPULSE(800, 8000),	0 );
-		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			30,			BULLET_IMPULSE(400, 1200),	0 );
-		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
-		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
+		def.AddAmmoType("AR2", DMG_BULLET, TRACER_LINE_AND_WHIZ, 0, 0, 60, BULLET_IMPULSE(200, 1225), 0);
+		def.AddAmmoType("AR2AltFire", DMG_DISSOLVE, TRACER_NONE, 0, 0, 3, 0, 0);
+		def.AddAmmoType("Pistol", DMG_BULLET, TRACER_LINE_AND_WHIZ, 0, 0, 150, BULLET_IMPULSE(200, 1225), 0);
+		def.AddAmmoType("SMG1", DMG_BULLET, TRACER_LINE_AND_WHIZ, 0, 0, 225, BULLET_IMPULSE(200, 1225), 0);
+		def.AddAmmoType("357", DMG_BULLET, TRACER_LINE_AND_WHIZ, 0, 0, 12, BULLET_IMPULSE(800, 5000), 0);
+		def.AddAmmoType("XBowBolt", DMG_BULLET, TRACER_LINE, 0, 0, 10, BULLET_IMPULSE(800, 8000), 0);
+		def.AddAmmoType("Buckshot", DMG_BULLET | DMG_BUCKSHOT, TRACER_LINE, 0, 0, 30, BULLET_IMPULSE(400, 1200), 0);
+		def.AddAmmoType("RPG_Round", DMG_BURN, TRACER_NONE, 0, 0, 3, 0, 0);
+		def.AddAmmoType("SMG1_Grenade", DMG_BURN, TRACER_NONE, 0, 0, 3, 0, 0);
+		def.AddAmmoType("Grenade", DMG_BURN, TRACER_NONE, 0, 0, 5, 0, 0);
+		def.AddAmmoType("slam", DMG_BURN, TRACER_NONE, 0, 0, 5, 0, 0);
 	}
 
 	return &def;
@@ -1688,28 +1789,28 @@ CAmmoDef *GetAmmoDef()
 
 #ifdef CLIENT_DLL
 
-	ConVar cl_autowepswitch(
-		"cl_autowepswitch",
-		"1",
-		FCVAR_ARCHIVE | FCVAR_USERINFO,
-		"Automatically switch to picked up weapons (if more powerful)" );
+ConVar cl_autowepswitch(
+	"cl_autowepswitch",
+	"1",
+	FCVAR_ARCHIVE | FCVAR_USERINFO,
+	"Automatically switch to picked up weapons (if more powerful)");
 
 #else
 
-	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
-	{		
-		if ( pPlayer->GetActiveWeapon() && pPlayer->IsNetClient() )
+bool CHL2MPRules::FShouldSwitchWeapon(CBasePlayer* pPlayer, CBaseCombatWeapon* pWeapon)
+{
+	if (pPlayer->GetActiveWeapon() && pPlayer->IsNetClient())
+	{
+		// Player has an active item, so let's check cl_autowepswitch.
+		const char* cl_autowepswitch = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_autowepswitch");
+		if (cl_autowepswitch && atoi(cl_autowepswitch) <= 0)
 		{
-			// Player has an active item, so let's check cl_autowepswitch.
-			const char *cl_autowepswitch = engine->GetClientConVarValue( engine->IndexOfEdict( pPlayer->edict() ), "cl_autowepswitch" );
-			if ( cl_autowepswitch && atoi( cl_autowepswitch ) <= 0 )
-			{
-				return false;
-			}
+			return false;
 		}
-
-		return BaseClass::FShouldSwitchWeapon( pPlayer, pWeapon );
 	}
+
+	return BaseClass::FShouldSwitchWeapon(pPlayer, pWeapon);
+}
 
 #endif
 
@@ -1718,53 +1819,53 @@ CAmmoDef *GetAmmoDef()
 void CHL2MPRules::RestartGame()
 {
 	// bounds check
-	if ( mp_timelimit.GetInt() < 0 )
+	if (mp_timelimit.GetInt() < 0)
 	{
-		mp_timelimit.SetValue( 0 );
+		mp_timelimit.SetValue(0);
 	}
 	m_flGameStartTime = gpGlobals->curtime;
-	if ( !IsFinite( m_flGameStartTime.Get() ) )
+	if (!IsFinite(m_flGameStartTime.Get()))
 	{
-		Warning( "Trying to set a NaN game start time\n" );
+		Warning("Trying to set a NaN game start time\n");
 		m_flGameStartTime.GetForModify() = 0.0f;
 	}
 
 	CleanUpMap();
-	
-	// now respawn all players
-	for (int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CHL2MP_Player *pPlayer = (CHL2MP_Player*) UTIL_PlayerByIndex( i );
 
-		if ( !pPlayer )
+	// now respawn all players
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
+
+		if (!pPlayer)
 			continue;
 
-		if ( pPlayer->GetActiveWeapon() )
+		if (pPlayer->GetActiveWeapon())
 		{
 			pPlayer->GetActiveWeapon()->Holster();
 		}
-		pPlayer->RemoveAllItems( true );
-		respawn( pPlayer, false );
+		pPlayer->RemoveAllItems(true);
+		respawn(pPlayer, false);
 		pPlayer->Reset();
 	}
 
 	// Respawn entities (glass, doors, etc..)
 
-	CTeam *pRebels = GetGlobalTeam( TEAM_REBELS );
-	CTeam *pCombine = GetGlobalTeam( TEAM_COMBINE );
+	CTeam* pRebels = GetGlobalTeam(TEAM_REBELS);
+	CTeam* pCombine = GetGlobalTeam(TEAM_COMBINE);
 
-	if ( pRebels )
+	if (pRebels)
 	{
-		pRebels->SetScore( 0 );
+		pRebels->SetScore(0);
 	}
 
-	if ( pCombine )
+	if (pCombine)
 	{
-		pCombine->SetScore( 0 );
+		pCombine->SetScore(0);
 	}
 
 	m_flIntermissionEndTime = 0;
-	m_flRestartGameTime = 0.0;		
+	m_flRestartGameTime = 0.0;
 	m_bCompleteReset = false;
 
 	if (!HL2MPRules()->IsTeamplay())
@@ -1774,9 +1875,7 @@ void CHL2MPRules::RestartGame()
 		{
 			event->SetInt("fraglimit", 0);
 			event->SetInt("priority", 6); // HLTV event priority, not transmitted
-
 			event->SetString("objective", "DEATHMATCH");
-
 			gameeventmanager->FireEvent(event);
 		}
 	}
@@ -1787,13 +1886,14 @@ void CHL2MPRules::RestartGame()
 		{
 			gameeventmanager->FireEvent(event);
 		}
+
 	}
 }
 
 #ifdef GAME_DLL
-void CHL2MPRules::OnNavMeshLoad( void )
+void CHL2MPRules::OnNavMeshLoad(void)
 {
-	TheNavMesh->SetPlayerSpawnName( "info_player_deathmatch" );
+	TheNavMesh->SetPlayerSpawnName("info_player_deathmatch");
 }
 #endif
 
@@ -1803,25 +1903,25 @@ void CHL2MPRules::CleanUpMap()
 	// then remove everything else except the players.
 
 	// Get rid of all entities except players.
-	CBaseEntity *pCur = gEntList.FirstEnt();
-	while ( pCur )
+	CBaseEntity* pCur = gEntList.FirstEnt();
+	while (pCur)
 	{
-		CBaseHL2MPCombatWeapon *pWeapon = dynamic_cast< CBaseHL2MPCombatWeapon* >( pCur );
+		CBaseHL2MPCombatWeapon* pWeapon = dynamic_cast<CBaseHL2MPCombatWeapon*>(pCur);
 		// Weapons with owners don't want to be removed..
-		if ( pWeapon )
+		if (pWeapon)
 		{
-			if ( !pWeapon->GetPlayerOwner() )
+			if (!pWeapon->GetPlayerOwner())
 			{
-				UTIL_Remove( pCur );
+				UTIL_Remove(pCur);
 			}
 		}
 		// remove entities that has to be restored on roundrestart (breakables etc)
-		else if ( !FindInList( s_PreserveEnts, pCur->GetClassname() ) )
+		else if (!FindInList(s_PreserveEnts, pCur->GetClassname()))
 		{
-			UTIL_Remove( pCur );
+			UTIL_Remove(pCur);
 		}
 
-		pCur = gEntList.NextEnt( pCur );
+		pCur = gEntList.NextEnt(pCur);
 	}
 
 	// Really remove the entities so we can have access to their slots below.
@@ -1835,50 +1935,50 @@ void CHL2MPRules::CleanUpMap()
 	class CHL2MPMapEntityFilter : public IMapEntityFilter
 	{
 	public:
-		virtual bool ShouldCreateEntity( const char *pClassname )
+		virtual bool ShouldCreateEntity(const char* pClassname)
 		{
 			// Don't recreate the preserved entities.
-			if ( !FindInList( s_PreserveEnts, pClassname ) )
+			if (!FindInList(s_PreserveEnts, pClassname))
 			{
 				return true;
 			}
 			else
 			{
 				// Increment our iterator since it's not going to call CreateNextEntity for this ent.
-				if ( m_iIterator != g_MapEntityRefs.InvalidIndex() )
-					m_iIterator = g_MapEntityRefs.Next( m_iIterator );
+				if (m_iIterator != g_MapEntityRefs.InvalidIndex())
+					m_iIterator = g_MapEntityRefs.Next(m_iIterator);
 
 				return false;
 			}
 		}
 
 
-		virtual CBaseEntity* CreateNextEntity( const char *pClassname )
+		virtual CBaseEntity* CreateNextEntity(const char* pClassname)
 		{
-			if ( m_iIterator == g_MapEntityRefs.InvalidIndex() )
+			if (m_iIterator == g_MapEntityRefs.InvalidIndex())
 			{
 				// This shouldn't be possible. When we loaded the map, it should have used 
 				// CCSMapLoadEntityFilter, which should have built the g_MapEntityRefs list
 				// with the same list of entities we're referring to here.
-				Assert( false );
+				Assert(false);
 				return NULL;
 			}
 			else
 			{
-				CMapEntityRef &ref = g_MapEntityRefs[m_iIterator];
-				m_iIterator = g_MapEntityRefs.Next( m_iIterator );	// Seek to the next entity.
+				CMapEntityRef& ref = g_MapEntityRefs[m_iIterator];
+				m_iIterator = g_MapEntityRefs.Next(m_iIterator);	// Seek to the next entity.
 
-				if ( ref.m_iEdict == -1 || engine->PEntityOfEntIndex( ref.m_iEdict ) )
+				if (ref.m_iEdict == -1 || engine->PEntityOfEntIndex(ref.m_iEdict))
 				{
 					// Doh! The entity was delete and its slot was reused.
 					// Just use any old edict slot. This case sucks because we lose the baseline.
-					return CreateEntityByName( pClassname );
+					return CreateEntityByName(pClassname);
 				}
 				else
 				{
 					// Cool, the slot where this entity was is free again (most likely, the entity was 
 					// freed above). Now create an entity with this specific index.
-					return CreateEntityByName( pClassname, ref.m_iEdict );
+					return CreateEntityByName(pClassname, ref.m_iEdict);
 				}
 			}
 		}
@@ -1891,77 +1991,77 @@ void CHL2MPRules::CleanUpMap()
 
 	// DO NOT CALL SPAWN ON info_node ENTITIES!
 
-	MapEntity_ParseAllEntities( engine->GetMapEntitiesString(), &filter, true );
+	MapEntity_ParseAllEntities(engine->GetMapEntitiesString(), &filter, true);
 }
 
-void CHL2MPRules::CheckChatForReadySignal( CHL2MP_Player *pPlayer, const char *chatmsg )
+void CHL2MPRules::CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg)
 {
-	if( m_bAwaitingReadyRestart && FStrEq( chatmsg, mp_ready_signal.GetString() ) )
+	if (m_bAwaitingReadyRestart && FStrEq(chatmsg, mp_ready_signal.GetString()))
 	{
-		if( !pPlayer->IsReady() )
+		if (!pPlayer->IsReady())
 		{
-			pPlayer->SetReady( true );
-		}		
+			pPlayer->SetReady(true);
+		}
 	}
 }
 
-void CHL2MPRules::CheckRestartGame( void )
+void CHL2MPRules::CheckRestartGame(void)
 {
 	// Restart the game if specified by the server
 	int iRestartDelay = mp_restartgame.GetInt();
 
-	if ( iRestartDelay > 0 )
+	if (iRestartDelay > 0)
 	{
-		if ( iRestartDelay > 60 )
+		if (iRestartDelay > 60)
 			iRestartDelay = 60;
 
 
 		// let the players know
 		char strRestartDelay[64];
-		Q_snprintf( strRestartDelay, sizeof( strRestartDelay ), "%d", iRestartDelay );
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS" );
-		UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS" );
+		Q_snprintf(strRestartDelay, sizeof(strRestartDelay), "%d", iRestartDelay);
+		UTIL_ClientPrintAll(HUD_PRINTCENTER, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
+		UTIL_ClientPrintAll(HUD_PRINTCONSOLE, "Game will restart in %s1 %s2", strRestartDelay, iRestartDelay == 1 ? "SECOND" : "SECONDS");
 
 		m_flRestartGameTime = gpGlobals->curtime + iRestartDelay;
 		m_bCompleteReset = true;
-		mp_restartgame.SetValue( 0 );
+		mp_restartgame.SetValue(0);
 	}
 
-	if( mp_readyrestart.GetBool() )
+	if (mp_readyrestart.GetBool())
 	{
 		m_bAwaitingReadyRestart = true;
 		m_bHeardAllPlayersReady = false;
-		
 
-		const char *pszReadyString = mp_ready_signal.GetString();
+
+		const char* pszReadyString = mp_ready_signal.GetString();
 
 
 		// Don't let them put anything malicious in there
-		if( pszReadyString == NULL || Q_strlen(pszReadyString) > 16 )
+		if (pszReadyString == NULL || Q_strlen(pszReadyString) > 16)
 		{
 			pszReadyString = "ready";
 		}
 
-		IGameEvent *event = gameeventmanager->CreateEvent( "hl2mp_ready_restart" );
-		if ( event )
-			gameeventmanager->FireEvent( event );
+		IGameEvent* event = gameeventmanager->CreateEvent("hl2mp_ready_restart");
+		if (event)
+			gameeventmanager->FireEvent(event);
 
-		mp_readyrestart.SetValue( 0 );
+		mp_readyrestart.SetValue(0);
 
 		// cancel any restart round in progress
 		m_flRestartGameTime = -1;
 	}
 }
 
-void CHL2MPRules::CheckAllPlayersReady( void )
+void CHL2MPRules::CheckAllPlayersReady(void)
 {
-	for (int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		CHL2MP_Player *pPlayer = (CHL2MP_Player*) UTIL_PlayerByIndex( i );
+		CHL2MP_Player* pPlayer = (CHL2MP_Player*)UTIL_PlayerByIndex(i);
 
-		if ( !pPlayer )
+		if (!pPlayer)
 			continue;
-		if ( !pPlayer->IsReady() )
+		if (!pPlayer->IsReady())
 			return;
 	}
 	m_bHeardAllPlayersReady = true;
@@ -1970,26 +2070,26 @@ void CHL2MPRules::CheckAllPlayersReady( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
+const char* CHL2MPRules::GetChatFormat(bool bTeamOnly, CBasePlayer* pPlayer)
 {
-	if ( !pPlayer )  // dedicated server output
+	if (!pPlayer)  // dedicated server output
 	{
 		return NULL;
 	}
 
-	const char *pszFormat = NULL;
+	const char* pszFormat = NULL;
 
 	// team only
-	if ( bTeamOnly == TRUE )
+	if (bTeamOnly == TRUE)
 	{
-		if ( pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+		if (pPlayer->GetTeamNumber() == TEAM_SPECTATOR)
 		{
 			pszFormat = "HL2MP_Chat_Spec";
 		}
 		else
 		{
-			const char *chatLocation = GetChatLocation( bTeamOnly, pPlayer );
-			if ( chatLocation && *chatLocation )
+			const char* chatLocation = GetChatLocation(bTeamOnly, pPlayer);
+			if (chatLocation && *chatLocation)
 			{
 				pszFormat = "HL2MP_Chat_Team_Loc";
 			}
@@ -2002,9 +2102,9 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 	// everyone
 	else
 	{
-		if ( pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
+		if (pPlayer->GetTeamNumber() != TEAM_SPECTATOR)
 		{
-			pszFormat = "HL2MP_Chat_All";	
+			pszFormat = "HL2MP_Chat_All";
 		}
 		else
 		{
@@ -2129,4 +2229,247 @@ void CHL2MPRules::RecalculateTeamCounts()
 		pCombine->NetworkStateChanged();
 		pRebels->NetworkStateChanged();
 	}
+}
+
+void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft)
+{
+	if (!sv_damage_display.GetBool() || !pAttacker || !pVictim)
+		return;
+
+	// Check friendly fire settings
+	if (!sv_damage_display_ff.GetBool() && IsTeamplay() &&
+		pAttacker->GetTeamNumber() == pVictim->GetTeamNumber())
+		return;
+
+	// Don't show own damage unless enabled
+	if (!sv_damage_display_own.GetBool() && pAttacker == pVictim)
+		return;
+
+	int displayArea = sv_damage_display_area.GetInt();
+
+	if (displayArea == 1) // Center screen
+	{
+		// Always show damage info at damage position
+		hudtextparms_t damageParams;
+		damageParams.x = sv_damage_display_x.GetFloat();
+		damageParams.y = sv_damage_display_y.GetFloat();
+		damageParams.effect = sv_damage_display_fx_style.GetInt();
+
+		// Determine color based on health left
+		int r, g, b;
+		if (healthLeft >= sv_damage_display_hp_high_min.GetInt())
+		{
+			ParseRGBColor(sv_damage_display_color_high.GetString(), r, g, b);
+		}
+		else if (healthLeft >= sv_damage_display_hp_medium_min.GetInt())
+		{
+			ParseRGBColor(sv_damage_display_color_medium.GetString(), r, g, b);
+		}
+		else if (healthLeft >= sv_damage_display_hp_low_min.GetInt())
+		{
+			ParseRGBColor(sv_damage_display_color_low.GetString(), r, g, b);
+		}
+		else // 0 HP
+		{
+			ParseRGBColor(sv_damage_display_color_dead.GetString(), r, g, b);
+		}
+
+		damageParams.r1 = r;
+		damageParams.g1 = g;
+		damageParams.b1 = b;
+		damageParams.a1 = 255;
+		damageParams.r2 = 255;
+		damageParams.g2 = 255;
+		damageParams.b2 = 0;
+		damageParams.a2 = 255;
+		damageParams.fadeinTime = sv_damage_display_fadein_time.GetFloat();
+		damageParams.fadeoutTime = sv_damage_display_fadeout_time.GetFloat();
+		damageParams.holdTime = sv_damage_display_hold_time.GetFloat();
+		damageParams.fxTime = 0.25f;
+		damageParams.channel = 2;
+
+		char damageMessage[128];
+		Q_snprintf(damageMessage, sizeof(damageMessage), "-%d HP\n[%d HP left]", damageDealt, healthLeft);
+		UTIL_HudMessage(pAttacker, damageParams, damageMessage);
+
+		// Show kill message above if it's a kill
+		if (isKill && sv_damage_display_kill.GetBool())
+		{
+			int kr, kg, kb;
+			ParseRGBColor(sv_damage_display_color_kill.GetString(), kr, kg, kb);
+
+			hudtextparms_t killParams;
+			killParams.x = sv_damage_display_kill_x.GetFloat();
+			killParams.y = sv_damage_display_kill_y.GetFloat();
+			killParams.effect = sv_damage_display_fx_style.GetInt();
+			killParams.r1 = kr;
+			killParams.g1 = kg;
+			killParams.b1 = kb;
+			killParams.a1 = 255;
+			killParams.r2 = 255;
+			killParams.g2 = 255;
+			killParams.b2 = 0;
+			killParams.a2 = 255;
+			killParams.fadeinTime = sv_damage_display_fadein_time.GetFloat();
+			killParams.fadeoutTime = sv_damage_display_fadeout_time.GetFloat();
+			killParams.holdTime = sv_damage_display_hold_time.GetFloat();
+			killParams.fxTime = 0.25f;
+			killParams.channel = 3;
+
+			UTIL_HudMessage(pAttacker, killParams, "KILL!");
+		}
+	}
+	else if (displayArea == 2) // Hint area
+	{
+		char message[128];
+		if (isKill && sv_damage_display_kill.GetBool())
+		{
+			Q_snprintf(message, sizeof(message), "-%d HP KILL!", damageDealt);
+		}
+		else
+		{
+			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, healthLeft);
+		}
+		ClientPrint(pAttacker, HUD_PRINTTALK, message);
+	}
+	else if (displayArea == 3) // Chat area
+	{
+		char message[128];
+		if (isKill && sv_damage_display_kill.GetBool())
+		{
+			Q_snprintf(message, sizeof(message), "-%d HP KILL!", damageDealt);
+		}
+		else
+		{
+			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, healthLeft);
+		}
+		ClientPrint(pAttacker, HUD_PRINTCONSOLE, message);
+	}
+}
+
+
+void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill)
+{
+	if (!pVictim || !pKiller || !sv_killerinfo_enable.GetBool())
+		return;
+
+	int killerHealth = pKiller->GetHealth();
+	int killerArmor = pKiller->ArmorValue();
+
+	// Calcular distância
+	Vector killerPos = pKiller->GetAbsOrigin();
+	Vector victimPos = pVictim->GetAbsOrigin();
+	float distance = killerPos.DistTo(victimPos);
+	float displayDistance;
+	const char* unitStr;
+
+	if (sv_killerinfo_distance_unit.GetInt() == 1)
+	{
+		displayDistance = distance * 0.0625f; // pés
+		unitStr = "ft";
+	}
+	else
+	{
+		displayDistance = distance * 0.01905f; // metros
+		unitStr = "m";
+	}
+
+	char message[256];
+	char weaponDisplay[64] = "";
+	char distanceDisplay[32] = "";
+
+	// Arma
+	if (sv_killerinfo_show_weapon.GetBool() && weaponName)
+	{
+		Q_snprintf(weaponDisplay, sizeof(weaponDisplay), CHAT_WHITE " With" CHAT_COMBINE " %s", weaponName);
+	}
+
+	// Distância
+	if (sv_killerinfo_show_distance.GetBool())
+	{
+		Q_snprintf(distanceDisplay, sizeof(distanceDisplay), CHAT_WHITE " | Dist: " CHAT_DM "%.1f%s", displayDistance, unitStr);
+	}
+
+	// Armadura
+	char armorDisplay[32] = "";
+	if (sv_killerinfo_show_armor.GetBool() && killerArmor > 0)
+	{
+		Q_snprintf(armorDisplay, sizeof(armorDisplay), CHAT_WHITE " | AP:" CHAT_COMBINE " %d", killerArmor);
+	}
+
+	// HP colorido
+	const char* hpColor;
+	if (killerHealth >= sv_damage_display_hp_high_min.GetInt())
+		hpColor = CHAT_FULLGREEN;
+	else if (killerHealth >= sv_damage_display_hp_medium_min.GetInt())
+		hpColor = CHAT_FULLYELLOW;
+	else if (killerHealth >= sv_damage_display_hp_low_min.GetInt())
+		hpColor = CHAT_FULLRED;
+	else
+		hpColor = CHAT_FULLRED;
+
+	bool wasHeadshot = (hitGroup == HITGROUP_HEAD) && sv_killerinfo_headshot_enable.GetBool();
+
+	char specialDisplay[128] = "";
+	if (wasHeadshot)
+	{
+		Q_strncat(specialDisplay, " " CHAT_PETROL "*HEADSHOT*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+	}
+	if (wasAirKill)
+	{
+		Q_strncat(specialDisplay, " " CHAT_DEEPPINK "*AIRKILL*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+	}
+
+	// Mensagem final
+	Q_snprintf(message, sizeof(message),
+		CHAT_FULLRED "> " CHAT_WHITE "Killed by: " CHAT_FULLRED "%s%s \n" CHAT_FULLRED "> " CHAT_WHITE "[HP: %s%d" CHAT_WHITE "%s%s" CHAT_WHITE "]%s",
+		pKiller->GetPlayerName(), weaponDisplay, hpColor, killerHealth, distanceDisplay, armorDisplay, specialDisplay);
+
+	ClientPrint(pVictim, HUD_PRINTTALK, message);
+}
+
+
+bool CHL2MPRules::ShouldShowKillerInfo(CHL2MP_Player* pPlayer)
+{
+	return (pPlayer && sv_killerinfo_enable.GetBool());
+}
+
+void CHL2MPRules::SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* message)
+{
+	if (pVictim && message)
+		ClientPrint(pVictim, HUD_PRINTTALK, message);
+}
+
+bool CHL2MPRules::WasAirKill(CHL2MP_Player* pVictim)
+{
+	if (!pVictim)
+		return false;
+
+	// Se airkill detection estiver desabilitado, nunca é airkill
+	if (!sv_killerinfo_airkill_enable.GetBool())
+		return false;
+
+	// Override: se está tocando o chão, NUNCA é airkill
+	if (sv_killerinfo_airkill_ground_override.GetBool())
+	{
+		if (pVictim->GetFlags() & FL_ONGROUND)
+			return false;
+	}
+
+	Vector velocity = pVictim->GetAbsVelocity();
+	float verticalSpeed = fabs(velocity.z);
+
+	// Verificar velocidade vertical configurável
+	if (verticalSpeed > sv_killerinfo_airkill_velocity_threshold.GetFloat())
+		return true;
+
+	// Trace configurável
+	float heightThreshold = sv_killerinfo_airkill_height_threshold.GetFloat();
+	Vector start = pVictim->GetAbsOrigin();
+	Vector end = start - Vector(0, 0, heightThreshold);
+
+	trace_t tr;
+	UTIL_TraceLine(start, end, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &tr);
+
+	return (tr.fraction > sv_killerinfo_airkill_trace_fraction.GetFloat());
 }

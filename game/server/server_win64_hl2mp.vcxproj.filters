@@ -1769,9 +1769,6 @@
     <ClInclude Include="hl2\weapon_alyxgun.h">
       <Filter>Source Files\HL2 DLL</Filter>
     </ClInclude>
-    <ClInclude Include="hl2\weapon_crowbar.h">
-      <Filter>Source Files\HL2 DLL</Filter>
-    </ClInclude>
     <ClInclude Include="hl2\grenade_beam.h">
       <Filter>Source Files\HL2 DLL\unused</Filter>
     </ClInclude>
@@ -2029,6 +2026,12 @@
     </ClInclude>
     <ClInclude Include="toolframework_server.h">
       <Filter>Tools Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2\weapon_crowbar.h">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClInclude>
+    <ClInclude Include="weapon_stunstick.h">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

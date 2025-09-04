@@ -64,6 +64,11 @@ ConVar physcannon_cone( "physcannon_cone", "0.97", FCVAR_REPLICATED | FCVAR_CHEA
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_CHEAT );
 
+//New CVAR for fast gathering
+ConVar sv_physcannon_fast_gather("sv_physcannon_fast_gather", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables faster gathering mode for the physcannon. (0=off, 1=on, 2=instant)");
+
+
+
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
 extern ConVar hl2_walkspeed;
@@ -2003,15 +2008,28 @@ bool CGrabController::UpdateObject( CBasePlayer *pPlayer, float flError )
 	return true;
 }
 
-void CWeaponPhysCannon::UpdateObject( void )
+void CWeaponPhysCannon::UpdateObject(void)
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	Assert( pPlayer );
+	auto* pPlayer = dynamic_cast<CHL2MP_Player*>(GetOwner());
+	Assert(pPlayer);
 
-	float flError = 12;
-	if ( !m_grabController.UpdateObject( pPlayer, flError ) )
+	float fLError = 12;
+	if (!m_grabController.UpdateObject(pPlayer, fLError))
 	{
 		DetachObject();
+
+		auto fastGatherMode = sv_physcannon_fast_gather.GetInt();
+
+		if (fastGatherMode)
+		{
+			if (fastGatherMode > 1)
+			{
+				m_nAttack2Debounce = 0;
+			}
+
+			m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
+		}
+
 		return;
 	}
 }

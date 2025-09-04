@@ -38,6 +38,56 @@
 #define CWeaponFrag C_WeaponFrag
 #endif
 
+
+// --- Grenade ConVars Section - Paste this block at the top of your weapon_frag.cpp file ---
+
+// Detonation and re-throw timings
+ConVar sv_grenade_timer("sv_grenade_timer", "2.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Detonation time for the grenade in seconds. Default is the classic.");
+ConVar sv_grenade_rethrow_delay("sv_grenade_rethrow_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before you can throw another grenade. No spamming!");
+
+// Physical properties
+ConVar sv_grenade_radius("sv_grenade_radius", "4.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Radius of the grenade itself. Bigger means more boom, but also more 'stuck in a doorway' incidents.");
+ConVar sv_grenade_damage_radius("sv_grenade_damage_radius", "250.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Blast damage radius. Go big or go home.");
+ConVar sv_grenade_throw_upward("sv_grenade_throw_upward", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Upward bias for grenade throws (0.0-1.0). Helps clear small obstacles.");
+
+// Charge system settings
+ConVar sv_grenade_throw_charge_enable("sv_grenade_throw_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the primary throw.");
+ConVar sv_grenade_lob_charge_enable("sv_grenade_lob_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the secondary throw (lob/roll).");
+ConVar sv_grenade_roll_charge_enable("sv_grenade_roll_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for grenade rolls when ducking.");
+ConVar sv_grenade_charge_time("sv_grenade_charge_time", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max charge-up time for all grenade throws in seconds.");
+
+// HUD ConVars (NOVAS)
+ConVar sv_grenade_throw_charge_hud("sv_grenade_throw_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for primary throw.");
+ConVar sv_grenade_lob_charge_hud("sv_grenade_lob_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for lob throw.");
+ConVar sv_grenade_roll_charge_hud("sv_grenade_roll_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for roll throw.");
+
+// Throw velocities
+ConVar sv_grenade_throw_velocity("sv_grenade_throw_velocity", "1200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default primary throw velocity (no charge).");
+ConVar sv_grenade_lob_velocity("sv_grenade_lob_velocity", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default secondary throw velocity (no charge).");
+ConVar sv_grenade_roll_velocity("sv_grenade_roll_velocity", "700.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default roll velocity. Spin it to win it.");
+
+ConVar sv_grenade_throw_velocity_min("sv_grenade_throw_velocity_min", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged primary throw.");
+ConVar sv_grenade_throw_velocity_max("sv_grenade_throw_velocity_max", "1200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged primary throw.");
+ConVar sv_grenade_lob_velocity_min("sv_grenade_lob_velocity_min", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged secondary lob.");
+ConVar sv_grenade_lob_velocity_max("sv_grenade_lob_velocity_max", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged secondary lob.");
+ConVar sv_grenade_roll_velocity_min("sv_grenade_roll_velocity_min", "200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged roll.");
+ConVar sv_grenade_roll_velocity_max("sv_grenade_roll_velocity_max", "700.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged roll.");
+
+// Throw offsets and angles
+ConVar sv_grenade_forward_offset("sv_grenade_forward_offset", "18.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Forward offset for the throw origin.");
+ConVar sv_grenade_right_offset("sv_grenade_right_offset", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Rightward offset for the throw origin.");
+ConVar sv_grenade_lob_down_offset("sv_grenade_lob_down_offset", "-8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Downward offset for the lob throw. 'Aim for the feet' mode.");
+
+// Angular impulses
+ConVar sv_grenade_throw_angular_base("sv_grenade_throw_angular_base", "600", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base angular impulse for primary throw.");
+ConVar sv_grenade_throw_angular_random("sv_grenade_throw_angular_random", "1200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Random angular impulse for primary throw. Adds some chaotic spin.");
+ConVar sv_grenade_lob_angular_base("sv_grenade_lob_angular_base", "200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base angular impulse for lob.");
+ConVar sv_grenade_lob_angular_random("sv_grenade_lob_angular_random", "600", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Random angular impulse for lob.");
+ConVar sv_grenade_roll_angular("sv_grenade_roll_angular", "720", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Angular impulse for rolling grenades. Makes it spin like a fidget spinner.");
+
+// --- End of Grenade ConVars Section ---
+
+
 //-----------------------------------------------------------------------------
 // Fragmentation grenades
 //-----------------------------------------------------------------------------
@@ -66,13 +116,20 @@ public:
 	void Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator );
 #endif
 
-	void	ThrowGrenade( CBasePlayer *pPlayer );
+	//void	ThrowGrenade( CBasePlayer *pPlayer );
+	void ThrowGrenade(CBasePlayer* pPlayer, float flVelocity);
 	bool	IsPrimed( bool ) { return ( m_AttackPaused != 0 );	}
 	
 private:
 
-	void	RollGrenade( CBasePlayer *pPlayer );
-	void	LobGrenade( CBasePlayer *pPlayer );
+	float m_flChargeStartTime; // The moment the player started charging the throw.
+	float m_flLastHUDUpdateTime; // To rate-limit HUD updates.
+
+	//void	RollGrenade( CBasePlayer *pPlayer );
+	//void	LobGrenade( CBasePlayer *pPlayer );
+
+	void LobGrenade(CBasePlayer* pPlayer, float flVelocity);
+	void RollGrenade(CBasePlayer* pPlayer, float flVelocity);
 	// check a throw from vecSrc.  If not valid, move the position back along the line to vecEye
 	void    CheckThrowPosition( CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc, const QAngle &angles = vec3_angle );
 
@@ -159,46 +216,51 @@ void CWeaponFrag::Precache( void )
 // Input  : *pEvent - 
 //			*pOperator - 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
+// A sua função Operator_HandleAnimEvent deve ficar assim
+void CWeaponFrag::Operator_HandleAnimEvent(animevent_t* pEvent, CBaseCombatCharacter* pOperator)
 {
-	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
 	bool fThrewGrenade = false;
 
-	switch( pEvent->event )
+	switch (pEvent->event)
 	{
-		case EVENT_WEAPON_SEQUENCE_FINISHED:
-			m_fDrawbackFinished = true;
-			break;
+	case EVENT_WEAPON_SEQUENCE_FINISHED:
+		m_fDrawbackFinished = true;
+		break;
 
-		case EVENT_WEAPON_THROW:
-			ThrowGrenade( pOwner );
-			DecrementAmmo( pOwner );
-			fThrewGrenade = true;
-			break;
+	case EVENT_WEAPON_THROW:
+		// Corrigido: Agora usa a ConVar de velocidade padrão
+		ThrowGrenade(pOwner, sv_grenade_throw_velocity.GetFloat());
+		DecrementAmmo(pOwner);
+		fThrewGrenade = true;
+		break;
 
-		case EVENT_WEAPON_THROW2:
-			RollGrenade( pOwner );
-			DecrementAmmo( pOwner );
-			fThrewGrenade = true;
-			break;
+	case EVENT_WEAPON_THROW2:
+		// Corrigido: Agora usa a ConVar de velocidade padrão
+		RollGrenade(pOwner, sv_grenade_roll_velocity.GetFloat());
+		DecrementAmmo(pOwner);
+		fThrewGrenade = true;
+		break;
 
-		case EVENT_WEAPON_THROW3:
-			LobGrenade( pOwner );
-			DecrementAmmo( pOwner );
-			fThrewGrenade = true;
-			break;
+	case EVENT_WEAPON_THROW3:
+		// Corrigido: Agora usa a ConVar de velocidade padrão
+		LobGrenade(pOwner, sv_grenade_lob_velocity.GetFloat());
+		DecrementAmmo(pOwner);
+		fThrewGrenade = true;
+		break;
 
-		default:
-			BaseClass::Operator_HandleAnimEvent( pEvent, pOperator );
-			break;
+	default:
+		BaseClass::Operator_HandleAnimEvent(pEvent, pOperator);
+		break;
 	}
 
 #define RETHROW_DELAY	0.5
-	if( fThrewGrenade )
+	if (fThrewGrenade)
 	{
-		m_flNextPrimaryAttack	= gpGlobals->curtime + RETHROW_DELAY;
-		m_flNextSecondaryAttack	= gpGlobals->curtime + RETHROW_DELAY;
-		m_flTimeWeaponIdle = FLT_MAX; //NOTE: This is set once the animation has finished up!
+		// Corrigido: Agora usa a ConVar de atraso
+		m_flNextPrimaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+		m_flNextSecondaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+		m_flTimeWeaponIdle = FLT_MAX;
 	}
 }
 
@@ -219,12 +281,15 @@ bool CWeaponFrag::Deploy( void )
 // Purpose: 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
-bool CWeaponFrag::Holster( CBaseCombatWeapon *pSwitchingTo )
+bool CWeaponFrag::Holster(CBaseCombatWeapon* pSwitchingTo)
 {
+	// ** NOVA LINHA ADICIONADA: Resetar o estado de ataque ao guardar a arma **
+	m_AttackPaused = GRENADE_PAUSED_NO;
+
 	m_bRedraw = false;
 	m_fDrawbackFinished = false;
 
-	return BaseClass::Holster( pSwitchingTo );
+	return BaseClass::Holster(pSwitchingTo);
 }
 
 //-----------------------------------------------------------------------------
@@ -256,73 +321,85 @@ bool CWeaponFrag::Reload( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::SecondaryAttack( void )
+// --- Substitution for SecondaryAttack ---
+void CWeaponFrag::SecondaryAttack(void)
 {
-	if ( m_bRedraw )
+	if (m_bRedraw)
 		return;
 
-	if ( !HasPrimaryAmmo() )
+	CBaseCombatCharacter* pOwner = GetOwner();
+
+	if (pOwner == NULL)
 		return;
 
-	CBaseCombatCharacter *pOwner  = GetOwner();
+	CBasePlayer* pPlayer = ToBasePlayer(pOwner);
 
-	if ( pOwner == NULL )
+	if (pPlayer == NULL)
 		return;
 
-	CBasePlayer *pPlayer = ToBasePlayer( pOwner );
-	
-	if ( pPlayer == NULL )
+	if (!HasPrimaryAmmo())
+	{
+		pPlayer->SwitchToNextBestWeapon(this);
 		return;
+	}
 
 	// Note that this is a secondary attack and prepare the grenade attack to pause.
 	m_AttackPaused = GRENADE_PAUSED_SECONDARY;
-	SendWeaponAnim( ACT_VM_PULLBACK_LOW );
+
+	// Store the time we started charging
+	m_flChargeStartTime = gpGlobals->curtime;
+
+	// See if we're ducking to determine the animation
+	if (pPlayer->m_nButtons & IN_DUCK)
+	{
+		SendWeaponAnim(ACT_VM_PULLBACK_LOW);
+	}
+	else
+	{
+		SendWeaponAnim(ACT_VM_PULLBACK_LOW);
+	}
 
 	// Don't let weapon idle interfere in the middle of a throw!
 	m_flTimeWeaponIdle = FLT_MAX;
-	m_flNextSecondaryAttack	= FLT_MAX;
-
-	// If I'm now out of ammo, switch away
-	if ( !HasPrimaryAmmo() )
-	{
-		pPlayer->SwitchToNextBestWeapon( this );
-	}
+	m_flNextSecondaryAttack = FLT_MAX;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::PrimaryAttack( void )
+// --- Substitution for PrimaryAttack ---
+void CWeaponFrag::PrimaryAttack(void)
 {
-	if ( m_bRedraw )
+	if (m_bRedraw)
 		return;
 
-	CBaseCombatCharacter *pOwner  = GetOwner();
-	
-	if ( pOwner == NULL )
-	{ 
+	CBaseCombatCharacter* pOwner = GetOwner();
+
+	if (pOwner == NULL)
+		return;
+
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer)
+		return;
+
+	if (!HasPrimaryAmmo())
+	{
+		pPlayer->SwitchToNextBestWeapon(this);
 		return;
 	}
 
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );;
-
-	if ( !pPlayer )
-		return;
-
-	// Note that this is a primary attack and prepare the grenade attack to pause.
+	// Set a flag to mark we are now charging the grenade
 	m_AttackPaused = GRENADE_PAUSED_PRIMARY;
-	SendWeaponAnim( ACT_VM_PULLBACK_HIGH );
-	
+
+	// Store the time we started charging
+	m_flChargeStartTime = gpGlobals->curtime;
+
+	SendWeaponAnim(ACT_VM_PULLBACK_HIGH);
+
 	// Put both of these off indefinitely. We do not know how long
 	// the player will hold the grenade.
 	m_flTimeWeaponIdle = FLT_MAX;
 	m_flNextPrimaryAttack = FLT_MAX;
-
-	// If I'm now out of ammo, switch away
-	if ( !HasPrimaryAmmo() )
-	{
-		pPlayer->SwitchToNextBestWeapon( this );
-	}
 }
 
 //-----------------------------------------------------------------------------
@@ -337,57 +414,152 @@ void CWeaponFrag::DecrementAmmo( CBaseCombatCharacter *pOwner )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::ItemPostFrame( void )
+
+// --- Substitution for ItemPostFrame ---
+void CWeaponFrag::ItemPostFrame(void)
 {
-	if( m_fDrawbackFinished )
+	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+	if (!pOwner)
 	{
-		CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
+		BaseClass::ItemPostFrame();
+		return;
+	}
 
-		if (pOwner)
+	// Determine if charge is enabled for the current attack
+	bool isDucking = (pOwner->m_nButtons & IN_DUCK);
+	bool bChargeEnabled = false;
+	const char* throwType = "";
+	bool showHud = false;
+
+	if (m_AttackPaused == GRENADE_PAUSED_PRIMARY)
+	{
+		bChargeEnabled = sv_grenade_throw_charge_enable.GetBool();
+		throwType = "Throw";
+		showHud = sv_grenade_throw_charge_hud.GetBool();
+	}
+	else if (m_AttackPaused == GRENADE_PAUSED_SECONDARY)
+	{
+		if (isDucking)
 		{
-			switch( m_AttackPaused )
+			bChargeEnabled = sv_grenade_roll_charge_enable.GetBool();
+			throwType = "Roll";
+			showHud = sv_grenade_roll_charge_hud.GetBool();
+		}
+		else
+		{
+			bChargeEnabled = sv_grenade_lob_charge_enable.GetBool();
+			throwType = "Lob";
+			showHud = sv_grenade_lob_charge_hud.GetBool();
+		}
+	}
+
+	// If a charge is enabled and paused, handle the charge logic
+	if (bChargeEnabled && m_AttackPaused != GRENADE_PAUSED_NO)
+	{
+		// Calculate the charge percentage
+		float flChargeTime = gpGlobals->curtime - m_flChargeStartTime;
+		float flMaxChargeTime = sv_grenade_charge_time.GetFloat();
+		float flChargePercent = clamp(flChargeTime / flMaxChargeTime, 0.0f, 1.0f);
+
+		// Show HUD bar if enabled
+		if (showHud && (gpGlobals->curtime - m_flLastHUDUpdateTime) > 0.05f)
+		{
+			char hudText[256];
+			int barLength = 20;
+			int filled = (int)(flChargePercent * barLength);
+
+			char bar[22];
+			for (int i = 0; i < barLength; i++)
 			{
-			case GRENADE_PAUSED_PRIMARY:
-				if( !(pOwner->m_nButtons & IN_ATTACK) )
-				{
-					SendWeaponAnim( ACT_VM_THROW );
-					m_fDrawbackFinished = false;
-				}
-				break;
-
-			case GRENADE_PAUSED_SECONDARY:
-				if( !(pOwner->m_nButtons & IN_ATTACK2) )
-				{
-					//See if we're ducking
-					if ( pOwner->m_nButtons & IN_DUCK )
-					{
-						//Send the weapon animation
-						SendWeaponAnim( ACT_VM_SECONDARYATTACK );
-					}
-					else
-					{
-						//Send the weapon animation
-						SendWeaponAnim( ACT_VM_HAULBACK );
-					}
-
-					m_fDrawbackFinished = false;
-				}
-				break;
-
-			default:
-				break;
+				bar[i] = (i < filled) ? '|' : ' ';
 			}
+			bar[barLength] = '\0';
+
+			Q_snprintf(hudText, sizeof(hudText), "Charging %s [%s] %d%%", throwType, bar, (int)(flChargePercent * 100));
+			ClientPrint(pOwner, HUD_PRINTCENTER, hudText);
+			m_flLastHUDUpdateTime = gpGlobals->curtime;
+		}
+
+		// Check if the player has released the attack button
+		bool bReleasedPrimary = (m_AttackPaused == GRENADE_PAUSED_PRIMARY && !(pOwner->m_nButtons & IN_ATTACK));
+		bool bReleasedSecondary = (m_AttackPaused == GRENADE_PAUSED_SECONDARY && !(pOwner->m_nButtons & IN_ATTACK2));
+
+		if (bReleasedPrimary || bReleasedSecondary)
+		{
+			float minVel = 0.0f;
+			float maxVel = 0.0f;
+
+			if (m_AttackPaused == GRENADE_PAUSED_PRIMARY)
+			{
+				minVel = sv_grenade_throw_velocity_min.GetFloat();
+				maxVel = sv_grenade_throw_velocity_max.GetFloat();
+				ThrowGrenade(pOwner, Lerp(flChargePercent, minVel, maxVel));
+			}
+			else // Secondary
+			{
+				if (isDucking)
+				{
+					minVel = sv_grenade_roll_velocity_min.GetFloat();
+					maxVel = sv_grenade_roll_velocity_max.GetFloat();
+					RollGrenade(pOwner, Lerp(flChargePercent, minVel, maxVel));
+				}
+				else
+				{
+					// Use default lob velocity as minimum
+					minVel = sv_grenade_lob_velocity.GetFloat();
+					maxVel = sv_grenade_lob_velocity_max.GetFloat();
+					LobGrenade(pOwner, Lerp(flChargePercent, minVel, maxVel));
+				}
+			}
+
+			// We are done with the charge, reset the state
+			m_AttackPaused = GRENADE_PAUSED_NO;
+			m_flChargeStartTime = 0.0f;
+			m_flNextPrimaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+			m_flNextSecondaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+			pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
+			m_bRedraw = true;
+			ClientPrint(pOwner, HUD_PRINTCENTER, "\n"); // Clear HUD message
+		}
+	}
+	else if (m_AttackPaused != GRENADE_PAUSED_NO)
+	{
+		// Handle the case where the button was released but charge is disabled
+		bool bReleasedPrimary = (m_AttackPaused == GRENADE_PAUSED_PRIMARY && !(pOwner->m_nButtons & IN_ATTACK));
+		bool bReleasedSecondary = (m_AttackPaused == GRENADE_PAUSED_SECONDARY && !(pOwner->m_nButtons & IN_ATTACK2));
+
+		if (bReleasedPrimary || bReleasedSecondary)
+		{
+			if (m_AttackPaused == GRENADE_PAUSED_PRIMARY)
+			{
+				ThrowGrenade(pOwner, sv_grenade_throw_velocity.GetFloat());
+			}
+			else // Secondary
+			{
+				if (isDucking)
+				{
+					RollGrenade(pOwner, sv_grenade_roll_velocity.GetFloat());
+				}
+				else
+				{
+					LobGrenade(pOwner, sv_grenade_lob_velocity.GetFloat());
+				}
+			}
+
+			m_AttackPaused = GRENADE_PAUSED_NO;
+			m_flChargeStartTime = 0.0f;
+			m_flNextPrimaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+			m_flNextSecondaryAttack = gpGlobals->curtime + sv_grenade_rethrow_delay.GetFloat();
+			pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
+			m_bRedraw = true;
 		}
 	}
 
 	BaseClass::ItemPostFrame();
 
-	if ( m_bRedraw )
+	if (m_bRedraw && IsViewModelSequenceFinished())
 	{
-		if ( IsViewModelSequenceFinished() )
-		{
-			Reload();
-		}
+		Reload();
 	}
 }
 
@@ -411,14 +583,16 @@ void CWeaponFrag::CheckThrowPosition( CBasePlayer *pPlayer, const Vector &vecEye
 	}
 }
 
-void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade )
+// Substitua a função por esta nova versão
+void DropPrimedFragGrenade(CHL2MP_Player* pPlayer, CBaseCombatWeapon* pGrenade)
 {
-	CWeaponFrag *pWeaponFrag = dynamic_cast<CWeaponFrag*>( pGrenade );
+	CWeaponFrag* pWeaponFrag = dynamic_cast<CWeaponFrag*>(pGrenade);
 
-	if ( pWeaponFrag )
+	if (pWeaponFrag)
 	{
-		pWeaponFrag->ThrowGrenade( pPlayer );
-		pWeaponFrag->DecrementAmmo( pPlayer );
+		// Use a ConVar de velocidade padrão para o arremesso
+		pWeaponFrag->ThrowGrenade(pPlayer, sv_grenade_throw_velocity.GetFloat());
+		pWeaponFrag->DecrementAmmo(pPlayer);
 	}
 }
 
@@ -426,50 +600,50 @@ void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade 
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::ThrowGrenade( CBasePlayer *pPlayer )
+// Substitua a função por esta nova versão.
+void CWeaponFrag::ThrowGrenade(CBasePlayer* pPlayer, float flVelocity)
 {
 #ifndef CLIENT_DLL
-	Vector	vecEye = pPlayer->EyePosition();
-	Vector	vForward, vRight;
+	Vector vecEye = pPlayer->EyePosition();
+	Vector vForward, vRight;
 
-	pPlayer->EyeVectors( &vForward, &vRight, NULL );
-	Vector vecSrc = vecEye + vForward * 18.0f + vRight * 8.0f;
-	CheckThrowPosition( pPlayer, vecEye, vecSrc );
-//	vForward[0] += 0.1f;
-	vForward[2] += 0.1f;
+	pPlayer->EyeVectors(&vForward, &vRight, NULL);
+	Vector vecSrc = vecEye + vForward * sv_grenade_forward_offset.GetFloat() + vRight * sv_grenade_right_offset.GetFloat();
+	CheckThrowPosition(pPlayer, vecEye, vecSrc);
+
+	vForward[2] += sv_grenade_throw_upward.GetFloat();
 
 	Vector vecThrow;
-	pPlayer->GetVelocity( &vecThrow, NULL );
-	vecThrow += vForward * 1200;
-	CBaseGrenade *pGrenade = Fraggrenade_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(600,random->RandomInt(-1200,1200),0), pPlayer, GRENADE_TIMER, false );
+	pPlayer->GetVelocity(&vecThrow, NULL);
+	vecThrow += vForward * flVelocity;
 
-	if ( pGrenade )
+	// Use ConVars for angular impulse
+	AngularImpulse angImpulse(sv_grenade_throw_angular_base.GetInt(), random->RandomInt(-sv_grenade_throw_angular_random.GetInt(), sv_grenade_throw_angular_random.GetInt()), 0);
+
+	CBaseGrenade* pGrenade = Fraggrenade_Create(vecSrc, vec3_angle, vecThrow, angImpulse, pPlayer, sv_grenade_timer.GetFloat(), false);
+
+	if (pGrenade)
 	{
-		if ( pPlayer && pPlayer->m_lifeState != LIFE_ALIVE )
+		if (pPlayer && pPlayer->m_lifeState != LIFE_ALIVE)
 		{
-			pPlayer->GetVelocity( &vecThrow, NULL );
-
-			IPhysicsObject *pPhysicsObject = pGrenade->VPhysicsGetObject();
-			if ( pPhysicsObject )
+			pPlayer->GetVelocity(&vecThrow, NULL);
+			IPhysicsObject* pPhysicsObject = pGrenade->VPhysicsGetObject();
+			if (pPhysicsObject)
 			{
-				pPhysicsObject->SetVelocity( &vecThrow, NULL );
+				pPhysicsObject->SetVelocity(&vecThrow, NULL);
 			}
 		}
-		
-		pGrenade->SetDamage( GetHL2MPWpnData().m_iPlayerDamage );
-		pGrenade->SetDamageRadius( GRENADE_DAMAGE_RADIUS );
+
+		pGrenade->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
+		pGrenade->SetDamageRadius(sv_grenade_damage_radius.GetFloat());
 	}
 #endif
 
-	m_bRedraw = true;
-
-	WeaponSound( SINGLE );
-	
-	// player "shoot" animation
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	WeaponSound(SINGLE);
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 #ifdef GAME_DLL
-	pPlayer->OnMyWeaponFired( this );
+	pPlayer->OnMyWeaponFired(this);
 #endif
 }
 
@@ -477,87 +651,81 @@ void CWeaponFrag::ThrowGrenade( CBasePlayer *pPlayer )
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::LobGrenade( CBasePlayer *pPlayer )
+// Substitua a função por esta nova versão
+void CWeaponFrag::LobGrenade(CBasePlayer* pPlayer, float flVelocity)
 {
 #ifndef CLIENT_DLL
-	Vector	vecEye = pPlayer->EyePosition();
-	Vector	vForward, vRight;
+	Vector vecEye = pPlayer->EyePosition();
+	Vector vForward, vRight;
 
-	pPlayer->EyeVectors( &vForward, &vRight, NULL );
-	Vector vecSrc = vecEye + vForward * 18.0f + vRight * 8.0f + Vector( 0, 0, -8 );
-	CheckThrowPosition( pPlayer, vecEye, vecSrc );
-	
+	pPlayer->EyeVectors(&vForward, &vRight, NULL);
+	Vector vecSrc = vecEye + vForward * sv_grenade_forward_offset.GetFloat() + vRight * sv_grenade_right_offset.GetFloat() + Vector(0, 0, sv_grenade_lob_down_offset.GetFloat());
+	CheckThrowPosition(pPlayer, vecEye, vecSrc);
+
 	Vector vecThrow;
-	pPlayer->GetVelocity( &vecThrow, NULL );
-	vecThrow += vForward * 350 + Vector( 0, 0, 50 );
-	CBaseGrenade *pGrenade = Fraggrenade_Create( vecSrc, vec3_angle, vecThrow, AngularImpulse(200,random->RandomInt(-600,600),0), pPlayer, GRENADE_TIMER, false );
+	pPlayer->GetVelocity(&vecThrow, NULL);
+	vecThrow += vForward * flVelocity + Vector(0, 0, 50); // Apenas um pequeno impulso para cima no lob
 
-	if ( pGrenade )
+	// Use ConVars for angular impulse
+	AngularImpulse angImpulse(sv_grenade_lob_angular_base.GetInt(), random->RandomInt(-sv_grenade_lob_angular_random.GetInt(), sv_grenade_lob_angular_random.GetInt()), 0);
+
+	CBaseGrenade* pGrenade = Fraggrenade_Create(vecSrc, vec3_angle, vecThrow, angImpulse, pPlayer, sv_grenade_timer.GetFloat(), false);
+
+	if (pGrenade)
 	{
-		pGrenade->SetDamage( GetHL2MPWpnData().m_iPlayerDamage );
-		pGrenade->SetDamageRadius( GRENADE_DAMAGE_RADIUS );
+		pGrenade->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
+		pGrenade->SetDamageRadius(sv_grenade_damage_radius.GetFloat());
 	}
 #endif
 
-	WeaponSound( WPN_DOUBLE );
-
-	// player "shoot" animation
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-
-	m_bRedraw = true;
+	WeaponSound(WPN_DOUBLE);
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *pPlayer - 
 //-----------------------------------------------------------------------------
-void CWeaponFrag::RollGrenade( CBasePlayer *pPlayer )
+// Substitua a função por esta nova versão
+void CWeaponFrag::RollGrenade(CBasePlayer* pPlayer, float flVelocity)
 {
 #ifndef CLIENT_DLL
-	// BUGBUG: Hardcoded grenade width of 4 - better not change the model :)
 	Vector vecSrc;
-	pPlayer->CollisionProp()->NormalizedToWorldSpace( Vector( 0.5f, 0.5f, 0.0f ), &vecSrc );
-	vecSrc.z += GRENADE_RADIUS;
+	pPlayer->CollisionProp()->NormalizedToWorldSpace(Vector(0.5f, 0.5f, 0.0f), &vecSrc);
+	vecSrc.z += sv_grenade_radius.GetFloat(); // Use a ConVar para a altura do raio
 
-	Vector vecFacing = pPlayer->BodyDirection2D( );
-	// no up/down direction
+	Vector vecFacing = pPlayer->BodyDirection2D();
 	vecFacing.z = 0;
-	VectorNormalize( vecFacing );
+	VectorNormalize(vecFacing);
+
 	trace_t tr;
-	UTIL_TraceLine( vecSrc, vecSrc - Vector(0,0,16), MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_NONE, &tr );
-	if ( tr.fraction != 1.0 )
+	UTIL_TraceLine(vecSrc, vecSrc - Vector(0, 0, 16), MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+	if (tr.fraction != 1.0)
 	{
-		// compute forward vec parallel to floor plane and roll grenade along that
 		Vector tangent;
-		CrossProduct( vecFacing, tr.plane.normal, tangent );
-		CrossProduct( tr.plane.normal, tangent, vecFacing );
+		CrossProduct(vecFacing, tr.plane.normal, tangent);
+		CrossProduct(tr.plane.normal, tangent, vecFacing);
 	}
-	vecSrc += (vecFacing * 18.0);
+	vecSrc += (vecFacing * sv_grenade_forward_offset.GetFloat()); // Use a ConVar para o offset frontal
 
 	Vector vecThrow;
-	pPlayer->GetVelocity( &vecThrow, NULL );
-	vecThrow += vecFacing * 700;
-	// put it on its side
-	QAngle orientation(0,pPlayer->GetLocalAngles().y,-90);
-	// roll it
-	AngularImpulse rotSpeed(0,0,720);
-	CheckThrowPosition( pPlayer, pPlayer->WorldSpaceCenter(), vecSrc, orientation );
-	CBaseGrenade *pGrenade = Fraggrenade_Create( vecSrc, orientation, vecThrow, rotSpeed, pPlayer, GRENADE_TIMER, false );
+	pPlayer->GetVelocity(&vecThrow, NULL);
+	vecThrow += vecFacing * flVelocity;
 
-	if ( pGrenade )
+	QAngle orientation(0, pPlayer->GetLocalAngles().y, -90);
+	AngularImpulse rotSpeed(0, 0, sv_grenade_roll_angular.GetInt()); // Use a ConVar para a velocidade angular
+	CheckThrowPosition(pPlayer, pPlayer->WorldSpaceCenter(), vecSrc, orientation);
+	CBaseGrenade* pGrenade = Fraggrenade_Create(vecSrc, orientation, vecThrow, rotSpeed, pPlayer, sv_grenade_timer.GetFloat(), false);
+
+	if (pGrenade)
 	{
-		pGrenade->SetDamage( GetHL2MPWpnData().m_iPlayerDamage );
-		pGrenade->SetDamageRadius( GRENADE_DAMAGE_RADIUS );
+		pGrenade->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
+		pGrenade->SetDamageRadius(sv_grenade_damage_radius.GetFloat());
 	}
-
 #endif
 
 	CDisablePredictionFiltering disablePred;
-	WeaponSound( SPECIAL1 );
-
-	// player "shoot" animation
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-
-	m_bRedraw = true;
+	WeaponSound(SPECIAL1);
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 }
 

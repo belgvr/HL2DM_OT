@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\server\Release_mod_hl2mp\server.dll</FullPath>
+      <FullPath>C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\server.dll</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

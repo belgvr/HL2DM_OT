@@ -94,8 +94,9 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.7", FCVAR_CHEAT | FC
 ConVar	spec_freeze_time( "spec_freeze_time", "4.0", FCVAR_CHEAT | FCVAR_REPLICATED, "Time spend frozen in observer freeze cam." );
 ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FCVAR_REPLICATED, "Time taken to zoom in to frame a target in observer freeze cam.", true, 0.01, false, 0 );
 #endif
-
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
+
+
 
 /*
 ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maxmimum size of the short term chat msg bucket." );
@@ -105,6 +106,9 @@ ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCV
 */
 
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
+
+ConVar sv_ear_ring("sv_ear_ring", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the ear-ringing effect when the player is hit by an explosion (0 = off, 1 = on)");
+
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1447,31 +1451,34 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 // Purpose: 
 // Input  : &info - 
 //-----------------------------------------------------------------------------
-void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
+void CBasePlayer::OnDamagedByExplosion(const CTakeDamageInfo& info)
 {
-	float lastDamage = info.GetDamage();
+	// se cvar estiver 0, não faz nada
+	if (sv_ear_ring.GetInt() == 0)
+		return;
 
+	float lastDamage = info.GetDamage();
 	float distanceFromPlayer = 9999.0f;
 
-	CBaseEntity *inflictor = info.GetInflictor();
-	if ( inflictor )
+	CBaseEntity* inflictor = info.GetInflictor();
+	if (inflictor)
 	{
 		Vector delta = GetAbsOrigin() - inflictor->GetAbsOrigin();
 		distanceFromPlayer = delta.Length();
 	}
 
-	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE ? true : false;
+	bool ear_ringing = distanceFromPlayer < MIN_EAR_RINGING_DISTANCE;
 	bool shock = lastDamage >= MIN_SHOCK_AND_CONFUSION_DAMAGE;
 
-	if ( !shock && !ear_ringing )
+	if (!shock && !ear_ringing)
 		return;
 
-	int effect = shock ? 
-		random->RandomInt( 35, 37 ) : 
-		random->RandomInt( 32, 34 );
+	int effect = shock ?
+		random->RandomInt(35, 37) :
+		random->RandomInt(32, 34);
 
-	CSingleUserRecipientFilter user( this );
-	enginesound->SetPlayerDSP( user, effect, false );
+	CSingleUserRecipientFilter user(this);
+	enginesound->SetPlayerDSP(user, effect, false);
 	iDamageTime = gpGlobals->curtime;
 }
 
@@ -6449,6 +6456,58 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		}
 		break;
 
+	case 104:
+		SetHealth(100);
+		SetArmorValue(200);
+		EmitSound("HealthKit.Touch");
+		break;
+	case 105:
+		// Executar primeiro o código do case 101
+		//gEvilImpulse101 = true;
+		EquipSuit();
+		SetHealth(100);
+		SetArmorValue(200);
+		// Give the player everything!
+		GiveAmmo(255, "Pistol");
+		GiveAmmo(255, "AR2");
+		GiveAmmo(5, "AR2AltFire");
+		GiveAmmo(255, "SMG1");
+		GiveAmmo(255, "Buckshot");
+		GiveAmmo(3, "smg1_grenade");
+		GiveAmmo(3, "rpg_round");
+		GiveAmmo(5, "grenade");
+		GiveAmmo(32, "357");
+		GiveAmmo(16, "XBowBolt");
+#ifdef HL2_EPISODIC
+		GiveAmmo(5, "Hopwire");
+#endif		
+		GiveNamedItem("weapon_smg1");
+		GiveNamedItem("weapon_frag");
+		GiveNamedItem("weapon_crowbar");
+		GiveNamedItem("weapon_stunstick");
+		GiveNamedItem("weapon_pistol");
+		GiveNamedItem("weapon_ar2");
+		GiveNamedItem("weapon_shotgun");
+		GiveNamedItem("weapon_physcannon");
+		//GiveNamedItem("weapon_bugbait");
+		GiveNamedItem("weapon_rpg");
+		GiveNamedItem("weapon_357");
+		GiveNamedItem("weapon_crossbow");
+		GiveNamedItem("weapon_slam");
+#ifdef HL2_EPISODIC
+		// GiveNamedItem( "weapon_magnade" );
+#endif
+		if (GetHealth() < 100)
+		{
+			TakeHealth(25, DMG_GENERIC);
+		}
+		gEvilImpulse101 = false;
+
+		// Executar depois o código do case 104
+		SetHealth(100);
+		SetArmorValue(200);
+		EmitSound("HealthKit.Touch");
+		break;
 	case 106:
 		// Give me the classname and targetname of this entity.
 		pEntity = FindEntityForward( this, true );

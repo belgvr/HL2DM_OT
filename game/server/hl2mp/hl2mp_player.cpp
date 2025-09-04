@@ -1,3 +1,4 @@
+//2
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Player for HL2.
@@ -39,80 +40,121 @@
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
 
-CBaseEntity	 *g_pLastCombineSpawn = NULL;
-CBaseEntity	 *g_pLastRebelSpawn = NULL;
-extern CBaseEntity				*g_pLastSpawn;
+CBaseEntity* g_pLastCombineSpawn = NULL;
+CBaseEntity* g_pLastRebelSpawn = NULL;
+extern CBaseEntity* g_pLastSpawn;
 
-ConVar hl2mp_spawn_frag_fallback_radius( "hl2mp_spawn_frag_fallback_radius", "48", FCVAR_NONE, "If no spawns are available, kill players with this radius to allow new players to spawn." );
+ConVar hl2mp_spawn_frag_fallback_radius("hl2mp_spawn_frag_fallback_radius", "48", FCVAR_NONE, "If no spawns are available, kill players with this radius to allow new players to spawn.");
+
+// SECTION FOR HITSOUNDS
+ConVar sv_hitsounds_enabled("sv_hitsounds_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable all custom hit and kill sounds.");
+
+// CORRIGIDO: Adicionado 'true, fMin, true, fMax' para definir os limites corretamente.
+ConVar sv_hitsounds_volume("sv_hitsounds_volume", "0.7", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume for all custom hit and kill sounds.", true, 0.0f, true, 1.0f);
+
+ConVar sv_hitsounds_hit_body_enabled("sv_hitsounds_hit_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable body hit sounds.");
+ConVar sv_hitsounds_hit_head_enabled("sv_hitsounds_hit_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot hit sounds.");
+ConVar sv_hitsounds_kill_body_enabled("sv_hitsounds_kill_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable normal kill sounds.");
+ConVar sv_hitsounds_kill_head_enabled("sv_hitsounds_kill_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot kill sounds.");
+
+ConVar sv_hitsounds_pitch_enabled("sv_hitsounds_pitch_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable incremental pitch for consecutive hits.");
+
+// CORRIGIDO: Adicionado 'true, fMin, true, fMax' para definir os limites corretamente.
+ConVar sv_hitsounds_pitch_increment("sv_hitsounds_pitch_increment", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Pitch increase per consecutive hit (100 is normal).", true, 0, true, 50);
+ConVar sv_hitsounds_pitch_max("sv_hitsounds_pitch_max", "180", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum pitch value (100 is normal).", true, 100, true, 255);
+
+ConVar sv_hitsounds_pitch_reset_time("sv_hitsounds_pitch_reset_time", "0.6", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds before consecutive hit pitch resets.");
+ConVar sv_hitsounds_ff("sv_hitsounds_ff", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Play hit sounds on friendly fire? 0=No, 1=Yes");
+
+// Cvars de arquivos de som
+ConVar sv_hitsounds_body_sound("sv_hitsounds_body_sound", "buttons/button10.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body hits.");
+ConVar sv_hitsounds_head_sound("sv_hitsounds_head_sound", "buttons/button16.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot hits.");
+ConVar sv_hitsounds_kill_body_sound("sv_hitsounds_kill_body_sound", "buttons/button9.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body kills.");
+ConVar sv_hitsounds_kill_head_sound("sv_hitsounds_kill_head_sound", "npc/sniper/sniper1.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot kills.");
+
+// Volume por som (multiplicador 0.0–1.0)
+ConVar sv_hitsounds_body_volume("sv_hitsounds_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body hit sound.", true, 0.0f, true, 1.0f);
+ConVar sv_hitsounds_head_volume("sv_hitsounds_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot hit sound.", true, 0.0f, true, 1.0f);
+ConVar sv_hitsounds_kill_body_volume("sv_hitsounds_kill_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body kill sound.", true, 0.0f, true, 1.0f);
+ConVar sv_hitsounds_kill_head_volume("sv_hitsounds_kill_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot kill sound.", true, 0.0f, true, 1.0f);
+
+// Pitch base por som (100 = normal)
+ConVar sv_hitsounds_pitch_base_hit_body("sv_hitsounds_pitch_base_hit_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body hit.", true, 1, true, 255);
+ConVar sv_hitsounds_pitch_base_hit_head("sv_hitsounds_pitch_base_hit_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot hit.", true, 1, true, 255);
+ConVar sv_hitsounds_pitch_base_kill_body("sv_hitsounds_pitch_base_kill_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body kill.", true, 1, true, 255);
+ConVar sv_hitsounds_pitch_base_kill_head("sv_hitsounds_pitch_base_kill_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot kill.", true, 1, true, 255);
+
+// END SECTION FOR HITSOUNDS
+
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
-void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
+void DropPrimedFragGrenade(CHL2MP_Player* pPlayer, CBaseCombatWeapon* pGrenade);
 
-LINK_ENTITY_TO_CLASS( player, CHL2MP_Player );
+LINK_ENTITY_TO_CLASS(player, CHL2MP_Player);
 
-LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
-LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
+LINK_ENTITY_TO_CLASS(info_player_combine, CPointEntity);
+LINK_ENTITY_TO_CLASS(info_player_rebel, CPointEntity);
 
 // specific to the local player
-BEGIN_SEND_TABLE_NOBASE( CHL2MP_Player, DT_HL2MPLocalPlayerExclusive )
-	// send a hi-res origin to the local player for use in prediction
-	SendPropVectorXY(SENDINFO(m_vecOrigin),               -1, SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY ),
-	SendPropFloat   (SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_NOSCALE|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ ),
+BEGIN_SEND_TABLE_NOBASE(CHL2MP_Player, DT_HL2MPLocalPlayerExclusive)
+// send a hi-res origin to the local player for use in prediction
+SendPropVectorXY(SENDINFO(m_vecOrigin), -1, SPROP_NOSCALE | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY),
+SendPropFloat(SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_NOSCALE | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ),
 
-	SendPropFloat( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN ),
+SendPropFloat(SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f),
+SendPropAngle(SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN),
 
 END_SEND_TABLE()
 
 // all players except the local player
-BEGIN_SEND_TABLE_NOBASE( CHL2MP_Player, DT_HL2MPNonLocalPlayerExclusive )
-	// send a lo-res origin to other players
-	SendPropVectorXY(SENDINFO(m_vecOrigin),               -1, SPROP_COORD_MP_LOWPRECISION|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY ),
-	SendPropFloat   (SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_COORD_MP_LOWPRECISION|SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ ),
+BEGIN_SEND_TABLE_NOBASE(CHL2MP_Player, DT_HL2MPNonLocalPlayerExclusive)
+// send a lo-res origin to other players
+SendPropVectorXY(SENDINFO(m_vecOrigin), -1, SPROP_COORD_MP_LOWPRECISION | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginXY),
+SendPropFloat(SENDINFO_VECTORELEM(m_vecOrigin, 2), -1, SPROP_COORD_MP_LOWPRECISION | SPROP_CHANGES_OFTEN, 0.0f, HIGH_DEFAULT, SendProxy_OriginZ),
 
-	SendPropFloat( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f ),
-	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN ),
+SendPropFloat(SENDINFO_VECTORELEM(m_angEyeAngles, 0), 8, SPROP_CHANGES_OFTEN, -90.0f, 90.0f),
+SendPropAngle(SENDINFO_VECTORELEM(m_angEyeAngles, 1), 10, SPROP_CHANGES_OFTEN),
 
 END_SEND_TABLE()
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
-	SendPropExclude( "DT_BaseEntity", "m_vecOrigin" ),
+SendPropExclude("DT_BaseEntity", "m_vecOrigin"),
 
-	// misyl:
-	// m_flMaxspeed is fully predicted by the client and the client's
-	// maxspeed is sent in the user message.
-	// Other games like DOD, etc don't use this var at all and just fully
-	// predict in GameMovement, but the HL2 codebase doesn't do that and modifies this
-	// on the player.
-	// So, just never send it, and don't predict it on the client either.
-	SendPropExclude( "DT_BasePlayer", "m_flMaxspeed" ),
+// misyl:
+// m_flMaxspeed is fully predicted by the client and the client's
+// maxspeed is sent in the user message.
+// Other games like DOD, etc don't use this var at all and just fully
+// predict in GameMovement, but the HL2 codebase doesn't do that and modifies this
+// on the player.
+// So, just never send it, and don't predict it on the client either.
+SendPropExclude("DT_BasePlayer", "m_flMaxspeed"),
 
 
-	// Data that only gets sent to the local player
-	SendPropDataTable( "hl2mplocaldata", 0, &REFERENCE_SEND_TABLE( DT_HL2MPLocalPlayerExclusive ), SendProxy_SendLocalDataTable ),
+// Data that only gets sent to the local player
+SendPropDataTable("hl2mplocaldata", 0, &REFERENCE_SEND_TABLE(DT_HL2MPLocalPlayerExclusive), SendProxy_SendLocalDataTable),
 
-	// Data that gets sent to all other players
-	SendPropDataTable( "hl2mpnonlocaldata", 0, &REFERENCE_SEND_TABLE( DT_HL2MPNonLocalPlayerExclusive ), SendProxy_SendNonLocalDataTable ),
+// Data that gets sent to all other players
+SendPropDataTable("hl2mpnonlocaldata", 0, &REFERENCE_SEND_TABLE(DT_HL2MPNonLocalPlayerExclusive), SendProxy_SendNonLocalDataTable),
 
-	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
-	SendPropInt( SENDINFO( m_iSpawnInterpCounter), 4 ),
-	SendPropInt( SENDINFO( m_iPlayerSoundType), 3 ),
-	
-	SendPropExclude( "DT_BaseAnimating", "m_flPoseParameter" ),
-	SendPropExclude( "DT_BaseFlex", "m_viewtarget" ),
+SendPropEHandle(SENDINFO(m_hRagdoll)),
+SendPropInt(SENDINFO(m_iSpawnInterpCounter), 4),
+SendPropInt(SENDINFO(m_iPlayerSoundType), 3),
+
+SendPropExclude("DT_BaseAnimating", "m_flPoseParameter"),
+SendPropExclude("DT_BaseFlex", "m_viewtarget"),
 
 //	SendPropExclude( "DT_ServerAnimationData" , "m_flCycle" ),	
 //	SendPropExclude( "DT_AnimTimeMustBeFirst" , "m_flAnimTime" ),	
 END_SEND_TABLE()
 
-BEGIN_DATADESC( CHL2MP_Player )
+BEGIN_DATADESC(CHL2MP_Player)
 END_DATADESC()
 
-BEGIN_ENT_SCRIPTDESC( CHL2MP_Player, CHL2_Player, "Half-Life 2: Deathmatch Player" )
+BEGIN_ENT_SCRIPTDESC(CHL2MP_Player, CHL2_Player, "Half-Life 2: Deathmatch Player")
 END_SCRIPTDESC();
 
-const char *g_ppszRandomCitizenModels[] = 
+const char* g_ppszRandomCitizenModels[] =
 {
 	"models/humans/group03/male_01.mdl",
 	"models/humans/group03/male_02.mdl",
@@ -131,7 +173,7 @@ const char *g_ppszRandomCitizenModels[] =
 	"models/humans/group03/male_09.mdl",
 };
 
-const char *g_ppszRandomCombineModels[] =
+const char* g_ppszRandomCombineModels[] =
 {
 	"models/combine_soldier.mdl",
 	"models/combine_soldier_prisonguard.mdl",
@@ -148,7 +190,7 @@ const char *g_ppszRandomCombineModels[] =
 
 #pragma warning( disable : 4355 )
 
-CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
+CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState(this)
 {
 	m_angEyeAngles.Init();
 
@@ -159,60 +201,187 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	m_iSpawnInterpCounter = 0;
 
-    m_bEnterObserver = false;
+	m_bEnterObserver = false;
 	m_bReady = false;
 
-	BaseClass::ChangeTeam( 0 );
-	
+	// ADICIONE ESTAS LINHAS
+	m_flLastHitSoundTime = 0.0f;
+	m_iConsecutiveHits = 0;
+
+	m_iLastHitGroup = 0;
+
+	BaseClass::ChangeTeam(0);
+
 	//UseClientSideAnimation();
 }
 
-CHL2MP_Player::~CHL2MP_Player( void )
+CHL2MP_Player::~CHL2MP_Player(void)
 {
 
 }
 
-void CHL2MP_Player::UpdateOnRemove( void )
+void CHL2MP_Player::UpdateOnRemove(void)
 {
-	if ( auto p = GetLadderMove() )
+	if (auto p = GetLadderMove())
 	{
-		UTIL_Remove( ( CBaseEntity * ) ( p->m_hReservedSpot.Get() ) );
+		UTIL_Remove((CBaseEntity*)(p->m_hReservedSpot.Get()));
 		p->m_hReservedSpot = NULL;
 	}
 
-	if ( m_hRagdoll )
+	if (m_hRagdoll)
 	{
-		UTIL_RemoveImmediate( m_hRagdoll );
+		UTIL_RemoveImmediate(m_hRagdoll);
 		m_hRagdoll = NULL;
 	}
 
 	BaseClass::UpdateOnRemove();
 }
 
-void CHL2MP_Player::Precache( void )
+void CHL2MP_Player::Precache(void)
 {
 	BaseClass::Precache();
 
-	PrecacheModel ( "sprites/glow01.vmt" );
+	PrecacheModel("sprites/glow01.vmt");
 
 	//Precache Citizen models
-	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
-	int i;	
+	int nHeads = ARRAYSIZE(g_ppszRandomCitizenModels);
+	int i;
 
-	for ( i = 0; i < nHeads; ++i )
-	   	 PrecacheModel( g_ppszRandomCitizenModels[i] );
+	for (i = 0; i < nHeads; ++i)
+		PrecacheModel(g_ppszRandomCitizenModels[i]);
 
 	//Precache Combine Models
-	nHeads = ARRAYSIZE( g_ppszRandomCombineModels );
+	nHeads = ARRAYSIZE(g_ppszRandomCombineModels);
 
-	for ( i = 0; i < nHeads; ++i )
-	   	 PrecacheModel( g_ppszRandomCombineModels[i] );
+	for (i = 0; i < nHeads; ++i)
+		PrecacheModel(g_ppszRandomCombineModels[i]);
 
 	PrecacheFootStepSounds();
 
-	PrecacheScriptSound( "NPC_MetroPolice.Die" );
-	PrecacheScriptSound( "NPC_CombineS.Die" );
-	PrecacheScriptSound( "NPC_Citizen.die" );
+	PrecacheScriptSound("NPC_MetroPolice.Die");
+	PrecacheScriptSound("NPC_CombineS.Die");
+	PrecacheScriptSound("NPC_Citizen.die");
+
+	PrecacheScriptSound(sv_hitsounds_body_sound.GetString());
+	PrecacheScriptSound(sv_hitsounds_head_sound.GetString());
+	PrecacheScriptSound(sv_hitsounds_kill_body_sound.GetString());
+	PrecacheScriptSound(sv_hitsounds_kill_head_sound.GetString());
+}
+
+//New function for player feedback
+void CHL2MP_Player::OnDamageDealt(CBasePlayer* pVictim, const CTakeDamageInfo& info)
+{
+	CHL2MP_Player* pHL2MPVictim = ToHL2MPPlayer(pVictim);
+	if (!pHL2MPVictim || !sv_hitsounds_enabled.GetBool())
+		return;
+
+	// Teamplay / Friendly Fire
+	if (HL2MPRules()->IsTeamplay() && this->InSameTeam(pHL2MPVictim))
+	{
+		if (!g_pGameRules->FPlayerCanTakeDamage(pHL2MPVictim, this, info) || !sv_hitsounds_ff.GetBool())
+			return;
+	}
+
+	const bool bIsKill = (pHL2MPVictim->GetHealth() <= 0);
+	const int hitGroup = pHL2MPVictim->m_iLastHitGroup;
+
+	// ===== Seleção do som + volume + pitch base =====
+	const char* soundFile = nullptr;
+	float typeVolume = 1.0f;
+	int basePitch = 100;
+
+	if (bIsKill)
+	{
+		if (hitGroup == HITGROUP_HEAD && sv_hitsounds_kill_head_enabled.GetBool())
+		{
+			soundFile = sv_hitsounds_kill_head_sound.GetString();
+			typeVolume = sv_hitsounds_kill_head_volume.GetFloat();
+			basePitch = sv_hitsounds_pitch_base_kill_head.GetInt();
+		}
+		else if (sv_hitsounds_kill_body_enabled.GetBool())
+		{
+			soundFile = sv_hitsounds_kill_body_sound.GetString();
+			typeVolume = sv_hitsounds_kill_body_volume.GetFloat();
+			basePitch = sv_hitsounds_pitch_base_kill_body.GetInt();
+		}
+	}
+	else
+	{
+		if (hitGroup == HITGROUP_HEAD && sv_hitsounds_hit_head_enabled.GetBool())
+		{
+			soundFile = sv_hitsounds_head_sound.GetString();
+			typeVolume = sv_hitsounds_head_volume.GetFloat();
+			basePitch = sv_hitsounds_pitch_base_hit_head.GetInt();
+		}
+		else if (sv_hitsounds_hit_body_enabled.GetBool())
+		{
+			soundFile = sv_hitsounds_body_sound.GetString();
+			typeVolume = sv_hitsounds_body_volume.GetFloat();
+			basePitch = sv_hitsounds_pitch_base_hit_body.GetInt();
+		}
+	}
+
+	if (!soundFile || soundFile[0] == '\0')
+		return;
+
+	// ===== Pitch incremental =====
+	int pitch = basePitch;
+
+	if (sv_hitsounds_pitch_enabled.GetBool())
+	{
+		// Reset se passou tempo sem acerto
+		if ((gpGlobals->curtime - this->m_flLastHitSoundTime) > sv_hitsounds_pitch_reset_time.GetFloat())
+			this->m_iConsecutiveHits = 0;
+
+		this->m_flLastHitSoundTime = gpGlobals->curtime;
+
+		// Incrementa somente a partir do segundo hit consecutivo
+		if (this->m_iConsecutiveHits > 0)
+		{
+			pitch += (this->m_iConsecutiveHits * sv_hitsounds_pitch_increment.GetInt());
+			if (pitch > sv_hitsounds_pitch_max.GetInt())
+				pitch = sv_hitsounds_pitch_max.GetInt();
+		}
+
+		this->m_iConsecutiveHits++;
+
+		// Reset após kill
+		if (bIsKill)
+			this->m_iConsecutiveHits = 0;
+	}
+
+	// ===== Volume final =====
+	float finalVolume = sv_hitsounds_volume.GetFloat() * typeVolume;
+	finalVolume = clamp(finalVolume, 0.0f, 1.0f);
+
+	// ===== Toca som só pro atirador =====
+	CSingleUserRecipientFilter filter(this);
+	filter.MakeReliable();
+
+	EmitSound_t ep;
+	ep.m_nChannel = CHAN_AUTO;
+	ep.m_pSoundName = soundFile;
+	ep.m_flVolume = finalVolume;
+	ep.m_SoundLevel = SNDLVL_NONE;
+	ep.m_nPitch = pitch;
+
+	EmitSound(filter, this->entindex(), ep);
+}
+
+// New function to trace attack (for hit/kill sounds)
+void CHL2MP_Player::TraceAttack(const CTakeDamageInfo& info, const Vector& vecDir, trace_t* ptr, CDmgAccumulator* pAccumulator)
+{
+	// A única coisa que fazemos aqui agora é anotar onde o tiro acertou.
+	if (ptr)
+	{
+		m_iLastHitGroup = ptr->hitgroup;
+	}
+	else
+	{
+		m_iLastHitGroup = -1; // Usa um valor inválido se não houver um traço
+	}
+
+	BaseClass::TraceAttack(info, vecDir, ptr, pAccumulator);
 }
 
 void ReloadGameRules()
@@ -221,45 +390,37 @@ void ReloadGameRules()
 	CreateGameRulesObject("CHL2MPRules");
 }
 
-void CHL2MP_Player::GiveAllItems( void )
+void CHL2MP_Player::GiveAllItems(void)
 {
 	EquipSuit();
 
-	SetArmorValue( 100 );
-	SetHealth( 100 );
+	//SetArmorValue(100);
+	//SetHealth(100);
 
-	CBasePlayer::GiveAmmo( 255,	"Pistol");
-	CBasePlayer::GiveAmmo( 255,	"AR2" );
-	CBasePlayer::GiveAmmo( 5,	"AR2AltFire" );
-	CBasePlayer::GiveAmmo( 255,	"SMG1");
-	CBasePlayer::GiveAmmo( 5,	"smg1_grenade");
-	CBasePlayer::GiveAmmo( 255,	"Buckshot");
-	CBasePlayer::GiveAmmo( 32,	"357" );
-	CBasePlayer::GiveAmmo( 3,	"rpg_round");
-	CBasePlayer::GiveAmmo( 16,	"XBowBolt");
+	CBasePlayer::GiveAmmo(255, "Pistol");
+	CBasePlayer::GiveAmmo(255, "AR2");
+	CBasePlayer::GiveAmmo(5, "AR2AltFire");
+	CBasePlayer::GiveAmmo(255, "SMG1");
+	CBasePlayer::GiveAmmo(5, "smg1_grenade");
+	CBasePlayer::GiveAmmo(255, "Buckshot");
+	CBasePlayer::GiveAmmo(32, "357");
+	CBasePlayer::GiveAmmo(3, "rpg_round");
+	CBasePlayer::GiveAmmo(16, "XBowBolt");
+	CBasePlayer::GiveAmmo(5, "grenade");
+	CBasePlayer::GiveAmmo(5, "slam");
+	GiveNamedItem("weapon_crowbar");
+	GiveNamedItem("weapon_stunstick");
+	GiveNamedItem("weapon_pistol");
+	GiveNamedItem("weapon_357");
+	GiveNamedItem("weapon_smg1");
+	GiveNamedItem("weapon_ar2");
+	GiveNamedItem("weapon_shotgun");
+	GiveNamedItem("weapon_frag");
+	GiveNamedItem("weapon_crossbow");
+	GiveNamedItem("weapon_rpg");
+	GiveNamedItem("weapon_slam");
+	GiveNamedItem("weapon_physcannon");
 
-	CBasePlayer::GiveAmmo( 5,	"grenade" );
-	CBasePlayer::GiveAmmo( 5,	"slam" );
-
-	GiveNamedItem( "weapon_crowbar" );
-	GiveNamedItem( "weapon_stunstick" );
-	GiveNamedItem( "weapon_pistol" );
-	GiveNamedItem( "weapon_357" );
-
-	GiveNamedItem( "weapon_smg1" );
-	GiveNamedItem( "weapon_ar2" );
-	
-	GiveNamedItem( "weapon_shotgun" );
-	GiveNamedItem( "weapon_frag" );
-	
-	GiveNamedItem( "weapon_crossbow" );
-	
-	GiveNamedItem( "weapon_rpg" );
-
-	GiveNamedItem( "weapon_slam" );
-
-	GiveNamedItem( "weapon_physcannon" );
-	
 }
 
 void CHL2MP_Player::GiveDefaultItems(void)
@@ -302,69 +463,69 @@ void CHL2MP_Player::GiveDefaultItems(void)
 		}
 	}
 
-	GiveNamedItem( "weapon_pistol" );
-	GiveNamedItem( "weapon_smg1" );
-	GiveNamedItem( "weapon_frag" );
-	GiveNamedItem( "weapon_physcannon" );
+	GiveNamedItem("weapon_pistol");
+	GiveNamedItem("weapon_smg1");
+	GiveNamedItem("weapon_frag");
+	GiveNamedItem("weapon_physcannon");
 
-	const char *szDefaultWeaponName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_defaultweapon" );
+	const char* szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
 
-	CBaseCombatWeapon *pDefaultWeapon = Weapon_OwnsThisType( szDefaultWeaponName );
+	CBaseCombatWeapon* pDefaultWeapon = Weapon_OwnsThisType(szDefaultWeaponName);
 
-	if ( pDefaultWeapon )
+	if (pDefaultWeapon)
 	{
-		Weapon_Switch( pDefaultWeapon );
+		Weapon_Switch(pDefaultWeapon);
 	}
 	else
 	{
-		Weapon_Switch( Weapon_OwnsThisType( "weapon_physcannon" ) );
+		Weapon_Switch(Weapon_OwnsThisType("weapon_physcannon"));
 	}
 }
 
-void CHL2MP_Player::PickDefaultSpawnTeam( void )
+void CHL2MP_Player::PickDefaultSpawnTeam(void)
 {
-	if ( GetTeamNumber() == 0 )
+	if (GetTeamNumber() == 0)
 	{
-		if ( HL2MPRules()->IsTeamplay() == false )
+		if (HL2MPRules()->IsTeamplay() == false)
 		{
-			if ( GetModelPtr() == NULL )
+			if (GetModelPtr() == NULL)
 			{
-				const char *szModelName = NULL;
-				szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
+				const char* szModelName = NULL;
+				szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
 
-				if ( ValidatePlayerModel( szModelName ) == false )
+				if (ValidatePlayerModel(szModelName) == false)
 				{
 					char szReturnString[512];
 
-					Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel models/combine_soldier.mdl\n" );
-					engine->ClientCommand ( edict(), szReturnString );
+					Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel models/combine_soldier.mdl\n");
+					engine->ClientCommand(edict(), szReturnString);
 				}
 
-				ChangeTeam( TEAM_UNASSIGNED );
+				ChangeTeam(TEAM_UNASSIGNED);
 			}
 		}
 		else
 		{
-			CTeam *pCombine = g_Teams[TEAM_COMBINE];
-			CTeam *pRebels = g_Teams[TEAM_REBELS];
+			CTeam* pCombine = g_Teams[TEAM_COMBINE];
+			CTeam* pRebels = g_Teams[TEAM_REBELS];
 
-			if ( pCombine == NULL || pRebels == NULL )
+			if (pCombine == NULL || pRebels == NULL)
 			{
-				ChangeTeam( random->RandomInt( TEAM_COMBINE, TEAM_REBELS ) );
+				ChangeTeam(random->RandomInt(TEAM_COMBINE, TEAM_REBELS));
 			}
 			else
 			{
-				if ( pCombine->GetNumPlayers() > pRebels->GetNumPlayers() )
+				if (pCombine->GetNumPlayers() > pRebels->GetNumPlayers())
 				{
-					ChangeTeam( TEAM_REBELS );
+					ChangeTeam(TEAM_REBELS);
 				}
-				else if ( pCombine->GetNumPlayers() < pRebels->GetNumPlayers() )
+				else if (pCombine->GetNumPlayers() < pRebels->GetNumPlayers())
 				{
-					ChangeTeam( TEAM_COMBINE );
+					ChangeTeam(TEAM_COMBINE);
 				}
 				else
 				{
-					ChangeTeam( random->RandomInt( TEAM_COMBINE, TEAM_REBELS ) );
+					ChangeTeam(random->RandomInt(TEAM_COMBINE, TEAM_REBELS));
 				}
 			}
 		}
@@ -384,45 +545,49 @@ void CHL2MP_Player::Spawn(void)
 	// m_flNextModelChangeTime = 0.0f;
 	// m_flNextTeamChangeTime = 0.0f;
 
+	m_flLastHitSoundTime = 0.0f;
+	m_iConsecutiveHits = 0;
+	m_iLastHitGroup = 0;
+
 	PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
 
-	SetContextThink( &CHL2MP_Player::DelayedLoadPlayerSettings, gpGlobals->curtime + 0.1f, "LoadPlayerSettingsContext" );
+	SetContextThink(&CHL2MP_Player::DelayedLoadPlayerSettings, gpGlobals->curtime + 0.1f, "LoadPlayerSettingsContext");
 
-	CompensateScoreOnTeamSwitch( false );
-	CompensateTeamScoreOnTeamSwitch( false );
-	
-	if ( !IsObserver() )
+	CompensateScoreOnTeamSwitch(false);
+	CompensateTeamScoreOnTeamSwitch(false);
+
+	if (!IsObserver())
 	{
 		pl.deadflag = false;
-		RemoveSolidFlags( FSOLID_NOT_SOLID );
+		RemoveSolidFlags(FSOLID_NOT_SOLID);
 
-		RemoveEffects( EF_NODRAW );
-		
-		SetAllowPickupWeaponThroughObstacle( true );
+		RemoveEffects(EF_NODRAW);
+
+		SetAllowPickupWeaponThroughObstacle(true);
 		GiveDefaultItems();
-		SetAllowPickupWeaponThroughObstacle( false );
+		SetAllowPickupWeaponThroughObstacle(false);
 	}
 
-	SetNumAnimOverlays( 3 );
+	SetNumAnimOverlays(3);
 	ResetAnimation();
 
 	m_nRenderFX = kRenderNormal;
 
 	m_Local.m_iHideHUD = 0;
-	
+
 	AddFlag(FL_ONGROUND); // set the player on the ground at the start of the round.
 
 	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
 
-	if ( HL2MPRules()->IsIntermission() )
+	if (HL2MPRules()->IsIntermission())
 	{
-		AddFlag( FL_FROZEN );
+		AddFlag(FL_FROZEN);
 	}
 	else
 	{
-		RemoveFlag( FL_FROZEN );
+		RemoveFlag(FL_FROZEN);
 	}
 
 	m_iSpawnInterpCounter = (m_iSpawnInterpCounter + 1) % 8;
@@ -434,24 +599,24 @@ void CHL2MP_Player::Spawn(void)
 	m_bReady = false;
 }
 
-bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
+bool CHL2MP_Player::ValidatePlayerModel(const char* pModel)
 {
-	int iModels = ARRAYSIZE( g_ppszRandomCitizenModels );
-	int i;	
+	int iModels = ARRAYSIZE(g_ppszRandomCitizenModels);
+	int i;
 
-	for ( i = 0; i < iModels; ++i )
+	for (i = 0; i < iModels; ++i)
 	{
-		if ( !Q_stricmp( g_ppszRandomCitizenModels[i], pModel ) )
+		if (!Q_stricmp(g_ppszRandomCitizenModels[i], pModel))
 		{
 			return true;
 		}
 	}
 
-	iModels = ARRAYSIZE( g_ppszRandomCombineModels );
+	iModels = ARRAYSIZE(g_ppszRandomCombineModels);
 
-	for ( i = 0; i < iModels; ++i )
+	for (i = 0; i < iModels; ++i)
 	{
-	   	if ( !Q_stricmp( g_ppszRandomCombineModels[i], pModel ) )
+		if (!Q_stricmp(g_ppszRandomCombineModels[i], pModel))
 		{
 			return true;
 		}
@@ -460,178 +625,178 @@ bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 	return false;
 }
 
-void CHL2MP_Player::PickupObject( CBaseEntity* pObject, bool bLimitMassAndSize )
+void CHL2MP_Player::PickupObject(CBaseEntity* pObject, bool bLimitMassAndSize)
 {
 
 }
 
-void CHL2MP_Player::SetPlayerTeamModel( void )
+void CHL2MP_Player::SetPlayerTeamModel(void)
 {
-	const char *szModelName = NULL;
-	szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
-	
-	int modelIndex = modelinfo->GetModelIndex( szModelName );
-	
-		if (modelIndex == -1 || ValidatePlayerModel(szModelName) == false)
-		{
-			szModelName = "models/Combine_Soldier.mdl";
-			m_iModelType = TEAM_COMBINE;
+	const char* szModelName = NULL;
+	szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
 
-			char szReturnString[512];
+	int modelIndex = modelinfo->GetModelIndex(szModelName);
 
-			Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", szModelName);
-			engine->ClientCommand(edict(), szReturnString);
-		}
-
-		if (GetTeamNumber() == TEAM_COMBINE)
-		{
-			if (Q_stristr(szModelName, "models/human"))
-			{
-				int nHeads = ARRAYSIZE(g_ppszRandomCombineModels);
-
-				g_iLastCombineModel = (g_iLastCombineModel + 1) % nHeads;
-				szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
-			}
-
-			m_iModelType = TEAM_COMBINE;
-		}
-		else if (GetTeamNumber() == TEAM_REBELS)
-		{
-			if (!Q_stristr(szModelName, "models/human"))
-			{
-				int nHeads = ARRAYSIZE(g_ppszRandomCitizenModels);
-
-				g_iLastCitizenModel = (g_iLastCitizenModel + 1) % nHeads;
-				szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
-			}
-
-			m_iModelType = TEAM_REBELS;
-		}
-	
-	SetModel( szModelName );
-	SetupPlayerSoundsByModel( szModelName );
-
-	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
-}
-
-void CHL2MP_Player::SetPlayerModel( void )
-{
-	const char *szModelName = NULL;
-	const char *pszCurrentModelName = modelinfo->GetModelName( GetModel());
-
-	szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
-
-	if ( ValidatePlayerModel( szModelName ) == false )
-	{
-		char szReturnString[512];
-
-		if ( ValidatePlayerModel( pszCurrentModelName ) == false )
-		{
-			pszCurrentModelName = "models/Combine_Soldier.mdl";
-		}
-
-		Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", pszCurrentModelName );
-		engine->ClientCommand ( edict(), szReturnString );
-
-		szModelName = pszCurrentModelName;
-	}
-
-	if ( GetTeamNumber() == TEAM_COMBINE )
-	{
-		int nHeads = ARRAYSIZE( g_ppszRandomCombineModels );
-		
-		g_iLastCombineModel = ( g_iLastCombineModel + 1 ) % nHeads;
-		szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
-
-		m_iModelType = TEAM_COMBINE;
-	}
-	else if ( GetTeamNumber() == TEAM_REBELS )
-	{
-		int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
-
-		g_iLastCitizenModel = ( g_iLastCitizenModel + 1 ) % nHeads;
-		szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
-
-		m_iModelType = TEAM_REBELS;
-	}
-	else
-	{
-		if ( Q_strlen( szModelName ) == 0 ) 
-		{
-			szModelName = g_ppszRandomCitizenModels[0];
-		}
-
-		if ( Q_stristr( szModelName, "models/human") )
-		{
-			m_iModelType = TEAM_REBELS;
-		}
-		else
-		{
-			m_iModelType = TEAM_COMBINE;
-		}
-	}
-
-	int modelIndex = modelinfo->GetModelIndex( szModelName );
-
-	if ( modelIndex == -1 )
+	if (modelIndex == -1 || ValidatePlayerModel(szModelName) == false)
 	{
 		szModelName = "models/Combine_Soldier.mdl";
 		m_iModelType = TEAM_COMBINE;
 
 		char szReturnString[512];
 
-		Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", szModelName );
-		engine->ClientCommand ( edict(), szReturnString );
+		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", szModelName);
+		engine->ClientCommand(edict(), szReturnString);
 	}
 
-	SetModel( szModelName );
-	SetupPlayerSoundsByModel( szModelName );
+	if (GetTeamNumber() == TEAM_COMBINE)
+	{
+		if (Q_stristr(szModelName, "models/human"))
+		{
+			int nHeads = ARRAYSIZE(g_ppszRandomCombineModels);
+
+			g_iLastCombineModel = (g_iLastCombineModel + 1) % nHeads;
+			szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
+		}
+
+		m_iModelType = TEAM_COMBINE;
+	}
+	else if (GetTeamNumber() == TEAM_REBELS)
+	{
+		if (!Q_stristr(szModelName, "models/human"))
+		{
+			int nHeads = ARRAYSIZE(g_ppszRandomCitizenModels);
+
+			g_iLastCitizenModel = (g_iLastCitizenModel + 1) % nHeads;
+			szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
+		}
+
+		m_iModelType = TEAM_REBELS;
+	}
+
+	SetModel(szModelName);
+	SetupPlayerSoundsByModel(szModelName);
 
 	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
 }
 
-void CHL2MP_Player::SetupPlayerSoundsByModel( const char *pModelName )
+void CHL2MP_Player::SetPlayerModel(void)
 {
-	if ( Q_stristr( pModelName, "models") )
+	const char* szModelName = NULL;
+	const char* pszCurrentModelName = modelinfo->GetModelName(GetModel());
+
+	szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
+
+	if (ValidatePlayerModel(szModelName) == false)
+	{
+		char szReturnString[512];
+
+		if (ValidatePlayerModel(pszCurrentModelName) == false)
+		{
+			pszCurrentModelName = "models/Combine_Soldier.mdl";
+		}
+
+		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", pszCurrentModelName);
+		engine->ClientCommand(edict(), szReturnString);
+
+		szModelName = pszCurrentModelName;
+	}
+
+	if (GetTeamNumber() == TEAM_COMBINE)
+	{
+		int nHeads = ARRAYSIZE(g_ppszRandomCombineModels);
+
+		g_iLastCombineModel = (g_iLastCombineModel + 1) % nHeads;
+		szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
+
+		m_iModelType = TEAM_COMBINE;
+	}
+	else if (GetTeamNumber() == TEAM_REBELS)
+	{
+		int nHeads = ARRAYSIZE(g_ppszRandomCitizenModels);
+
+		g_iLastCitizenModel = (g_iLastCitizenModel + 1) % nHeads;
+		szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
+
+		m_iModelType = TEAM_REBELS;
+	}
+	else
+	{
+		if (Q_strlen(szModelName) == 0)
+		{
+			szModelName = g_ppszRandomCitizenModels[0];
+		}
+
+		if (Q_stristr(szModelName, "models/human"))
+		{
+			m_iModelType = TEAM_REBELS;
+		}
+		else
+		{
+			m_iModelType = TEAM_COMBINE;
+		}
+	}
+
+	int modelIndex = modelinfo->GetModelIndex(szModelName);
+
+	if (modelIndex == -1)
+	{
+		szModelName = "models/Combine_Soldier.mdl";
+		m_iModelType = TEAM_COMBINE;
+
+		char szReturnString[512];
+
+		Q_snprintf(szReturnString, sizeof(szReturnString), "cl_playermodel %s\n", szModelName);
+		engine->ClientCommand(edict(), szReturnString);
+	}
+
+	SetModel(szModelName);
+	SetupPlayerSoundsByModel(szModelName);
+
+	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
+}
+
+void CHL2MP_Player::SetupPlayerSoundsByModel(const char* pModelName)
+{
+	if (Q_stristr(pModelName, "models"))
 	{
 		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
 	}
-//	else if ( Q_stristr(pModelName, "police" ) )
-//	{
-//		m_iPlayerSoundType = (int)PLAYER_SOUNDS_METROPOLICE;
-//	}
-//	else if ( Q_stristr(pModelName, "combine" ) )
-//	{
-//		m_iPlayerSoundType = (int)PLAYER_SOUNDS_COMBINESOLDIER;
-//	}
+	//	else if ( Q_stristr(pModelName, "police" ) )
+	//	{
+	//		m_iPlayerSoundType = (int)PLAYER_SOUNDS_METROPOLICE;
+	//	}
+	//	else if ( Q_stristr(pModelName, "combine" ) )
+	//	{
+	//		m_iPlayerSoundType = (int)PLAYER_SOUNDS_COMBINESOLDIER;
+	//	}
 }
 
-void CHL2MP_Player::ResetAnimation( void )
+void CHL2MP_Player::ResetAnimation(void)
 {
-	if ( IsAlive() )
+	if (IsAlive())
 	{
-		SetSequence ( -1 );
-		SetActivity( ACT_INVALID );
+		SetSequence(-1);
+		SetActivity(ACT_INVALID);
 
 		if (!GetAbsVelocity().x && !GetAbsVelocity().y)
-			SetAnimation( PLAYER_IDLE );
-		else if ((GetAbsVelocity().x || GetAbsVelocity().y) && ( GetFlags() & FL_ONGROUND ))
-			SetAnimation( PLAYER_WALK );
+			SetAnimation(PLAYER_IDLE);
+		else if ((GetAbsVelocity().x || GetAbsVelocity().y) && (GetFlags() & FL_ONGROUND))
+			SetAnimation(PLAYER_WALK);
 		else if (GetWaterLevel() > 1)
-			SetAnimation( PLAYER_WALK );
-		else if ( ( GetFlags() & FL_ONGROUND ) != FL_ONGROUND)
-			SetAnimation( PLAYER_JUMP );
+			SetAnimation(PLAYER_WALK);
+		else if ((GetFlags() & FL_ONGROUND) != FL_ONGROUND)
+			SetAnimation(PLAYER_JUMP);
 		else
-			SetAnimation( PLAYER_IDLE );
+			SetAnimation(PLAYER_IDLE);
 	}
 }
 
 
-bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex )
+bool CHL2MP_Player::Weapon_Switch(CBaseCombatWeapon* pWeapon, int viewmodelindex)
 {
-	bool bRet = BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
+	bool bRet = BaseClass::Weapon_Switch(pWeapon, viewmodelindex);
 
-	if ( bRet == true )
+	if (bRet == true)
 	{
 		ResetAnimation();
 	}
@@ -639,35 +804,35 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 	return bRet;
 }
 
-void CHL2MP_Player::PreThink( void )
+void CHL2MP_Player::PreThink(void)
 {
 	QAngle vOldAngles = GetLocalAngles();
 	QAngle vTempAngles = GetLocalAngles();
 
 	vTempAngles = EyeAngles();
 
-	if ( vTempAngles[PITCH] > 180.0f )
+	if (vTempAngles[PITCH] > 180.0f)
 	{
 		vTempAngles[PITCH] -= 360.0f;
 	}
 
-	SetLocalAngles( vTempAngles );
+	SetLocalAngles(vTempAngles);
 
 	BaseClass::PreThink();
 	State_PreThink();
 
 	//Reset bullet force accumulator, only lasts one frame
 	m_vecTotalBulletForce = vec3_origin;
-	SetLocalAngles( vOldAngles );
+	SetLocalAngles(vOldAngles);
 }
 
-void CHL2MP_Player::PostThink( void )
+void CHL2MP_Player::PostThink(void)
 {
 	BaseClass::PostThink();
-	
-	if ( GetFlags() & FL_DUCKING )
+
+	if (GetFlags() & FL_DUCKING)
 	{
-		SetCollisionBounds( VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX );
+		SetCollisionBounds(VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX);
 	}
 
 	m_PlayerAnimState.Update();
@@ -677,53 +842,53 @@ void CHL2MP_Player::PostThink( void )
 
 	QAngle angles = GetLocalAngles();
 	angles[PITCH] = 0;
-	SetLocalAngles( angles );
+	SetLocalAngles(angles);
 }
 
 void CHL2MP_Player::PlayerDeathThink()
 {
-	if( !IsObserver() )
+	if (!IsObserver())
 	{
 		BaseClass::PlayerDeathThink();
 	}
 }
 
-void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
+void CHL2MP_Player::FireBullets(const FireBulletsInfo_t& info)
 {
 	// Move other players back to history positions based on local player's lag
-	lagcompensation->StartLagCompensation( this, this->GetCurrentCommand() );
+	lagcompensation->StartLagCompensation(this, this->GetCurrentCommand());
 
 	FireBulletsInfo_t modinfo = info;
 
-	CWeaponHL2MPBase *pWeapon = dynamic_cast<CWeaponHL2MPBase *>( GetActiveWeapon() );
+	CWeaponHL2MPBase* pWeapon = dynamic_cast<CWeaponHL2MPBase*>(GetActiveWeapon());
 
-	if ( pWeapon )
+	if (pWeapon)
 	{
 		modinfo.m_iPlayerDamage = modinfo.m_flDamage = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
 	}
 
 	NoteWeaponFired();
 
-	BaseClass::FireBullets( modinfo );
+	BaseClass::FireBullets(modinfo);
 
 	// Move other players back to history positions based on local player's lag
-	lagcompensation->FinishLagCompensation( this );
+	lagcompensation->FinishLagCompensation(this);
 
-	if ( pWeapon )
-		this->OnMyWeaponFired( pWeapon );
+	if (pWeapon)
+		this->OnMyWeaponFired(pWeapon);
 }
 
-void CHL2MP_Player::OnMyWeaponFired( CBaseCombatWeapon* weapon )
+void CHL2MP_Player::OnMyWeaponFired(CBaseCombatWeapon* weapon)
 {
-	BaseClass::OnMyWeaponFired( weapon );
+	BaseClass::OnMyWeaponFired(weapon);
 
-	TheNextBots().OnWeaponFired( this, weapon );
+	TheNextBots().OnWeaponFired(this, weapon);
 }
 
-void CHL2MP_Player::NoteWeaponFired( void )
+void CHL2MP_Player::NoteWeaponFired(void)
 {
-	Assert( m_pCurrentCommand );
-	if( m_pCurrentCommand )
+	Assert(m_pCurrentCommand);
+	if (m_pCurrentCommand)
 	{
 		m_iLastWeaponFireUsercmd = m_pCurrentCommand->command_number;
 	}
@@ -731,55 +896,55 @@ void CHL2MP_Player::NoteWeaponFired( void )
 
 extern ConVar sv_maxunlag;
 
-bool CHL2MP_Player::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
+bool CHL2MP_Player::WantsLagCompensationOnEntity(const CBasePlayer* pPlayer, const CUserCmd* pCmd, const CBitVec<MAX_EDICTS>* pEntityTransmitBits) const
 {
 	// No need to lag compensate at all if we're not attacking in this command and
 	// we haven't attacked recently.
-	if ( !( ( pCmd->buttons & IN_ATTACK ) || ( pCmd->buttons & IN_ATTACK2 ) ) && ( pCmd->command_number - m_iLastWeaponFireUsercmd > 5 ) )
+	if (!((pCmd->buttons & IN_ATTACK) || (pCmd->buttons & IN_ATTACK2)) && (pCmd->command_number - m_iLastWeaponFireUsercmd > 5))
 		return false;
 
 	// If this entity hasn't been transmitted to us and acked, then don't bother lag compensating it.
-	if ( pEntityTransmitBits && !pEntityTransmitBits->Get( pPlayer->entindex() ) )
+	if (pEntityTransmitBits && !pEntityTransmitBits->Get(pPlayer->entindex()))
 		return false;
 
-	const Vector &vMyOrigin = GetAbsOrigin();
-	const Vector &vHisOrigin = pPlayer->GetAbsOrigin();
+	const Vector& vMyOrigin = GetAbsOrigin();
+	const Vector& vHisOrigin = pPlayer->GetAbsOrigin();
 
 	// get max distance player could have moved within max lag compensation time, 
 	// multiply by 1.5 to to avoid "dead zones"  (sqrt(2) would be the exact value)
 	float maxDistance = 1.5 * pPlayer->MaxSpeed() * sv_maxunlag.GetFloat();
 
 	// If the player is within this distance, lag compensate them in case they're running past us.
-	if ( vHisOrigin.DistTo( vMyOrigin ) < maxDistance )
+	if (vHisOrigin.DistTo(vMyOrigin) < maxDistance)
 		return true;
 
 	// If their origin is not within a 45 degree cone in front of us, no need to lag compensate.
 	Vector vForward;
-	AngleVectors( pCmd->viewangles, &vForward );
-	
+	AngleVectors(pCmd->viewangles, &vForward);
+
 	Vector vDiff = vHisOrigin - vMyOrigin;
-	VectorNormalize( vDiff );
+	VectorNormalize(vDiff);
 
 	float flCosAngle = 0.707107f;	// 45 degree angle
-	if ( vForward.Dot( vDiff ) < flCosAngle )
+	if (vForward.Dot(vDiff) < flCosAngle)
 		return false;
 
 	return true;
 }
 
-Activity CHL2MP_Player::TranslateTeamActivity( Activity ActToTranslate )
+Activity CHL2MP_Player::TranslateTeamActivity(Activity ActToTranslate)
 {
-	if ( m_iModelType == TEAM_COMBINE )
-		 return ActToTranslate;
-	
-	if ( ActToTranslate == ACT_RUN )
-		 return ACT_RUN_AIM_AGITATED;
+	if (m_iModelType == TEAM_COMBINE)
+		return ActToTranslate;
 
-	if ( ActToTranslate == ACT_IDLE )
-		 return ACT_IDLE_AIM_AGITATED;
+	if (ActToTranslate == ACT_RUN)
+		return ACT_RUN_AIM_AGITATED;
 
-	if ( ActToTranslate == ACT_WALK )
-		 return ACT_WALK_AIM_AGITATED;
+	if (ActToTranslate == ACT_IDLE)
+		return ACT_IDLE_AIM_AGITATED;
+
+	if (ActToTranslate == ACT_WALK)
+		return ACT_WALK_AIM_AGITATED;
 
 	return ActToTranslate;
 }
@@ -787,7 +952,7 @@ Activity CHL2MP_Player::TranslateTeamActivity( Activity ActToTranslate )
 extern ConVar hl2_normspeed;
 
 // Set the activity based on an event or current state
-void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
+void CHL2MP_Player::SetAnimation(PLAYER_ANIM playerAnim)
 {
 	int animDesired;
 
@@ -795,7 +960,7 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 
 	speed = GetAbsVelocity().Length2D();
 
-	
+
 	// bool bRunning = true;
 
 	//Revisit!
@@ -807,7 +972,7 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		}
 	}*/
 
-	if ( GetFlags() & ( FL_FROZEN | FL_ATCONTROLS ) )
+	if (GetFlags() & (FL_FROZEN | FL_ATCONTROLS))
 	{
 		speed = 0;
 		playerAnim = PLAYER_IDLE;
@@ -816,41 +981,41 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 	Activity idealActivity = ACT_HL2MP_RUN;
 
 	// This could stand to be redone. Why is playerAnim abstracted from activity? (sjb)
-	if ( playerAnim == PLAYER_JUMP )
+	if (playerAnim == PLAYER_JUMP)
 	{
 		idealActivity = ACT_HL2MP_JUMP;
 	}
-	else if ( playerAnim == PLAYER_DIE )
+	else if (playerAnim == PLAYER_DIE)
 	{
-		if ( m_lifeState == LIFE_ALIVE )
+		if (m_lifeState == LIFE_ALIVE)
 		{
 			return;
 		}
 	}
-	else if ( playerAnim == PLAYER_ATTACK1 )
+	else if (playerAnim == PLAYER_ATTACK1)
 	{
-		if ( GetActivity( ) == ACT_HOVER	|| 
-			 GetActivity( ) == ACT_SWIM		||
-			 GetActivity( ) == ACT_HOP		||
-			 GetActivity( ) == ACT_LEAP		||
-			 GetActivity( ) == ACT_DIESIMPLE )
+		if (GetActivity() == ACT_HOVER ||
+			GetActivity() == ACT_SWIM ||
+			GetActivity() == ACT_HOP ||
+			GetActivity() == ACT_LEAP ||
+			GetActivity() == ACT_DIESIMPLE)
 		{
-			idealActivity = GetActivity( );
+			idealActivity = GetActivity();
 		}
 		else
 		{
 			idealActivity = ACT_HL2MP_GESTURE_RANGE_ATTACK;
 		}
 	}
-	else if ( playerAnim == PLAYER_RELOAD )
+	else if (playerAnim == PLAYER_RELOAD)
 	{
 		idealActivity = ACT_HL2MP_GESTURE_RELOAD;
 	}
-	else if ( playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK )
+	else if (playerAnim == PLAYER_IDLE || playerAnim == PLAYER_WALK)
 	{
-		if ( !( GetFlags() & FL_ONGROUND ) && GetActivity( ) == ACT_HL2MP_JUMP )	// Still jumping
+		if (!(GetFlags() & FL_ONGROUND) && GetActivity() == ACT_HL2MP_JUMP)	// Still jumping
 		{
-			idealActivity = GetActivity( );
+			idealActivity = GetActivity();
 		}
 		/*
 		else if ( GetWaterLevel() > 1 )
@@ -863,9 +1028,9 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 		*/
 		else
 		{
-			if ( GetFlags() & FL_ANIMDUCKING )
+			if (GetFlags() & FL_ANIMDUCKING)
 			{
-				if ( speed > 0 )
+				if (speed > 0)
 				{
 					idealActivity = ACT_HL2MP_WALK_CROUCH;
 				}
@@ -876,7 +1041,7 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			}
 			else
 			{
-				if ( speed > 0 )
+				if (speed > 0)
 				{
 					/*
 					if ( bRunning == false )
@@ -896,12 +1061,12 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 			}
 		}
 
-		idealActivity = TranslateTeamActivity( idealActivity );
+		idealActivity = TranslateTeamActivity(idealActivity);
 	}
-	
-	if ( idealActivity == ACT_HL2MP_GESTURE_RANGE_ATTACK )
+
+	if (idealActivity == ACT_HL2MP_GESTURE_RANGE_ATTACK)
 	{
-		RestartGesture( Weapon_TranslateActivity( idealActivity ) );
+		RestartGesture(Weapon_TranslateActivity(idealActivity));
 
 		// FIXME: this seems a bit wacked
 		//
@@ -911,45 +1076,45 @@ void CHL2MP_Player::SetAnimation( PLAYER_ANIM playerAnim )
 
 		return;
 	}
-	else if ( idealActivity == ACT_HL2MP_GESTURE_RELOAD )
+	else if (idealActivity == ACT_HL2MP_GESTURE_RELOAD)
 	{
-		RestartGesture( Weapon_TranslateActivity( idealActivity ) );
+		RestartGesture(Weapon_TranslateActivity(idealActivity));
 		return;
 	}
 	else
 	{
-		SetActivity( idealActivity );
+		SetActivity(idealActivity);
 
-		animDesired = SelectWeightedSequence( Weapon_TranslateActivity ( idealActivity ) );
+		animDesired = SelectWeightedSequence(Weapon_TranslateActivity(idealActivity));
 
 		if (animDesired == -1)
 		{
-			animDesired = SelectWeightedSequence( idealActivity );
+			animDesired = SelectWeightedSequence(idealActivity);
 
-			if ( animDesired == -1 )
+			if (animDesired == -1)
 			{
 				animDesired = 0;
 			}
 		}
-	
+
 		// Already using the desired animation?
-		if ( GetSequence() == animDesired )
+		if (GetSequence() == animDesired)
 			return;
 
 		m_flPlaybackRate = 1.0;
-		ResetSequence( animDesired );
-		SetCycle( 0 );
+		ResetSequence(animDesired);
+		SetCycle(0);
 		return;
 	}
 
 	// Already using the desired animation?
-	if ( GetSequence() == animDesired )
+	if (GetSequence() == animDesired)
 		return;
 
 	//Msg( "Set animation to %d\n", animDesired );
 	// Reset to first frame of desired animation
-	ResetSequence( animDesired );
-	SetCycle( 0 );
+	ResetSequence(animDesired);
+	SetCycle(0);
 }
 
 
@@ -959,74 +1124,74 @@ extern int	gEvilImpulse101;
 // Input  : pWeapon - the weapon that the player bumped into.
 // Output : Returns true if player picked up the weapon
 //-----------------------------------------------------------------------------
-bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
+bool CHL2MP_Player::BumpWeapon(CBaseCombatWeapon* pWeapon)
 {
-	CBaseCombatCharacter *pOwner = pWeapon->GetOwner();
+	CBaseCombatCharacter* pOwner = pWeapon->GetOwner();
 
 	// Can I have this weapon type?
-	if ( !IsAllowedToPickupWeapons() )
+	if (!IsAllowedToPickupWeapons())
 		return false;
 
-	if ( pOwner || !Weapon_CanUse( pWeapon ) || !g_pGameRules->CanHavePlayerItem( this, pWeapon ) )
+	if (pOwner || !Weapon_CanUse(pWeapon) || !g_pGameRules->CanHavePlayerItem(this, pWeapon))
 	{
-		if ( gEvilImpulse101 )
+		if (gEvilImpulse101)
 		{
-			UTIL_Remove( pWeapon );
+			UTIL_Remove(pWeapon);
 		}
 		return false;
 	}
 
 	// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
-	if ( !GetAllowPickupWeaponThroughObstacle() )
+	if (!GetAllowPickupWeaponThroughObstacle())
 	{
 		// Don't let the player fetch weapons through walls (use MASK_SOLID so that you can't pickup through windows)
-		if ( !pWeapon->FVisible( this, MASK_SOLID ) && !( GetFlags() & FL_NOTARGET ) )
+		if (!pWeapon->FVisible(this, MASK_SOLID) && !(GetFlags() & FL_NOTARGET))
 		{
 			return false;
 		}
 	}
 
-	bool bOwnsWeaponAlready = !!Weapon_OwnsThisType( pWeapon->GetClassname(), pWeapon->GetSubType());
+	bool bOwnsWeaponAlready = !!Weapon_OwnsThisType(pWeapon->GetClassname(), pWeapon->GetSubType());
 
-	if ( bOwnsWeaponAlready == true ) 
+	if (bOwnsWeaponAlready == true)
 	{
 		//If we have room for the ammo, then "take" the weapon too.
-		 if ( Weapon_EquipAmmoOnly( pWeapon ) )
-		 {
-			 pWeapon->CheckRespawn();
+		if (Weapon_EquipAmmoOnly(pWeapon))
+		{
+			pWeapon->CheckRespawn();
 
-			 UTIL_Remove( pWeapon );
-			 return true;
-		 }
-		 else
-		 {
-			 return false;
-		 }
+			UTIL_Remove(pWeapon);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	pWeapon->CheckRespawn();
-	Weapon_Equip( pWeapon );
+	Weapon_Equip(pWeapon);
 
 	return true;
 }
 
 void CHL2MP_Player::LadderRespawnFix()
 {
-	if ( auto lm = GetLadderMove() )
+	if (auto lm = GetLadderMove())
 	{
-		if ( lm->m_bForceLadderMove )
+		if (lm->m_bForceLadderMove)
 		{
 			lm->m_bForceLadderMove = false;
-			if ( lm->m_hReservedSpot )
+			if (lm->m_hReservedSpot)
 			{
-				UTIL_Remove( ( CBaseEntity * ) lm->m_hReservedSpot.Get() );
+				UTIL_Remove((CBaseEntity*)lm->m_hReservedSpot.Get());
 				lm->m_hReservedSpot = NULL;
 			}
 		}
 	}
 }
 
-void CHL2MP_Player::ChangeTeam( int iTeam )
+void CHL2MP_Player::ChangeTeam(int iTeam)
 {
 	LadderRespawnFix();
 
@@ -1036,25 +1201,25 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	bool bTeamplay = GameRules()->IsTeamplay();
 	int iPrevTeam = GetTeamNumber();
 
-	if ( HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR )
+	if (HL2MPRules()->IsTeamplay() != true && iTeam != TEAM_SPECTATOR)
 	{
 		//don't let them try to join combine or rebels during deathmatch.
 		iTeam = TEAM_UNASSIGNED;
 	}
 
-	if ( GetTeamNumber() == TEAM_SPECTATOR )
+	if (GetTeamNumber() == TEAM_SPECTATOR)
 	{
 		bWasSpectator = true;
 	}
 
-	BaseClass::ChangeTeam( iTeam );
+	BaseClass::ChangeTeam(iTeam);
 
 	iTeam = GetTeamNumber();
 
-	if ( HL2MPRules()->IsTeamplay() )
+	if (HL2MPRules()->IsTeamplay())
 	{
 		SetPlayerTeamModel();
-		if ( iPrevTeam != TEAM_UNASSIGNED )
+		if (iPrevTeam != TEAM_UNASSIGNED)
 		{
 			bKill = false;
 		}
@@ -1062,14 +1227,14 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	else
 	{
 		SetPlayerModel();
-	}	
+	}
 
-	if ( iPrevTeam == iTeam )
+	if (iPrevTeam == iTeam)
 		return;
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
 
-	if ( HL2MPRules()->IsTeamplay() )
+	if (HL2MPRules()->IsTeamplay())
 	{
 		SetPlayerTeamModel();
 	}
@@ -1078,7 +1243,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		SetPlayerModel();
 	}
 
-	if ( bWasSpectator )
+	if (bWasSpectator)
 	{
 		Spawn();
 		return;
@@ -1087,92 +1252,92 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	DetonateTripmines();
 	ClearUseEntity();
 
-	if ( iTeam == TEAM_SPECTATOR )
+	if (iTeam == TEAM_SPECTATOR)
 	{
-		CBaseCombatWeapon *pWeapon = GetActiveWeapon();
+		CBaseCombatWeapon* pWeapon = GetActiveWeapon();
 
-		if ( pWeapon && !pWeapon->Holster() )
+		if (pWeapon && !pWeapon->Holster())
 		{
-			CWeaponPhysCannon *physcannon = dynamic_cast< CWeaponPhysCannon * >( pWeapon );
+			CWeaponPhysCannon* physcannon = dynamic_cast<CWeaponPhysCannon*>(pWeapon);
 
-			if ( physcannon )
+			if (physcannon)
 			{
 				physcannon->ForceDrop();
 				physcannon->DestroyEffects();
 			}
 		}
 		else
-			ForceDropOfCarriedPhysObjects( NULL );
+			ForceDropOfCarriedPhysObjects(NULL);
 
 		StopZooming();
-		SetSuitUpdate( NULL, false, 0 );
+		SetSuitUpdate(NULL, false, 0);
 
-		RemoveAllItems( true );
+		RemoveAllItems(true);
 
-		if ( FlashlightIsOn() )
+		if (FlashlightIsOn())
 			FlashlightTurnOff();
 
-		State_Transition( STATE_OBSERVER_MODE );
+		State_Transition(STATE_OBSERVER_MODE);
 	}
 
-	if ( IsInAVehicle() )
+	if (IsInAVehicle())
 	{
 		LeaveVehicle();
 	}
 
-/*
- 	if ( bTeamplay && !bIsDead && !IsCompensatingScoreOnTeamSwitch() && iTeam != TEAM_SPECTATOR )
-	{
-		IncrementFragCount( 1 );
-		IncrementDeathCount( -1 );
+	/*
+		if ( bTeamplay && !bIsDead && !IsCompensatingScoreOnTeamSwitch() && iTeam != TEAM_SPECTATOR )
+		{
+			IncrementFragCount( 1 );
+			IncrementDeathCount( -1 );
 
-		CompensateScoreOnTeamSwitch( true );
-	}
- */
+			CompensateScoreOnTeamSwitch( true );
+		}
+	 */
 
-	if ( bKill == true )
+	if (bKill == true)
 	{
 		CommitSuicide();
-		CTakeDamageInfo dmgInfo( this, this, 1000, DMG_GENERIC );
-		TakeDamage( dmgInfo );
+		CTakeDamageInfo dmgInfo(this, this, 1000, DMG_GENERIC);
+		TakeDamage(dmgInfo);
 	}
 }
 
-bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
+bool CHL2MP_Player::HandleCommand_JoinTeam(int team)
 {
-	if ( team == TEAM_SPECTATOR && IsHLTV() )
+	if (team == TEAM_SPECTATOR && IsHLTV())
 	{
-		ChangeTeam( TEAM_SPECTATOR );
+		ChangeTeam(TEAM_SPECTATOR);
 		ResetDeathCount();
 		ResetFragCount();
 		return true;
 	}
 
-	if ( !GetGlobalTeam( team ) || team == 0 )
+	if (!GetGlobalTeam(team) || team == 0)
 	{
-		ClientPrint( this, HUD_PRINTCONSOLE, "Please enter a valid team index\n" );
+		ClientPrint(this, HUD_PRINTCONSOLE, "Please enter a valid team index\n");
 		return false;
 	}
 
 	// Don't do anything if you join your own team
-	if ( team == GetTeamNumber() )
+	if (team == GetTeamNumber())
 	{
 		return false;
 	}
 
 	// end early
-	if ( this->GetTeamNumber() == TEAM_SPECTATOR )
+	if (this->GetTeamNumber() == TEAM_SPECTATOR)
 	{
-		ChangeTeam( team );
+		ChangeTeam(team);
 		return true;
 	}
 
-	if ( team == TEAM_SPECTATOR )
+	if (team == TEAM_SPECTATOR)
 	{
 		// Prevent this is the cvar is set
-		if ( !mp_allowspectators.GetInt() )
+		if (!mp_allowspectators.GetInt())
 		{
-			ClientPrint( this, HUD_PRINTCENTER, "#Cannot_Be_Spectator" );
+			ClientPrint(this, HUD_PRINTCENTER, "#Cannot_Be_Spectator");
 			return false;
 		}
 
@@ -1187,18 +1352,18 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			IncrementFragCount( 1 );
 		}
 		*/
-		ChangeTeam( TEAM_SPECTATOR );
+		ChangeTeam(TEAM_SPECTATOR);
 
 		return true;
 	}
 	else
 	{
 		StopObserverMode();
-		State_Transition( STATE_ACTIVE );
+		State_Transition(STATE_ACTIVE);
 	}
 
 	// Switch their actual team...
-	ChangeTeam( team );
+	ChangeTeam(team);
 
 	return true;
 }
@@ -1213,64 +1378,64 @@ void CHL2MP_Player::SendFOVCommand(int fov)
 }
 */
 
-bool CHL2MP_Player::ClientCommand( const CCommand &args )
+bool CHL2MP_Player::ClientCommand(const CCommand& args)
 {
-	if ( FStrEq( args[0], "spectate" ) )
+	if (FStrEq(args[0], "spectate"))
 	{
-		if ( ShouldRunRateLimitedCommand( args ) )
+		if (ShouldRunRateLimitedCommand(args))
 		{
 			// instantly join spectators
-			HandleCommand_JoinTeam( TEAM_SPECTATOR );	
+			HandleCommand_JoinTeam(TEAM_SPECTATOR);
 		}
 		return true;
 	}
-	else if ( FStrEq( args[0], "jointeam" ) ) 
+	else if (FStrEq(args[0], "jointeam"))
 	{
-		if ( ShouldRunRateLimitedCommand( args ) )
+		if (ShouldRunRateLimitedCommand(args))
 		{
-			int iTeam = atoi( args[1] );
-			HandleCommand_JoinTeam( iTeam );
+			int iTeam = atoi(args[1]);
+			HandleCommand_JoinTeam(iTeam);
 		}
 		return true;
 	}
-	else if ( FStrEq( args[0], "joingame" ) )
+	else if (FStrEq(args[0], "joingame"))
 	{
-		if ( GetTeamNumber() == TEAM_SPECTATOR )
-			ChangeTeam( random->RandomInt( 2, 3 ) );
+		if (GetTeamNumber() == TEAM_SPECTATOR)
+			ChangeTeam(random->RandomInt(2, 3));
 
 		return true;
 	}
 
-	return BaseClass::ClientCommand( args );
+	return BaseClass::ClientCommand(args);
 }
 
-void CHL2MP_Player::CheatImpulseCommands( int iImpulse )
+void CHL2MP_Player::CheatImpulseCommands(int iImpulse)
 {
-	switch ( iImpulse )
+	switch (iImpulse)
 	{
-		case 101:
-			{
-				if( sv_cheats->GetBool() )
-				{
-					GiveAllItems();
-				}
-			}
-			break;
+	case 101:
+	{
+		if (sv_cheats->GetBool())
+		{
+			GiveAllItems();
+		}
+	}
+	break;
 
-		default:
-			BaseClass::CheatImpulseCommands( iImpulse );
+	default:
+		BaseClass::CheatImpulseCommands(iImpulse);
 	}
 }
 
-bool CHL2MP_Player::ShouldRunRateLimitedCommand( const CCommand &args )
+bool CHL2MP_Player::ShouldRunRateLimitedCommand(const CCommand& args)
 {
-	int i = m_RateLimitLastCommandTimes.Find( args[0] );
-	if ( i == m_RateLimitLastCommandTimes.InvalidIndex() )
+	int i = m_RateLimitLastCommandTimes.Find(args[0]);
+	if (i == m_RateLimitLastCommandTimes.InvalidIndex())
 	{
-		m_RateLimitLastCommandTimes.Insert( args[0], gpGlobals->curtime );
+		m_RateLimitLastCommandTimes.Insert(args[0], gpGlobals->curtime);
 		return true;
 	}
-	else if ( (gpGlobals->curtime - m_RateLimitLastCommandTimes[i]) < HL2MP_COMMAND_MAX_RATE )
+	else if ((gpGlobals->curtime - m_RateLimitLastCommandTimes[i]) < HL2MP_COMMAND_MAX_RATE)
 	{
 		// Too fast.
 		return false;
@@ -1282,26 +1447,26 @@ bool CHL2MP_Player::ShouldRunRateLimitedCommand( const CCommand &args )
 	}
 }
 
-void CHL2MP_Player::CreateViewModel( int index /*=0*/ )
+void CHL2MP_Player::CreateViewModel(int index /*=0*/)
 {
-	Assert( index >= 0 && index < MAX_VIEWMODELS );
+	Assert(index >= 0 && index < MAX_VIEWMODELS);
 
-	if ( GetViewModel( index ) )
+	if (GetViewModel(index))
 		return;
 
-	CPredictedViewModel *vm = ( CPredictedViewModel * )CreateEntityByName( "predicted_viewmodel" );
-	if ( vm )
+	CPredictedViewModel* vm = (CPredictedViewModel*)CreateEntityByName("predicted_viewmodel");
+	if (vm)
 	{
-		vm->SetAbsOrigin( GetAbsOrigin() );
-		vm->SetOwner( this );
-		vm->SetIndex( index );
-		DispatchSpawn( vm );
-		vm->FollowEntity( this, false );
-		m_hViewModel.Set( index, vm );
+		vm->SetAbsOrigin(GetAbsOrigin());
+		vm->SetOwner(this);
+		vm->SetIndex(index);
+		DispatchSpawn(vm);
+		vm->FollowEntity(this, false);
+		m_hViewModel.Set(index, vm);
 	}
 }
 
-bool CHL2MP_Player::BecomeRagdollOnClient( const Vector &force )
+bool CHL2MP_Player::BecomeRagdollOnClient(const Vector& force)
 {
 	return true;
 }
@@ -1313,54 +1478,54 @@ bool CHL2MP_Player::BecomeRagdollOnClient( const Vector &force )
 class CHL2MPRagdoll : public CBaseAnimatingOverlay
 {
 public:
-	DECLARE_CLASS( CHL2MPRagdoll, CBaseAnimatingOverlay );
+	DECLARE_CLASS(CHL2MPRagdoll, CBaseAnimatingOverlay);
 	DECLARE_SERVERCLASS();
 
 	// Transmit ragdolls to everyone.
 	virtual int UpdateTransmitState()
 	{
-		return SetTransmitState( FL_EDICT_ALWAYS );
+		return SetTransmitState(FL_EDICT_ALWAYS);
 	}
 
 public:
 	// In case the client has the player entity, we transmit the player index.
 	// In case the client doesn't have it, we transmit the player's model index, origin, and angles
 	// so they can create a ragdoll in the right place.
-	CNetworkHandle( CBaseEntity, m_hPlayer );	// networked entity handle 
-	CNetworkVector( m_vecRagdollVelocity );
-	CNetworkVector( m_vecRagdollOrigin );
+	CNetworkHandle(CBaseEntity, m_hPlayer);	// networked entity handle 
+	CNetworkVector(m_vecRagdollVelocity);
+	CNetworkVector(m_vecRagdollOrigin);
 };
 
-LINK_ENTITY_TO_CLASS( hl2mp_ragdoll, CHL2MPRagdoll );
+LINK_ENTITY_TO_CLASS(hl2mp_ragdoll, CHL2MPRagdoll);
 
-IMPLEMENT_SERVERCLASS_ST_NOBASE( CHL2MPRagdoll, DT_HL2MPRagdoll )
-	SendPropVector( SENDINFO(m_vecRagdollOrigin), -1,  SPROP_COORD ),
-	SendPropEHandle( SENDINFO( m_hPlayer ) ),
-	SendPropModelIndex( SENDINFO( m_nModelIndex ) ),
-	SendPropInt		( SENDINFO(m_nForceBone), 8, 0 ),
-	SendPropVector	( SENDINFO(m_vecForce), -1, SPROP_NOSCALE ),
-	SendPropVector( SENDINFO( m_vecRagdollVelocity ) )
+IMPLEMENT_SERVERCLASS_ST_NOBASE(CHL2MPRagdoll, DT_HL2MPRagdoll)
+SendPropVector(SENDINFO(m_vecRagdollOrigin), -1, SPROP_COORD),
+SendPropEHandle(SENDINFO(m_hPlayer)),
+SendPropModelIndex(SENDINFO(m_nModelIndex)),
+SendPropInt(SENDINFO(m_nForceBone), 8, 0),
+SendPropVector(SENDINFO(m_vecForce), -1, SPROP_NOSCALE),
+SendPropVector(SENDINFO(m_vecRagdollVelocity))
 END_SEND_TABLE()
 
 
-void CHL2MP_Player::CreateRagdollEntity( void )
+void CHL2MP_Player::CreateRagdollEntity(void)
 {
-	if ( m_hRagdoll )
+	if (m_hRagdoll)
 	{
-		UTIL_RemoveImmediate( m_hRagdoll );
+		UTIL_RemoveImmediate(m_hRagdoll);
 		m_hRagdoll = NULL;
 	}
 
 	// If we already have a ragdoll, don't make another one.
-	CHL2MPRagdoll *pRagdoll = dynamic_cast< CHL2MPRagdoll* >( m_hRagdoll.Get() );
-	
-	if ( !pRagdoll )
+	CHL2MPRagdoll* pRagdoll = dynamic_cast<CHL2MPRagdoll*>(m_hRagdoll.Get());
+
+	if (!pRagdoll)
 	{
 		// create a new one
-		pRagdoll = dynamic_cast< CHL2MPRagdoll* >( CreateEntityByName( "hl2mp_ragdoll" ) );
+		pRagdoll = dynamic_cast<CHL2MPRagdoll*>(CreateEntityByName("hl2mp_ragdoll"));
 	}
 
-	if ( pRagdoll )
+	if (pRagdoll)
 	{
 		pRagdoll->m_hPlayer = this;
 		pRagdoll->m_vecRagdollOrigin = GetAbsOrigin();
@@ -1368,7 +1533,7 @@ void CHL2MP_Player::CreateRagdollEntity( void )
 		pRagdoll->m_nModelIndex = m_nModelIndex;
 		pRagdoll->m_nForceBone = m_nForceBone;
 		pRagdoll->m_vecForce = m_vecTotalBulletForce;
-		pRagdoll->SetAbsOrigin( GetAbsOrigin() );
+		pRagdoll->SetAbsOrigin(GetAbsOrigin());
 	}
 
 	// ragdolls will be removed on round restart automatically
@@ -1377,145 +1542,107 @@ void CHL2MP_Player::CreateRagdollEntity( void )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-int CHL2MP_Player::FlashlightIsOn( void )
+int CHL2MP_Player::FlashlightIsOn(void)
 {
-	return IsEffectActive( EF_DIMLIGHT );
+	return IsEffectActive(EF_DIMLIGHT);
 }
 
 extern ConVar flashlight;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void CHL2MP_Player::FlashlightTurnOn( void )
+void CHL2MP_Player::FlashlightTurnOn(void)
 {
-	if( flashlight.GetInt() > 0 && IsAlive() )
+	if (flashlight.GetInt() > 0 && IsAlive())
 	{
-		AddEffects( EF_DIMLIGHT );
-		EmitSound( "HL2Player.FlashlightOn" );
+		AddEffects(EF_DIMLIGHT);
+		EmitSound("HL2Player.FlashlightOn");
 	}
 }
 
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void CHL2MP_Player::FlashlightTurnOff( void )
+void CHL2MP_Player::FlashlightTurnOff(void)
 {
-	RemoveEffects( EF_DIMLIGHT );
-	
-	if( IsAlive() )
+	RemoveEffects(EF_DIMLIGHT);
+
+	if (IsAlive())
 	{
-		EmitSound( "HL2Player.FlashlightOff" );
+		EmitSound("HL2Player.FlashlightOff");
 	}
 }
 
-void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget, const Vector *pVelocity )
+void CHL2MP_Player::Weapon_Drop(CBaseCombatWeapon* pWeapon, const Vector* pvecTarget, const Vector* pVelocity)
 {
 	//Drop a grenade if it's primed.
-	if ( GetActiveWeapon() )
+	if (GetActiveWeapon())
 	{
-		CBaseCombatWeapon *pGrenade = Weapon_OwnsThisType("weapon_frag");
+		CBaseCombatWeapon* pGrenade = Weapon_OwnsThisType("weapon_frag");
 
-		if ( GetActiveWeapon() == pGrenade )
+		if (GetActiveWeapon() == pGrenade)
 		{
-			if ( ( m_nButtons & IN_ATTACK ) || (m_nButtons & IN_ATTACK2) )
+			if ((m_nButtons & IN_ATTACK) || (m_nButtons & IN_ATTACK2))
 			{
-				DropPrimedFragGrenade( this, pGrenade );
+				DropPrimedFragGrenade(this, pGrenade);
 				return;
 			}
 		}
 	}
 
-	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
+	BaseClass::Weapon_Drop(pWeapon, pvecTarget, pVelocity);
 }
 
-int CHL2MP_Player::GetMaxAmmo( int iAmmoIndex ) const
+int CHL2MP_Player::GetMaxAmmo(int iAmmoIndex) const
 {
-	if ( iAmmoIndex == -1 )
+	if (iAmmoIndex == -1)
 		return 0;
 
-	if ( GetAmmoDef()->MaxCarry( iAmmoIndex ) == INFINITE_AMMO )
+	if (GetAmmoDef()->MaxCarry(iAmmoIndex) == INFINITE_AMMO)
 		return 999;
 
-	return GetAmmoDef()->MaxCarry( iAmmoIndex );
+	return GetAmmoDef()->MaxCarry(iAmmoIndex);
 }
 
-void CHL2MP_Player::DetonateTripmines( void )
+void CHL2MP_Player::DetonateTripmines(void)
 {
-	CBaseEntity *pEntity = NULL;
+	CBaseEntity* pEntity = NULL;
 
-	while ((pEntity = gEntList.FindEntityByClassname( pEntity, "npc_satchel" )) != NULL)
+	while ((pEntity = gEntList.FindEntityByClassname(pEntity, "npc_satchel")) != NULL)
 	{
-		CSatchelCharge *pSatchel = dynamic_cast<CSatchelCharge *>(pEntity);
-		if (pSatchel->m_bIsLive && pSatchel->GetThrower() == this )
+		CSatchelCharge* pSatchel = dynamic_cast<CSatchelCharge*>(pEntity);
+		if (pSatchel->m_bIsLive && pSatchel->GetThrower() == this)
 		{
-			g_EventQueue.AddEvent( pSatchel, "Explode", 0.20, this, this );
+			g_EventQueue.AddEvent(pSatchel, "Explode", 0.20, this, this);
 		}
 	}
 }
 
-void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
+
+int CHL2MP_Player::OnTakeDamage(const CTakeDamageInfo& inputInfo)
 {
-	LadderRespawnFix();
+	// Pega o atirador a partir das informações de dano
+	CHL2MP_Player* pAttacker = ToHL2MPPlayer(inputInfo.GetAttacker());
 
-	//update damage info with our accumulated physics force
-	CTakeDamageInfo subinfo = info;
-	subinfo.SetDamageForce( m_vecTotalBulletForce );
-
-	SetNumAnimOverlays( 0 );
-
-	// Note: since we're dead, it won't draw us on the client, but we don't set EF_NODRAW
-	// because we still want to transmit to the clients in our PVS.
-	CreateRagdollEntity();
-
-	DetonateTripmines();
-
-	BaseClass::Event_Killed( subinfo );
-
-	if ( info.GetDamageType() & DMG_DISSOLVE )
+	// Se o golpe NÃO for fatal, pedimos para o atirador tocar o som de ACERTO.
+	if (pAttacker && pAttacker != this && GetHealth() > inputInfo.GetDamage())
 	{
-		if ( m_hRagdoll )
+		pAttacker->OnDamageDealt(this, inputInfo);
+
+		// Show damage display for non-fatal damage
+		if (HL2MPRules())
 		{
-			m_hRagdoll->GetBaseAnimating()->Dissolve( NULL, gpGlobals->curtime, false, ENTITY_DISSOLVE_NORMAL );
+			int healthAfterDamage = GetHealth() - (int)inputInfo.GetDamage();
+			if (healthAfterDamage < 0) healthAfterDamage = 0;
+			HL2MPRules()->ShowDamageDisplay(pAttacker, this, (int)inputInfo.GetDamage(), false, healthAfterDamage);
 		}
 	}
 
-	CBaseEntity *pAttacker = info.GetAttacker();
-
-	if (HL2MPRules()->IsTeamplay())
-	{
-		// Check for the attacker being in team Unassigned to account
-		// for non-player attackers, which are in this team by default.
-		// In TDM, should only happen with deaths to non-player causes.
-		if (pAttacker && !pAttacker->InSameTeam(this) && pAttacker->GetTeamNumber() != TEAM_UNASSIGNED)
-		{
-			pAttacker->GetTeam()->AddScore(1);
-		}
-		else
-		{
-			GetTeam()->AddScore(-1);
-		}
-	}
-
-	FlashlightTurnOff();
-
-	m_lifeState = LIFE_DEAD;
-
-	RemoveEffects( EF_NODRAW );	// still draw player body
-	StopZooming();
+	// Continua com a lógica original de dano da Source Engine
+	return BaseClass::OnTakeDamage(inputInfo);
 }
 
-int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
-{
-	//return here if the player is in the respawn grace period vs. slams.
-	if ( gpGlobals->curtime < m_flSlamProtectTime &&  (inputInfo.GetDamageType() == DMG_BLAST ) )
-		return 0;
 
-	m_vecTotalBulletForce += inputInfo.GetDamageForce();
-	
-	gamestats->Event_PlayerDamage( this, inputInfo );
-
-	return BaseClass::OnTakeDamage( inputInfo );
-}
 /*
 void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 {
@@ -1527,13 +1654,13 @@ void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 	Q_snprintf(szDeathSound, sizeof(szDeathSound ), "%s.Die", GetPlayerModelSoundPrefix() );
 
 	const char *pModelName = STRING( GetModelName() );
-	
+
 	CSoundParameters params;
 	if ( GetParametersForSound( szDeathSound, params, pModelName ) == false )
 		return;
 
 	Vector vecOrigin = GetAbsOrigin();
-	
+
 	CRecipientFilter filter;
 	filter.AddRecipientsByPAS( vecOrigin );
 
@@ -1585,26 +1712,26 @@ void CHL2MP_Player::DeathSound(const CTakeDamageInfo& info)
 
 	EmitSound(filter, entindex(), ep);
 }
-CBaseEntity *CHL2MP_Player::EntSelectSpawnPoint( void )
+CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint(void)
 {
-	CBaseEntity *pSpot = NULL;
-	CBaseEntity *pLastSpawnPoint = g_pLastSpawn;
-	const char *pSpawnpointName = "info_player_deathmatch";
+	CBaseEntity* pSpot = NULL;
+	CBaseEntity* pLastSpawnPoint = g_pLastSpawn;
+	const char* pSpawnpointName = "info_player_deathmatch";
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	if (HL2MPRules()->IsTeamplay() == true)
 	{
-		if ( GetTeamNumber() == TEAM_COMBINE )
+		if (GetTeamNumber() == TEAM_COMBINE)
 		{
 			pSpawnpointName = "info_player_combine";
 			pLastSpawnPoint = g_pLastCombineSpawn;
 		}
-		else if ( GetTeamNumber() == TEAM_REBELS )
+		else if (GetTeamNumber() == TEAM_REBELS)
 		{
 			pSpawnpointName = "info_player_rebel";
 			pLastSpawnPoint = g_pLastRebelSpawn;
 		}
 
-		if ( gEntList.FindEntityByClassname( NULL, pSpawnpointName ) == NULL )
+		if (gEntList.FindEntityByClassname(NULL, pSpawnpointName) == NULL)
 		{
 			pSpawnpointName = "info_player_deathmatch";
 			pLastSpawnPoint = g_pLastSpawn;
@@ -1613,23 +1740,23 @@ CBaseEntity *CHL2MP_Player::EntSelectSpawnPoint( void )
 
 	pSpot = pLastSpawnPoint;
 	// Randomize the start spot
-	for ( int i = random->RandomInt( 1, 5 ); i > 0; i-- )
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
-	if ( !pSpot )  // skip over the null point
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+	for (int i = random->RandomInt(1, 5); i > 0; i--)
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
+	if (!pSpot)  // skip over the null point
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
 
-	CBaseEntity *pFirstSpot = pSpot;
+	CBaseEntity* pFirstSpot = pSpot;
 
 	do
 	{
-		if ( pSpot )
+		if (pSpot)
 		{
 			// check if pSpot is valid
-			if ( g_pGameRules->IsSpawnPointValid( pSpot, this ) )
+			if (g_pGameRules->IsSpawnPointValid(pSpot, this))
 			{
-				if ( pSpot->GetLocalOrigin() == vec3_origin )
+				if (pSpot->GetLocalOrigin() == vec3_origin)
 				{
-					pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
+					pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
 					continue;
 				}
 
@@ -1638,37 +1765,37 @@ CBaseEntity *CHL2MP_Player::EntSelectSpawnPoint( void )
 			}
 		}
 		// increment pSpot
-		pSpot = gEntList.FindEntityByClassname( pSpot, pSpawnpointName );
-	} while ( pSpot != pFirstSpot ); // loop if we're not back to the start
+		pSpot = gEntList.FindEntityByClassname(pSpot, pSpawnpointName);
+	} while (pSpot != pFirstSpot); // loop if we're not back to the start
 
 	// we haven't found a place to spawn yet,  so kill any guy at the first spawn point and spawn there
-	if ( pSpot && ( TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex() ) )
+	if (pSpot && (TEAM_SPECTATOR != GetPlayerInfo()->GetTeamIndex()))
 	{
 		goto ReturnSpot;
 	}
 
 ReturnSpot:
 
-	if ( HL2MPRules()->IsTeamplay() == true )
+	if (HL2MPRules()->IsTeamplay() == true)
 	{
-		if ( GetTeamNumber() == TEAM_COMBINE )
+		if (GetTeamNumber() == TEAM_COMBINE)
 		{
 			g_pLastCombineSpawn = pSpot;
 		}
-		else if ( GetTeamNumber() == TEAM_REBELS )
+		else if (GetTeamNumber() == TEAM_REBELS)
 		{
 			g_pLastRebelSpawn = pSpot;
 		}
 	}
 
-	if ( !pSpot )
+	if (!pSpot)
 	{
-		pSpot = gEntList.FindEntityByClassnameRandom( pSpot, "info_player_start" );
+		pSpot = gEntList.FindEntityByClassnameRandom(pSpot, "info_player_start");
 
-		if ( pSpot )
+		if (pSpot)
 			goto ReturnSpot;
 		else
-			return CBaseEntity::Instance( INDEXENT( 0 ) );
+			return CBaseEntity::Instance(INDEXENT(0));
 	}
 
 	g_pLastSpawn = pSpot;
@@ -1679,21 +1806,21 @@ ReturnSpot:
 }
 
 
-CON_COMMAND( timeleft, "prints the time remaining in the match" )
+CON_COMMAND(timeleft, "prints the time remaining in the match")
 {
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	CHL2MP_Player* pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 
 	int iTimeRemaining = (int)HL2MPRules()->GetMapRemainingTime();
-    
-	if ( iTimeRemaining == 0 )
+
+	if (iTimeRemaining == 0)
 	{
-		if ( pPlayer )
+		if (pPlayer)
 		{
-			ClientPrint( pPlayer, HUD_PRINTTALK, "This game has no timelimit." );
+			ClientPrint(pPlayer, HUD_PRINTTALK, "This game has no timelimit.");
 		}
 		else
 		{
-			Msg( "* No Time Limit *\n" );
+			Msg("* No Time Limit *\n");
 		}
 	}
 	else
@@ -1705,23 +1832,23 @@ CON_COMMAND( timeleft, "prints the time remaining in the match" )
 		char minutes[8];
 		char seconds[8];
 
-		Q_snprintf( minutes, sizeof(minutes), "%d", iMinutes );
-		Q_snprintf( seconds, sizeof(seconds), "%2.2d", iSeconds );
+		Q_snprintf(minutes, sizeof(minutes), "%d", iMinutes);
+		Q_snprintf(seconds, sizeof(seconds), "%2.2d", iSeconds);
 
-		if ( pPlayer )
+		if (pPlayer)
 		{
-			ClientPrint( pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds );
+			ClientPrint(pPlayer, HUD_PRINTTALK, "Time left in map: %s1:%s2", minutes, seconds);
 		}
 		else
 		{
-			Msg( "Time Remaining:  %s:%s\n", minutes, seconds );
+			Msg("Time Remaining:  %s:%s\n", minutes, seconds);
 		}
-	}	
+	}
 }
 
 
 void CHL2MP_Player::Reset()
-{	
+{
 	ResetDeathCount();
 	ResetFragCount();
 }
@@ -1731,21 +1858,21 @@ bool CHL2MP_Player::IsReady()
 	return m_bReady;
 }
 
-void CHL2MP_Player::SetReady( bool bReady )
+void CHL2MP_Player::SetReady(bool bReady)
 {
 	m_bReady = bReady;
 }
 
-void CHL2MP_Player::CheckChatText( char *p, int bufsize )
+void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 {
-	CHL2MP_Admin::CheckChatText( p, bufsize );
+	CHL2MP_Admin::CheckChatText(p, bufsize);
 	//Look for escape sequences and replace
 
-	char *buf = new char[bufsize];
+	char* buf = new char[bufsize];
 	int pos = 0;
 
 	// Parse say text for escape sequences
-	for ( char *pSrc = p; pSrc != NULL && *pSrc != 0 && pos < bufsize-1; pSrc++ )
+	for (char* pSrc = p; pSrc != NULL && *pSrc != 0 && pos < bufsize - 1; pSrc++)
 	{
 		// copy each char across
 		buf[pos] = *pSrc;
@@ -1755,36 +1882,36 @@ void CHL2MP_Player::CheckChatText( char *p, int bufsize )
 	buf[pos] = '\0';
 
 	// copy buf back into p
-	Q_strncpy( p, buf, bufsize );
+	Q_strncpy(p, buf, bufsize);
 
-	delete[] buf;	
+	delete[] buf;
 
-	const char *pReadyCheck = p;
-	
-	HL2MPRules()->CheckChatForReadySignal( this, pReadyCheck );
+	const char* pReadyCheck = p;
+
+	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
 }
 
-void CHL2MP_Player::State_Transition( HL2MPPlayerState newState )
+void CHL2MP_Player::State_Transition(HL2MPPlayerState newState)
 {
 	State_Leave();
-	State_Enter( newState );
+	State_Enter(newState);
 }
 
 
-void CHL2MP_Player::State_Enter( HL2MPPlayerState newState )
+void CHL2MP_Player::State_Enter(HL2MPPlayerState newState)
 {
 	m_iPlayerState = newState;
-	m_pCurStateInfo = State_LookupInfo( newState );
+	m_pCurStateInfo = State_LookupInfo(newState);
 
 	// Initialize the new state.
-	if ( m_pCurStateInfo && m_pCurStateInfo->pfnEnterState )
+	if (m_pCurStateInfo && m_pCurStateInfo->pfnEnterState)
 		(this->*m_pCurStateInfo->pfnEnterState)();
 }
 
 
 void CHL2MP_Player::State_Leave()
 {
-	if ( m_pCurStateInfo && m_pCurStateInfo->pfnLeaveState )
+	if (m_pCurStateInfo && m_pCurStateInfo->pfnLeaveState)
 	{
 		(this->*m_pCurStateInfo->pfnLeaveState)();
 	}
@@ -1793,14 +1920,14 @@ void CHL2MP_Player::State_Leave()
 
 void CHL2MP_Player::State_PreThink()
 {
-	if ( m_pCurStateInfo && m_pCurStateInfo->pfnPreThink )
+	if (m_pCurStateInfo && m_pCurStateInfo->pfnPreThink)
 	{
 		(this->*m_pCurStateInfo->pfnPreThink)();
 	}
 }
 
 
-CHL2MPPlayerStateInfo *CHL2MP_Player::State_LookupInfo( HL2MPPlayerState state )
+CHL2MPPlayerStateInfo* CHL2MP_Player::State_LookupInfo(HL2MPPlayerState state)
 {
 	// This table MUST match the 
 	static CHL2MPPlayerStateInfo playerStateInfos[] =
@@ -1809,9 +1936,9 @@ CHL2MPPlayerStateInfo *CHL2MP_Player::State_LookupInfo( HL2MPPlayerState state )
 		{ STATE_OBSERVER_MODE,	"STATE_OBSERVER_MODE",	&CHL2MP_Player::State_Enter_OBSERVER_MODE,	NULL, &CHL2MP_Player::State_PreThink_OBSERVER_MODE }
 	};
 
-	for ( int i=0; i < ARRAYSIZE( playerStateInfos ); i++ )
+	for (int i = 0; i < ARRAYSIZE(playerStateInfos); i++)
 	{
-		if ( playerStateInfos[i].m_iPlayerState == state )
+		if (playerStateInfos[i].m_iPlayerState == state)
 			return &playerStateInfos[i];
 	}
 
@@ -1821,10 +1948,10 @@ CHL2MPPlayerStateInfo *CHL2MP_Player::State_LookupInfo( HL2MPPlayerState state )
 bool CHL2MP_Player::StartObserverMode(int mode)
 {
 	//we only want to go into observer mode if the player asked to, not on a death timeout
-	if ( m_bEnterObserver == true )
+	if (m_bEnterObserver == true)
 	{
 		VPhysicsDestroyObject();
-		return BaseClass::StartObserverMode( mode );
+		return BaseClass::StartObserverMode(mode);
 	}
 	return false;
 }
@@ -1838,44 +1965,44 @@ void CHL2MP_Player::StopObserverMode()
 void CHL2MP_Player::State_Enter_OBSERVER_MODE()
 {
 	int observerMode = m_iObserverLastMode;
-	if ( IsNetClient() )
+	if (IsNetClient())
 	{
-		const char *pIdealMode = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_spec_mode" );
-		if ( pIdealMode )
+		const char* pIdealMode = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_spec_mode");
+		if (pIdealMode)
 		{
-			observerMode = atoi( pIdealMode );
-			if ( observerMode <= OBS_MODE_FIXED || observerMode > OBS_MODE_ROAMING )
+			observerMode = atoi(pIdealMode);
+			if (observerMode <= OBS_MODE_FIXED || observerMode > OBS_MODE_ROAMING)
 			{
 				observerMode = m_iObserverLastMode;
 			}
 		}
 	}
 	m_bEnterObserver = true;
-	StartObserverMode( observerMode );
+	StartObserverMode(observerMode);
 }
 
 void CHL2MP_Player::State_PreThink_OBSERVER_MODE()
 {
 	// Make sure nobody has changed any of our state.
 	//	Assert( GetMoveType() == MOVETYPE_FLY );
-	Assert( m_takedamage == DAMAGE_NO );
-	Assert( IsSolidFlagSet( FSOLID_NOT_SOLID ) );
+	Assert(m_takedamage == DAMAGE_NO);
+	Assert(IsSolidFlagSet(FSOLID_NOT_SOLID));
 	//	Assert( IsEffectActive( EF_NODRAW ) );
 
 	// Must be dead.
-	Assert( m_lifeState == LIFE_DEAD );
-	Assert( pl.deadflag );
+	Assert(m_lifeState == LIFE_DEAD);
+	Assert(pl.deadflag);
 }
 
 
 void CHL2MP_Player::State_Enter_ACTIVE()
 {
-	SetMoveType( MOVETYPE_WALK );
-	
+	SetMoveType(MOVETYPE_WALK);
+
 	// md 8/15/07 - They'll get set back to solid when they actually respawn. If we set them solid now and mp_forcerespawn
 	// is false, then they'll be spectating but blocking live players from moving.
 	// RemoveSolidFlags( FSOLID_NOT_SOLID );
-	
+
 	m_Local.m_iHideHUD = 0;
 }
 
@@ -1889,10 +2016,10 @@ void CHL2MP_Player::State_PreThink_ACTIVE()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CHL2MP_Player::CanHearAndReadChatFrom( CBasePlayer *pPlayer )
+bool CHL2MP_Player::CanHearAndReadChatFrom(CBasePlayer* pPlayer)
 {
 	// can always hear the console unless we're ignoring all chat
-	if ( !pPlayer )
+	if (!pPlayer)
 		return false;
 
 	return true;
@@ -1900,21 +2027,21 @@ bool CHL2MP_Player::CanHearAndReadChatFrom( CBasePlayer *pPlayer )
 
 //-----------------------------------------------------------------------------------------------------
 // Return true if the given threat is aiming in our direction
-bool CHL2MP_Player::IsThreatAimingTowardMe( CBaseEntity* threat, float cosTolerance ) const
+bool CHL2MP_Player::IsThreatAimingTowardMe(CBaseEntity* threat, float cosTolerance) const
 {
-	CHL2MP_Player* player = ToHL2MPPlayer( threat );
+	CHL2MP_Player* player = ToHL2MPPlayer(threat);
 	Vector to = GetAbsOrigin() - threat->GetAbsOrigin();
 	Vector forward;
 
-	if ( player == NULL )
+	if (player == NULL)
 	{
 		return false;
 	}
 
 	// is the player pointing at me?
-	player->EyeVectors( &forward );
+	player->EyeVectors(&forward);
 
-	if ( DotProduct( to, forward ) > cosTolerance )
+	if (DotProduct(to, forward) > cosTolerance)
 	{
 		return true;
 	}
@@ -1924,13 +2051,13 @@ bool CHL2MP_Player::IsThreatAimingTowardMe( CBaseEntity* threat, float cosTolera
 
 //-----------------------------------------------------------------------------------------------------
 // Return true if the given threat is aiming in our direction and firing its weapon
-bool CHL2MP_Player::IsThreatFiringAtMe( CBaseEntity* threat ) const
+bool CHL2MP_Player::IsThreatFiringAtMe(CBaseEntity* threat) const
 {
-	if ( IsThreatAimingTowardMe( threat ) )
+	if (IsThreatAimingTowardMe(threat))
 	{
-		CHL2MP_Player* player = ToHL2MPPlayer( threat );
+		CHL2MP_Player* player = ToHL2MPPlayer(threat);
 
-		if ( player )
+		if (player)
 		{
 			return player->IsFiringWeapon();
 		}
@@ -1941,37 +2068,37 @@ bool CHL2MP_Player::IsThreatFiringAtMe( CBaseEntity* threat ) const
 
 bool CHL2MP_Player::SavePlayerSettings()
 {
-	if ( IsBot() )
+	if (IsBot())
 		return false;
 
-	const char *steamID3 = engine->GetPlayerNetworkIDString( edict() );
+	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());
 
-	if ( ( V_stristr( steamID3, "BOT" ) != nullptr ) )
+	if ((V_stristr(steamID3, "BOT") != nullptr))
 		return false;
-	uint64 steamID64 = ConvertSteamID3ToSteamID64( steamID3 ); 
+	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);
 
-	char filename[ MAX_PATH ];
-	Q_snprintf( filename, sizeof( filename ), "cfg/core/%llu.txt", steamID64 );
+	char filename[MAX_PATH];
+	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);
 
-	if ( !filesystem->FileExists( "cfg/core", "GAME" ) )
+	if (!filesystem->FileExists("cfg/core", "GAME"))
 	{
-		filesystem->CreateDirHierarchy( "cfg/core", "GAME" );
+		filesystem->CreateDirHierarchy("cfg/core", "GAME");
 	}
 
-	KeyValues *kv = new KeyValues( "Settings" );
+	KeyValues* kv = new KeyValues("Settings");
 
-	kv->LoadFromFile( filesystem, filename, "MOD" );
+	kv->LoadFromFile(filesystem, filename, "MOD");
 
-	KeyValues *playerSettings = kv->FindKey( UTIL_VarArgs( "%llu", steamID64 ), true );
-	playerSettings->SetInt( "FOV", GetNewFOV() );
+	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64), true);
+	playerSettings->SetInt("FOV", GetNewFOV());
 
-	if ( kv->SaveToFile( filesystem, filename, "MOD" ) )
+	if (kv->SaveToFile(filesystem, filename, "MOD"))
 	{
-		DevMsg( "Player settings saved successfully in cfg/core/.\n" );
+		DevMsg("Player settings saved successfully in cfg/core/.\n");
 	}
 	else
 	{
-		Warning( "Failed to save player settings in cfg/core/.\n" );
+		Warning("Failed to save player settings in cfg/core/.\n");
 	}
 
 	kv->deleteThis();
@@ -1980,35 +2107,35 @@ bool CHL2MP_Player::SavePlayerSettings()
 
 bool CHL2MP_Player::LoadPlayerSettings()
 {
-	if ( IsBot() )
+	if (IsBot())
 		return false;
 
-	const char *steamID3 = engine->GetPlayerNetworkIDString( edict() );
-	uint64 steamID64 = ConvertSteamID3ToSteamID64( steamID3 );
+	const char* steamID3 = engine->GetPlayerNetworkIDString(edict());
+	uint64 steamID64 = ConvertSteamID3ToSteamID64(steamID3);
 
-	char filename[ MAX_PATH ];
-	Q_snprintf( filename, sizeof( filename ), "cfg/core/%llu.txt", steamID64 );
+	char filename[MAX_PATH];
+	Q_snprintf(filename, sizeof(filename), "cfg/core/%llu.txt", steamID64);
 
-	KeyValues *kv = new KeyValues( "Settings" );
+	KeyValues* kv = new KeyValues("Settings");
 
-	if ( !kv->LoadFromFile( filesystem, filename, "MOD" ) )
+	if (!kv->LoadFromFile(filesystem, filename, "MOD"))
 	{
-		Warning( "Couldn't load settings from file %s, creating a new one with default values...\n", filename );
+		Warning("Couldn't load settings from file %s, creating a new one with default values...\n", filename);
 
 		SetNewFOV(90);
 
-		KeyValues *playerSettings = new KeyValues( UTIL_VarArgs( "%llu", steamID64 ) );
-		playerSettings->SetInt( "FOV", GetNewFOV() );
+		KeyValues* playerSettings = new KeyValues(UTIL_VarArgs("%llu", steamID64));
+		playerSettings->SetInt("FOV", GetNewFOV());
 
-		kv->AddSubKey( playerSettings );
+		kv->AddSubKey(playerSettings);
 
-		if ( kv->SaveToFile( filesystem, filename, "MOD" ) )
+		if (kv->SaveToFile(filesystem, filename, "MOD"))
 		{
-			Msg( "Default settings for player %s have been saved to %s\n", steamID3, filename );
+			Msg("Default settings for player %s have been saved to %s\n", steamID3, filename);
 		}
 		else
 		{
-			Warning( "Failed to save default settings to file %s\n", filename );
+			Warning("Failed to save default settings to file %s\n", filename);
 			kv->deleteThis();
 			return false;
 		}
@@ -2017,16 +2144,92 @@ bool CHL2MP_Player::LoadPlayerSettings()
 		return true;
 	}
 
-	KeyValues *playerSettings = kv->FindKey( UTIL_VarArgs( "%llu", steamID64 ) );
-	if ( !playerSettings )
+	KeyValues* playerSettings = kv->FindKey(UTIL_VarArgs("%llu", steamID64));
+	if (!playerSettings)
 	{
-		Warning( "Player settings not found in file %s\n", filename );
+		Warning("Player settings not found in file %s\n", filename);
 		kv->deleteThis();
 		return false;
 	}
 
-	SetNewFOV( playerSettings->GetInt( "FOV", GetNewFOV() ) );
+	SetNewFOV(playerSettings->GetInt("FOV", GetNewFOV()));
 
 	kv->deleteThis();
 	return true;
+}
+
+void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
+{
+	// Lógica de morte original
+	LadderRespawnFix();
+	CTakeDamageInfo subinfo = info;
+	subinfo.SetDamageForce(m_vecTotalBulletForce);
+	SetNumAnimOverlays(0);
+	CreateRagdollEntity();
+	DetonateTripmines();
+
+	// Detectar se estava no ar ANTES de morrer
+	bool onGroundFlags = (GetFlags() & FL_ONGROUND) != 0;
+	bool hasGroundEntity = (GetGroundEntity() != nullptr);
+	bool preDeathInAir = (!onGroundFlags && !hasGroundEntity);
+
+	// opcional: velocidade vertical
+	if (!preDeathInAir)
+	{
+		float vz = GetAbsVelocity().z;
+		if (fabs(vz) > 60.0f)
+			preDeathInAir = true;
+	}
+
+	BaseClass::Event_Killed(subinfo);
+
+	if (info.GetDamageType() & DMG_DISSOLVE)
+	{
+		if (m_hRagdoll)
+		{
+			m_hRagdoll->GetBaseAnimating()->Dissolve(NULL, gpGlobals->curtime, false, ENTITY_DISSOLVE_NORMAL);
+		}
+	}
+
+	if (HL2MPRules()->IsTeamplay())
+	{
+		CBaseEntity* pAttackerEnt = info.GetAttacker();
+		if (pAttackerEnt && !pAttackerEnt->InSameTeam(this) && pAttackerEnt->GetTeamNumber() != TEAM_UNASSIGNED)
+			pAttackerEnt->GetTeam()->AddScore(1);
+		else
+			GetTeam()->AddScore(-1);
+	}
+
+	FlashlightTurnOff();
+	m_lifeState = LIFE_DEAD;
+	RemoveEffects(EF_NODRAW);
+	StopZooming();
+
+	// Lógica de som
+	CHL2MP_Player* pAttacker = ToHL2MPPlayer(info.GetAttacker());
+	if (pAttacker && pAttacker != this)
+	{
+		pAttacker->OnDamageDealt(this, info);
+	}
+
+	// Sistema de killer info
+	CHL2MP_Player* pKiller = dynamic_cast<CHL2MP_Player*>(info.GetAttacker());
+	if (pKiller && pKiller != this && pKiller->IsPlayer())
+	{
+		// Obter nome da arma
+		const char* weaponName = "unknown";
+		CBaseCombatWeapon* pWeapon = pKiller->GetActiveWeapon();
+		if (pWeapon)
+		{
+			weaponName = pWeapon->GetName();
+			if (Q_strnicmp(weaponName, "weapon_", 7) == 0)
+				weaponName += 7; // Remove prefixo "weapon_"
+		}
+
+		// Obter hitgroup
+		int hitGroup = this->m_iLastHitGroup;
+
+		// Chamar killer info passando o estado de airkill detectado antes
+		HL2MPRules()->DisplayKillerInfo(this, pKiller, weaponName, hitGroup, preDeathInAir);
+	}
 }

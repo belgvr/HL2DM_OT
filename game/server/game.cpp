@@ -70,14 +70,17 @@ ConVar  servercfgfile( "servercfgfile","server.cfg" );
 ConVar  lservercfgfile( "lservercfgfile","listenserver.cfg" );
 // multiplayer server rules
 ConVar	teamplay("mp_teamplay", "0", FCVAR_NOTIFY, "Should teamplay settings be on or off", mp_teamplay_changed);
-ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
+
+//ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
+ConVar falldamage("mp_falldamage", "10", FCVAR_NOTIFY, "Fall damage amount. Set to 0 or -1 to disable."); //updated cvar, by ribas
+
 ConVar	weaponstay( "mp_weaponstay","0", FCVAR_NOTIFY );
 ConVar	forcerespawn( "mp_forcerespawn","1", FCVAR_NOTIFY );
 ConVar	footsteps( "mp_footsteps","1", FCVAR_NOTIFY );
 #ifdef CSTRIKE
 ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY );
 #else
-ConVar	flashlight( "mp_flashlight","0", FCVAR_NOTIFY, 0, flashlight_changed );
+ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY, 0, flashlight_changed );
 #endif
 ConVar	aimcrosshair( "mp_autocrosshair","1", FCVAR_NOTIFY );
 ConVar	decalfrequency( "decalfrequency","10", FCVAR_NOTIFY );

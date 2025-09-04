@@ -61,6 +61,7 @@ extern bool IsInCommentaryMode( void );
 
 extern ConVar sv_equalizer;
 ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
+ConVar sv_talk_interval("sv_talk_interval", "0.5", FCVAR_NOTIFY, "Minimum time between player chat messages", true, 0.0, true, 10.0);
 
 ConVar  *sv_cheats = NULL;
 
@@ -909,20 +910,20 @@ CON_COMMAND_F( buddha, "Toggle.  Player takes damage but won't die. (Shows red c
 	}
 }
 
-#define TALK_INTERVAL 0.66
+//#define TALK_INTERVAL 0.66
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-CON_COMMAND( say, "Display player message" )
+CON_COMMAND(say, "Display player message")
 {
-	CBasePlayer *pPlayer = ToBasePlayer( UTIL_GetCommandClient() ); 
-	if ( pPlayer )
+	CBasePlayer* pPlayer = ToBasePlayer(UTIL_GetCommandClient());
+	if (pPlayer)
 	{
 		if (engine->IsPaused())
-			Host_Say( pPlayer->edict(), args, 0 );
+			Host_Say(pPlayer->edict(), args, 0);
 
-		else if ( ( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime )
+		else if ((pPlayer->LastTimePlayerTalked() + sv_talk_interval.GetFloat()) < gpGlobals->curtime)
 		{
-			Host_Say( pPlayer->edict(), args, 0 );
+			Host_Say(pPlayer->edict(), args, 0);
 			pPlayer->NotePlayerTalked();
 		}
 	}
@@ -930,9 +931,9 @@ CON_COMMAND( say, "Display player message" )
 	// an index greater than 0 when we don't have a player pointer, 
 	// as would be the case when a client that's connecting generates 
 	// text via a script.  This can be exploited to flood everyone off.
-	else if ( UTIL_GetCommandClientIndex() == 0 )
+	else if (UTIL_GetCommandClientIndex() == 0)
 	{
-		Host_Say( NULL, args, 0 );
+		Host_Say(NULL, args, 0);
 	}
 }
 
@@ -947,7 +948,7 @@ CON_COMMAND( say_team, "Display player message to team" )
 		if ( engine->IsPaused() )
 			Host_Say( pPlayer->edict(), args, 1 );
 
-		else if ( ( pPlayer->LastTimePlayerTalked() + TALK_INTERVAL ) < gpGlobals->curtime )
+		else if ( ( pPlayer->LastTimePlayerTalked() + sv_talk_interval.GetFloat()) < gpGlobals->curtime )
 		{
 			Host_Say( pPlayer->edict(), args, 1 );
 			pPlayer->NotePlayerTalked();

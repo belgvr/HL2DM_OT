@@ -32,7 +32,7 @@ class CViewVectors
 public:
 	CViewVectors() {}
 
-	CViewVectors( 
+	CViewVectors(
 		Vector vView,
 		Vector vHullMin,
 		Vector vHullMax,
@@ -41,7 +41,7 @@ public:
 		Vector vDuckView,
 		Vector vObsHullMin,
 		Vector vObsHullMax,
-		Vector vDeadViewHeight )
+		Vector vDeadViewHeight)
 	{
 		m_vView = vView;
 		m_vHullMin = vHullMin;
@@ -56,17 +56,17 @@ public:
 
 	// Height above entity position where the viewer's eye is.
 	Vector m_vView;
-	
+
 	Vector m_vHullMin;
 	Vector m_vHullMax;
-	
+
 	Vector m_vDuckHullMin;
 	Vector m_vDuckHullMax;
 	Vector m_vDuckView;
-	
+
 	Vector m_vObsHullMin;
 	Vector m_vObsHullMax;
-	
+
 	Vector m_vDeadViewHeight;
 };
 
@@ -103,11 +103,11 @@ public:
 #define MAX_CLIMB_SPEED		200
 
 #if defined(TF_DLL) || defined(TF_CLIENT_DLL)
-	#define TIME_TO_DUCK		0.2
-	#define TIME_TO_DUCK_MS		200.0f
+#define TIME_TO_DUCK		0.2
+#define TIME_TO_DUCK_MS		200.0f
 #else
-	#define TIME_TO_DUCK		0.4
-	#define TIME_TO_DUCK_MS		400.0f
+#define TIME_TO_DUCK		0.4
+#define TIME_TO_DUCK_MS		400.0f
 #endif 
 #define TIME_TO_UNDUCK		0.2
 #define TIME_TO_UNDUCK_MS	200.0f
@@ -140,7 +140,135 @@ public:
 #define CHAT_LIGHTBLUE COLOR(88C5D9)
 #define CHAT_TEAM COLOR(54E92F)
 #define CHAT_ADMIN COLOR(FF9333)
-#define CHAT_ADMIN_LIGHT COLOR(FFAD64)
+#define CHAT_ADMIN_LIGHT COLOR(ff8000)
+#define CHAT_ADMIN_ERROR COLOR(AA0000)
+#define CHAT_ADMIN_HIGHLIGHT COLOR(FEDE00)
+#define CHAT_COMBINE COLOR(0064FF)
+#define CHAT_REBEL COLOR(FF3200)
+#define CHAT_DM COLOR(FF5000)
+#define CHAT_LIME COLOR(BFD641)
+#define CHAT_FULLRED COLOR(FF0000)
+#define CHAT_FULLBLUE COLOR(0000FF)
+#define CHAT_FULLGREEN COLOR(00FF00)
+#define CHAT_FULLYELLOW COLOR(FFFF00)
+#define CHAT_FULLMAGENTA COLOR(FF00FF)
+#define CHAT_FULLCYAN COLOR(00FFFF)
+#define CHAT_FULLBLACK COLOR(000000)
+#define CHAT_DARKGREY COLOR(333333)
+#define CHAT_SLATEGRAY COLOR(708090)
+#define CHAT_LIGHTGRAY COLOR(D3D3D3)
+#define CHAT_WHITESMOKE COLOR(F5F5F5)
+#define CHAT_FULLWHITE COLOR(FFFFFF)
+#define CHAT_INDIANRED COLOR(CD5C5C)
+#define CHAT_LIGHTCORAL COLOR(F08080)
+#define CHAT_SALMON COLOR(FA8072)
+#define CHAT_DARKSALMON COLOR(E9967A)
+#define CHAT_LIGHTSALMON COLOR(FFA07A)
+#define CHAT_CRIMSON COLOR(DC143C)
+#define CHAT_RED COLOR(FF0000)
+#define CHAT_FIREBRICK COLOR(B22222)
+#define CHAT_DARKRED COLOR(8B0000)
+#define CHAT_PINK COLOR(FFC0CB)
+#define CHAT_LIGHTPINK COLOR(FFB6C1)
+#define CHAT_HOTPINK COLOR(FF69B4)
+#define CHAT_DEEPPINK COLOR(FF1493)
+#define CHAT_MEDIUMVIOLETRED COLOR(C71585)
+#define CHAT_PALEVIOLETRED COLOR(DB7093)
+#define CHAT_LIGHTSEAGREEN COLOR(20B2AA)
+#define CHAT_TURQUOISE COLOR(40E0D0)
+#define CHAT_MEDIUMTURQUOISE COLOR(48D1CC)
+#define CHAT_DARKTURQUOISE COLOR(00CED1)
+#define CHAT_AQUAMARINE COLOR(7FFFD4)
+#define CHAT_MEDIUMAQUAMARINE COLOR(66CDAA)
+#define CHAT_AQUA COLOR(00FFFF)
+#define CHAT_CYAN COLOR(00FFFF)
+#define CHAT_DARKCYAN COLOR(008B8B)
+#define CHAT_TEAL COLOR(008080)
+#define CHAT_MEDIUMSPRINGGREEN COLOR(00FA9A)
+#define CHAT_SPRINGGREEN COLOR(00FF7F)
+#define CHAT_MEDIUMSEAGREEN COLOR(3CB371)
+#define CHAT_SEAGREEN COLOR(2E8B57)
+#define CHAT_LIMEGREEN COLOR(32CD32)
+#define CHAT_FORESTGREEN COLOR(228B22)
+#define CHAT_GREEN COLOR(008000)
+#define CHAT_DARKGREEN COLOR(006400)
+#define CHAT_CHARTREUSE COLOR(7FFF00)
+#define CHAT_LAWNGREEN COLOR(7CFC00)
+#define CHAT_GREENYELLOW COLOR(ADFF2F)
+#define CHAT_YELLOWGREEN COLOR(9ACD32)
+#define CHAT_OLIVEDRAB COLOR(6B8E23)
+#define CHAT_OLIVE COLOR(808000)
+#define CHAT_DARKOLIVEGREEN COLOR(556B2F)
+#define CHAT_PALEGOLDENROD COLOR(EEE8AA)
+#define CHAT_LEMONCHIFFON COLOR(FFFACD)
+#define CHAT_LIGHTGOLDENRODYELLOW COLOR(FAFAD2)
+#define CHAT_LIGHTYELLOW COLOR(FFFFE0)
+#define CHAT_YELLOW COLOR(FFFF00)
+#define CHAT_GOLD COLOR(FFD700)
+#define CHAT_LIGHTGOLDENROD COLOR(DAA520)
+#define CHAT_GOLDENROD COLOR(DAA520)
+#define CHAT_DARKGOLDENROD COLOR(B8860B)
+#define CHAT_ROSYBROWN COLOR(BC8F8F)
+#define CHAT_PERU COLOR(CD853F)
+#define CHAT_CHOCOLATE COLOR(D2691E)
+#define CHAT_SADDLEBROWN COLOR(8B4513)
+#define CHAT_SIENNA COLOR(A0522D)
+#define CHAT_BROWN COLOR(A52A2A)
+#define CHAT_MAROON COLOR(800000)
+#define CHAT_ORANGE COLOR(FFA500)
+#define CHAT_DARKORANGE COLOR(FF8C00)
+#define CHAT_CORAL COLOR(FF7F50)
+#define CHAT_TOMATO COLOR(FF6347)
+#define CHAT_ORANGERED COLOR(FF4500)
+#define CHAT_DEEPORANGE COLOR(FF5722)
+#define CHAT_LIGHTORANGE COLOR(FFBB88)
+#define CHAT_PURPLE COLOR(800080)
+#define CHAT_MEDIUMPURPLE COLOR(9370DB)
+#define CHAT_BLUEVIOLET COLOR(8A2BE2)
+#define CHAT_INDIGO COLOR(4B0082)
+#define CHAT_DARKMAGENTA COLOR(8B008B)
+#define CHAT_MAGENTA COLOR(FF00FF)
+#define CHAT_FUCHSIA COLOR(FF00FF)
+#define CHAT_VIOLET COLOR(EE82EE)
+#define CHAT_ORCHID COLOR(DA70D6)
+#define CHAT_MEDIUMORCHID COLOR(BA55D3)
+#define CHAT_DARKORCHID COLOR(9932CC)
+#define CHAT_DARKVIOLET COLOR(9400D3)
+#define CHAT_BLUE COLOR(0000FF)
+#define CHAT_MEDIUMBLUE COLOR(0000CD)
+#define CHAT_DARKBLUE COLOR(00008B)
+#define CHAT_NAVY COLOR(000080)
+#define CHAT_MIDNIGHTBLUE COLOR(191970)
+#define CHAT_ROYALBLUE COLOR(4169E1)
+#define CHAT_CORNFLOWERBLUE COLOR(6495ED)
+#define CHAT_STEELBLUE COLOR(4682B4)
+#define CHAT_DODGERBLUE COLOR(1E90FF)
+#define CHAT_DEEPSKYBLUE COLOR(00BFFF)
+#define CHAT_LIGHTSKYBLUE COLOR(87CEFA)
+#define CHAT_SKYBLUE COLOR(87CEEB)
+#define CHAT_POWDERBLUE COLOR(B0E0E6)
+#define CHAT_CADETBLUE COLOR(5F9EA0)
+#define CHAT_AZURE COLOR(F0FFFF)
+#define CHAT_ALICEBLUE COLOR(F0F8FF)
+#define CHAT_SLATEBLUE COLOR(6A5ACD)
+#define CHAT_MEDIUMSLATEBLUE COLOR(7B68EE)
+#define CHAT_BLURPLE COLOR(7289DA)
+#define CHAT_platinum COLOR(E5E4E2)
+#define CHAT_PETROL COLOR(18D9D9)
+#define CHAT_GRAY_1 COLOR(111111)
+#define CHAT_GRAY_2 COLOR(222222)
+#define CHAT_GRAY_3 COLOR(333333)
+#define CHAT_GRAY_4 COLOR(444444)
+#define CHAT_GRAY_5 COLOR(555555)
+#define CHAT_GRAY_6 COLOR(666666)
+#define CHAT_GRAY_7 COLOR(777777)
+#define CHAT_GRAY_8 COLOR(888888)
+#define CHAT_GRAY_9 COLOR(999999)
+#define CHAT_GRAY_10 COLOR(AAAAAA)
+#define CHAT_GRAY_11 COLOR(BBBBBB)
+#define CHAT_GRAY_12 COLOR(CCCCCC)
+#define CHAT_GRAY_13 COLOR(DDDDDD)
+#define CHAT_GRAY_14 COLOR(EEEEEE)
 
 #define HUD_PRINTNOTIFY		1
 #define HUD_PRINTCONSOLE	2
@@ -205,11 +333,11 @@ enum CastVote
 	VOTE_OPTION3 = 2,
 	VOTE_OPTION4 = 3,
 	VOTE_OPTION5 = 4,
-	VOTE_UNCAST  = 5,
+	VOTE_UNCAST = 5,
 
 	// Alias yes/no to OPTION1/OPTION2
 	VOTE_YES = 0,
-	VOTE_NO  = 1,
+	VOTE_NO = 1,
 };
 
 //===================================================================================================================
@@ -268,22 +396,22 @@ enum CastVote
 //This is ok since MAX_PLAYERS is used for code specific things like arrays and loops, but it doesn't really means that this is the max number of players allowed
 //Since this is decided by the gamerules (and it can be whatever number as long as its less than MAX_PLAYERS).
 #if defined( CSTRIKE_DLL )
-	#define MAX_PLAYERS				65  // Absolute max players supported
+#define MAX_PLAYERS				65  // Absolute max players supported
 #elif defined( TF_DLL ) || defined ( TF_CLIENT_DLL ) || defined( HL2MP )
-	#define MAX_PLAYERS				101
+#define MAX_PLAYERS				101
 #else
-	#define MAX_PLAYERS				33  // Absolute max players supported
+#define MAX_PLAYERS				33  // Absolute max players supported
 #endif
 
 // Josh: Accounts for code that may index this array by an entindex
 // of player rather than the player index... :s
 #define MAX_PLAYERS_ARRAY_SAFE		( MAX_PLAYERS + 1 )
 
-inline bool IsIndexIntoPlayerArrayValid( int iIndex )
+inline bool IsIndexIntoPlayerArrayValid(int iIndex)
 {
-	if ( iIndex < 0 || iIndex >= MAX_PLAYERS_ARRAY_SAFE )
+	if (iIndex < 0 || iIndex >= MAX_PLAYERS_ARRAY_SAFE)
 		return false;
-		
+
 	return true;
 }
 
@@ -357,7 +485,7 @@ inline bool IsIndexIntoPlayerArrayValid( int iIndex )
 // Muzzle flash definitions (for the flags field of the "MuzzleFlash" DispatchEffect)
 enum
 {
-	MUZZLEFLASH_AR2				= 0,
+	MUZZLEFLASH_AR2 = 0,
 	MUZZLEFLASH_SHOTGUN,
 	MUZZLEFLASH_SMG1,
 	MUZZLEFLASH_SMG2,
@@ -367,7 +495,7 @@ enum
 	MUZZLEFLASH_RPG,
 	MUZZLEFLASH_COMBINE_TURRET,
 
-	MUZZLEFLASH_FIRSTPERSON		= 0x100,
+	MUZZLEFLASH_FIRSTPERSON = 0x100,
 };
 
 // Tracer Flags
@@ -537,7 +665,7 @@ enum
 	TYPE_INDEX,		// lookup text & title in stringtable
 	TYPE_URL,		// show this URL
 	TYPE_FILE,		// show this local file
-} ;
+};
 
 //=============================================================================
 // HPE_BEGIN:
@@ -573,9 +701,9 @@ enum
 
 typedef enum
 {
-	USE_OFF = 0, 
-	USE_ON = 1, 
-	USE_SET = 2, 
+	USE_OFF = 0,
+	USE_ON = 1,
+	USE_SET = 2,
 	USE_TOGGLE = 3
 } USE_TYPE;
 
@@ -614,7 +742,7 @@ enum PassengerRole_t
 	VEHICLE_ROLE_NONE = -1,
 
 	VEHICLE_ROLE_DRIVER = 0,	// Only one driver
-	
+
 	LAST_SHARED_VEHICLE_ROLE,
 };
 
@@ -634,63 +762,63 @@ enum
 // entity flags, CBaseEntity::m_iEFlags
 enum
 {
-	EFL_KILLME	=				(1<<0),	// This entity is marked for death -- This allows the game to actually delete ents at a safe time
-	EFL_DORMANT	=				(1<<1),	// Entity is dormant, no updates to client
-	EFL_NOCLIP_ACTIVE =			(1<<2),	// Lets us know when the noclip command is active.
-	EFL_SETTING_UP_BONES =		(1<<3),	// Set while a model is setting up its bones.
-	EFL_KEEP_ON_RECREATE_ENTITIES = (1<<4), // This is a special entity that should not be deleted when we restart entities only
+	EFL_KILLME = (1 << 0),	// This entity is marked for death -- This allows the game to actually delete ents at a safe time
+	EFL_DORMANT = (1 << 1),	// Entity is dormant, no updates to client
+	EFL_NOCLIP_ACTIVE = (1 << 2),	// Lets us know when the noclip command is active.
+	EFL_SETTING_UP_BONES = (1 << 3),	// Set while a model is setting up its bones.
+	EFL_KEEP_ON_RECREATE_ENTITIES = (1 << 4), // This is a special entity that should not be deleted when we restart entities only
 
-	EFL_HAS_PLAYER_CHILD=		(1<<4),	// One of the child entities is a player.
+	EFL_HAS_PLAYER_CHILD = (1 << 4),	// One of the child entities is a player.
 
-	EFL_DIRTY_SHADOWUPDATE =	(1<<5),	// Client only- need shadow manager to update the shadow...
-	EFL_NOTIFY =				(1<<6),	// Another entity is watching events on this entity (used by teleport)
+	EFL_DIRTY_SHADOWUPDATE = (1 << 5),	// Client only- need shadow manager to update the shadow...
+	EFL_NOTIFY = (1 << 6),	// Another entity is watching events on this entity (used by teleport)
 
 	// The default behavior in ShouldTransmit is to not send an entity if it doesn't
 	// have a model. Certain entities want to be sent anyway because all the drawing logic
 	// is in the client DLL. They can set this flag and the engine will transmit them even
 	// if they don't have a model.
-	EFL_FORCE_CHECK_TRANSMIT =	(1<<7),
+	EFL_FORCE_CHECK_TRANSMIT = (1 << 7),
 
-	EFL_BOT_FROZEN =			(1<<8),	// This is set on bots that are frozen.
-	EFL_SERVER_ONLY =			(1<<9),	// Non-networked entity.
-	EFL_NO_AUTO_EDICT_ATTACH =	(1<<10), // Don't attach the edict; we're doing it explicitly
-	
+	EFL_BOT_FROZEN = (1 << 8),	// This is set on bots that are frozen.
+	EFL_SERVER_ONLY = (1 << 9),	// Non-networked entity.
+	EFL_NO_AUTO_EDICT_ATTACH = (1 << 10), // Don't attach the edict; we're doing it explicitly
+
 	// Some dirty bits with respect to abs computations
-	EFL_DIRTY_ABSTRANSFORM =	(1<<11),
-	EFL_DIRTY_ABSVELOCITY =		(1<<12),
-	EFL_DIRTY_ABSANGVELOCITY =	(1<<13),
-	EFL_DIRTY_SURROUNDING_COLLISION_BOUNDS	= (1<<14),
-	EFL_DIRTY_SPATIAL_PARTITION = (1<<15),
-	EFL_FORCE_ALLOW_MOVEPARENT	= (1<<16),
+	EFL_DIRTY_ABSTRANSFORM = (1 << 11),
+	EFL_DIRTY_ABSVELOCITY = (1 << 12),
+	EFL_DIRTY_ABSANGVELOCITY = (1 << 13),
+	EFL_DIRTY_SURROUNDING_COLLISION_BOUNDS = (1 << 14),
+	EFL_DIRTY_SPATIAL_PARTITION = (1 << 15),
+	EFL_FORCE_ALLOW_MOVEPARENT = (1 << 16),
 
-	EFL_IN_SKYBOX =				(1<<17),	// This is set if the entity detects that it's in the skybox.
-											// This forces it to pass the "in PVS" for transmission.
-	EFL_USE_PARTITION_WHEN_NOT_SOLID = (1<<18),	// Entities with this flag set show up in the partition even when not solid
-	EFL_TOUCHING_FLUID =		(1<<19),	// Used to determine if an entity is floating
+	EFL_IN_SKYBOX = (1 << 17),	// This is set if the entity detects that it's in the skybox.
+	// This forces it to pass the "in PVS" for transmission.
+	EFL_USE_PARTITION_WHEN_NOT_SOLID = (1 << 18),	// Entities with this flag set show up in the partition even when not solid
+	EFL_TOUCHING_FLUID = (1 << 19),	// Used to determine if an entity is floating
 
 	// FIXME: Not really sure where I should add this...
-	EFL_IS_BEING_LIFTED_BY_BARNACLE = (1<<20),
-	EFL_NO_ROTORWASH_PUSH =		(1<<21),		// I shouldn't be pushed by the rotorwash
-	EFL_NO_THINK_FUNCTION =		(1<<22),
-	EFL_NO_GAME_PHYSICS_SIMULATION = (1<<23),
+	EFL_IS_BEING_LIFTED_BY_BARNACLE = (1 << 20),
+	EFL_NO_ROTORWASH_PUSH = (1 << 21),		// I shouldn't be pushed by the rotorwash
+	EFL_NO_THINK_FUNCTION = (1 << 22),
+	EFL_NO_GAME_PHYSICS_SIMULATION = (1 << 23),
 
-	EFL_CHECK_UNTOUCH =			(1<<24),
-	EFL_DONTBLOCKLOS =			(1<<25),		// I shouldn't block NPC line-of-sight
-	EFL_DONTWALKON =			(1<<26),		// NPC;s should not walk on this entity
-	EFL_NO_DISSOLVE =			(1<<27),		// These guys shouldn't dissolve
-	EFL_NO_MEGAPHYSCANNON_RAGDOLL = (1<<28),	// Mega physcannon can't ragdoll these guys.
-	EFL_NO_WATER_VELOCITY_CHANGE  =	(1<<29),	// Don't adjust this entity's velocity when transitioning into water
-	EFL_NO_PHYSCANNON_INTERACTION =	(1<<30),	// Physcannon can't pick these up or punt them
-	EFL_NO_DAMAGE_FORCES =		(1<<31),	// Doesn't accept forces from physics damage
+	EFL_CHECK_UNTOUCH = (1 << 24),
+	EFL_DONTBLOCKLOS = (1 << 25),		// I shouldn't block NPC line-of-sight
+	EFL_DONTWALKON = (1 << 26),		// NPC;s should not walk on this entity
+	EFL_NO_DISSOLVE = (1 << 27),		// These guys shouldn't dissolve
+	EFL_NO_MEGAPHYSCANNON_RAGDOLL = (1 << 28),	// Mega physcannon can't ragdoll these guys.
+	EFL_NO_WATER_VELOCITY_CHANGE = (1 << 29),	// Don't adjust this entity's velocity when transitioning into water
+	EFL_NO_PHYSCANNON_INTERACTION = (1 << 30),	// Physcannon can't pick these up or punt them
+	EFL_NO_DAMAGE_FORCES = (1 << 31),	// Doesn't accept forces from physics damage
 };
 
 //-----------------------------------------------------------------------------
 // EFFECTS
 //-----------------------------------------------------------------------------
-const int FX_BLOODSPRAY_DROPS	= 0x01;
-const int FX_BLOODSPRAY_GORE	= 0x02;
-const int FX_BLOODSPRAY_CLOUD	= 0x04;
-const int FX_BLOODSPRAY_ALL		= 0xFF;
+const int FX_BLOODSPRAY_DROPS = 0x01;
+const int FX_BLOODSPRAY_GORE = 0x02;
+const int FX_BLOODSPRAY_CLOUD = 0x04;
+const int FX_BLOODSPRAY_ALL = 0xFF;
 
 //-----------------------------------------------------------------------------
 #define MAX_SCREEN_OVERLAYS		10
@@ -732,7 +860,7 @@ struct FireBulletsInfo_t
 	FireBulletsInfo_t()
 	{
 		m_iShots = 1;
-		m_vecSpread.Init( 0, 0, 0 );
+		m_vecSpread.Init(0, 0, 0);
 		m_flDistance = 8192;
 		m_iTracerFreq = 4;
 		m_flDamage = 0;
@@ -744,14 +872,14 @@ struct FireBulletsInfo_t
 
 #ifdef _DEBUG
 		m_iAmmoType = -1;
-		m_vecSrc.Init( VEC_T_NAN, VEC_T_NAN, VEC_T_NAN );
-		m_vecDirShooting.Init( VEC_T_NAN, VEC_T_NAN, VEC_T_NAN );
+		m_vecSrc.Init(VEC_T_NAN, VEC_T_NAN, VEC_T_NAN);
+		m_vecDirShooting.Init(VEC_T_NAN, VEC_T_NAN, VEC_T_NAN);
 #endif
 		m_bPrimaryAttack = true;
 		m_bUseServerRandomSeed = false;
 	}
 
-	FireBulletsInfo_t( int nShots, const Vector &vecSrc, const Vector &vecDir, const Vector &vecSpread, float flDistance, int nAmmoType, bool bPrimaryAttack = true )
+	FireBulletsInfo_t(int nShots, const Vector& vecSrc, const Vector& vecDir, const Vector& vecSpread, float flDistance, int nAmmoType, bool bPrimaryAttack = true)
 	{
 		m_iShots = nShots;
 		m_vecSrc = vecSrc;
@@ -781,8 +909,8 @@ struct FireBulletsInfo_t
 	int m_iPlayerDamage;	// Damage to be used instead of m_flDamage if we hit a player
 	int m_nFlags;			// See FireBulletsFlags_t
 	float m_flDamageForceScale;
-	CBaseEntity *m_pAttacker;
-	CBaseEntity *m_pAdditionalIgnoreEnt;
+	CBaseEntity* m_pAttacker;
+	CBaseEntity* m_pAdditionalIgnoreEnt;
 	bool m_bPrimaryAttack;
 	bool m_bUseServerRandomSeed;
 };
@@ -848,37 +976,37 @@ typedef short HSOUNDSCRIPTHANDLE;
 struct EmitSound_t
 {
 	EmitSound_t() :
-		m_nChannel( 0 ),
-		m_pSoundName( 0 ),
-		m_flVolume( VOL_NORM ),
-		m_SoundLevel( SNDLVL_NONE ),
-		m_nFlags( 0 ),
-		m_nPitch( PITCH_NORM ),
-		m_nSpecialDSP( 0 ),
-		m_pOrigin( 0 ),
-		m_flSoundTime( 0.0f ),
-		m_pflSoundDuration( 0 ),
-		m_bEmitCloseCaption( true ),
-		m_bWarnOnMissingCloseCaption( false ),
-		m_bWarnOnDirectWaveReference( false ),
-		m_nSpeakerEntity( -1 ),
+		m_nChannel(0),
+		m_pSoundName(0),
+		m_flVolume(VOL_NORM),
+		m_SoundLevel(SNDLVL_NONE),
+		m_nFlags(0),
+		m_nPitch(PITCH_NORM),
+		m_nSpecialDSP(0),
+		m_pOrigin(0),
+		m_flSoundTime(0.0f),
+		m_pflSoundDuration(0),
+		m_bEmitCloseCaption(true),
+		m_bWarnOnMissingCloseCaption(false),
+		m_bWarnOnDirectWaveReference(false),
+		m_nSpeakerEntity(-1),
 		m_UtlVecSoundOrigin(),
-		m_hSoundScriptHandle( -1 )
+		m_hSoundScriptHandle(-1)
 	{
 	}
 
-	EmitSound_t( const CSoundParameters &src );
+	EmitSound_t(const CSoundParameters& src);
 
 	int							m_nChannel;
-	char const					*m_pSoundName;
+	char const* m_pSoundName;
 	float						m_flVolume;
 	soundlevel_t				m_SoundLevel;
 	int							m_nFlags;
 	int							m_nPitch;
 	int							m_nSpecialDSP;
-	const Vector				*m_pOrigin;
+	const Vector* m_pOrigin;
 	float						m_flSoundTime; ///< NOT DURATION, but rather, some absolute time in the future until which this sound should be delayed
-	float						*m_pflSoundDuration;
+	float* m_pflSoundDuration;
 	bool						m_bEmitCloseCaption;
 	bool						m_bWarnOnMissingCloseCaption;
 	bool						m_bWarnOnDirectWaveReference;
@@ -1011,7 +1139,7 @@ enum
 class CPhysCollide;
 struct collidelist_t
 {
-	const CPhysCollide	*pCollide;
+	const CPhysCollide* pCollide;
 	Vector			origin;
 	QAngle			angles;
 };
