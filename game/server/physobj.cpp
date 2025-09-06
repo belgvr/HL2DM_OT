@@ -633,7 +633,8 @@ int CPhysBox::DrawDebugTextOverlays(void)
 //-----------------------------------------------------------------------------
 void CPhysBox::InputWake( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Wake();
+	if ( VPhysicsGetObject() != NULL )
+		VPhysicsGetObject()->Wake();
 }
 
 //-----------------------------------------------------------------------------
@@ -642,7 +643,8 @@ void CPhysBox::InputWake( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPhysBox::InputSleep( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->Sleep();
+	if ( VPhysicsGetObject() != NULL )
+		VPhysicsGetObject()->Sleep();
 }
 
 //-----------------------------------------------------------------------------
@@ -705,7 +707,8 @@ void CPhysBox::InputForceDrop( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 void CPhysBox::Move( const Vector &direction )
 {
-	VPhysicsGetObject()->ApplyForceCenter( direction );
+	if ( VPhysicsGetObject() )
+		VPhysicsGetObject()->ApplyForceCenter( direction );
 }
 
 // Update the visible representation of the physic system's representation of this object
@@ -1559,11 +1562,24 @@ CPhysMagnet::~CPhysMagnet( void )
 //-----------------------------------------------------------------------------
 void CPhysMagnet::Spawn( void )
 {
-	Precache();
-
 	SetMoveType( MOVETYPE_NONE );
 	SetSolid( SOLID_VPHYSICS );
-	SetModel( STRING( GetModelName() ) );
+	
+	char *szModel = ( char * ) STRING( GetModelName() );
+
+	if ( !szModel || !*szModel )
+	{
+		Warning( "%s at %.0f, %.0f, %0.f missing modelname!\n",
+			GetClassname(),
+			GetAbsOrigin().x,
+			GetAbsOrigin().y,
+			GetAbsOrigin().z );
+		UTIL_Remove( this );
+		return;
+	}
+
+	PrecacheModel( szModel );
+	SetModel( szModel );
 
 	m_takedamage = DAMAGE_EVENTS_ONLY;
 

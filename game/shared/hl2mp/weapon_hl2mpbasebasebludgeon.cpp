@@ -135,7 +135,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 	
 	//Do view kick
-//	AddViewKick();
+	AddViewKick();
 
 	CBaseEntity	*pHitEntity = traceHit.m_pEnt;
 
@@ -258,7 +258,7 @@ bool CBaseHL2MPBludgeonWeapon::ImpactWater( const Vector &start, const Vector &e
 			data.m_fFlags |= FX_WATER_IN_SLIME;
 		}
 
-		DispatchEffect( "watersplash", data );			
+		DispatchEffectNoPred( "watersplash", data );
 #endif
 	}
 

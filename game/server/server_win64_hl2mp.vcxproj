@@ -28,7 +28,7 @@
     <CharacterSet>MultiByte</CharacterSet>
     <TargetName>server</TargetName>
     <PlatformToolset>v143</PlatformToolset>
-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.22621.0</WindowsTargetPlatformVersion>
     <PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -72,7 +72,7 @@ if "%valveTmpIsReadOnlyLetter%"=="R" del /q "$(TargetDir)"$(TargetFileName)
       <AdditionalOptions>/Zm200 /Gw /Zc:inline /Zc:threadSafeInit- /Wv:18 /Zc:__cplusplus</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\game\server\generated_proto_mod_hl2mp;..\..\thirdparty\protobuf-2.6.1\src;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\econ;..\..\game\server\NextBot;..\..\game\shared\hl2;.\hl2;.\hl2mp;..\..\game\shared\hl2mp</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>VPC;SOURCESDK;SOURCE_HAS_FREETYPE;WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions);PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;INCLUDED_STEAM2_USERID_STRUCTS;fopen=dont_use_fopen;USE_NAV_MESH;HL2MP;HL2_DLL;NEXT_BOT;_DLL_EXT=.dll;_DLL_PREFIX=;_EXTERNAL_DLL_EXT=.dll;PROJECTDIR=C:\HL2DM_SOURCE\src\game\server;VPCGAME=valve;VPCGAMECAPS=VALVE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VPC;SOURCESDK;SOURCE_HAS_FREETYPE;WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions);PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;INCLUDED_STEAM2_USERID_STRUCTS;fopen=dont_use_fopen;USE_NAV_MESH;HL2MP;HL2_DLL;NEXT_BOT;_DLL_EXT=.dll;_DLL_PREFIX=;_EXTERNAL_DLL_EXT=.dll;PROJECTDIR=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\server;VPCGAME=valve;VPCGAMECAPS=VALVE</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
@@ -164,7 +164,7 @@ if "%valveTmpIsReadOnlyLetter%"=="R" del /q "$(TargetDir)"$(TargetFileName)
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalIncludeDirectories>..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\game\server\generated_proto_mod_hl2mp;..\..\thirdparty\protobuf-2.6.1\src;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\econ;..\..\game\server\NextBot;..\..\game\shared\hl2;.\hl2;.\hl2mp;..\..\game\shared\hl2mp</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>VPC;SOURCESDK;SOURCE_HAS_FREETYPE;WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;INCLUDED_STEAM2_USERID_STRUCTS;fopen=dont_use_fopen;USE_NAV_MESH;HL2MP;HL2_DLL;NEXT_BOT;_DLL_EXT=.dll;_DLL_PREFIX=;_EXTERNAL_DLL_EXT=.dll;PROJECTDIR=C:\HL2DM_SOURCE\src\game\server;VPCGAME=valve;VPCGAMECAPS=VALVE</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VPC;SOURCESDK;SOURCE_HAS_FREETYPE;WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_ALLOW_RUNTIME_LIBRARY_MISMATCH;_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;_ALLOW_MSC_VER_MISMATCH;%(PreprocessorDefinitions);PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;PLATFORM_64BITS;WIN64;_WIN64;COMPILER_MSVC64;COMPILER_MSVC;_DLL_EXT=.dll;DLLNAME=server;DEV_BUILD;FRAME_POINTER_OMISSION_DISABLED;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;INCLUDED_STEAM2_USERID_STRUCTS;fopen=dont_use_fopen;USE_NAV_MESH;HL2MP;HL2_DLL;NEXT_BOT;_DLL_EXT=.dll;_DLL_PREFIX=;_EXTERNAL_DLL_EXT=.dll;PROJECTDIR=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\server;VPCGAME=valve;VPCGAMECAPS=VALVE</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <ExceptionHandling>false</ExceptionHandling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -710,6 +710,7 @@ exit 1
     <ClInclude Include="..\shared\scriptevent.h" />
     <ClInclude Include="..\..\public\server_class.h" />
     <ClInclude Include="serverbenchmark_base.h" />
+    <ClInclude Include="serverboottime.h" />
     <ClInclude Include="ServerNetworkProperty.h" />
     <ClInclude Include="..\shared\SharedFunctorUtils.h" />
     <ClInclude Include="..\..\public\shattersurfacetypes.h" />
@@ -754,6 +755,7 @@ exit 1
     <ClInclude Include="wcedit.h" />
     <ClInclude Include="..\shared\weapon_parse.h" />
     <ClInclude Include="..\shared\weapon_proficiency.h" />
+    <ClInclude Include="weapon_stunstick.h" />
     <ClInclude Include="world.h" />
     <ClInclude Include="hl2\ai_behavior_actbusy.h" />
     <ClInclude Include="hl2\ai_behavior_functank.h" />
@@ -823,6 +825,7 @@ exit 1
     <ClInclude Include="hl2mp\hl2mp_player.h" />
     <ClInclude Include="..\shared\hl2mp\hl2mp_player_shared.h" />
     <ClInclude Include="..\shared\hl2mp\hl2mp_weapon_parse.h" />
+    <ClInclude Include="hl2mp\admin\hl2mp_serveradmin.h" />
     <ClInclude Include="hl2mp\bot\hl2mp_bot.h" />
     <ClInclude Include="hl2mp\bot\hl2mp_bot_body.h" />
     <ClInclude Include="hl2mp\bot\hl2mp_bot_locomotion.h" />
@@ -1281,6 +1284,7 @@ exit 1
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="serverbenchmark_base.cpp" />
+    <ClCompile Include="serverboottime.cpp" />
     <ClCompile Include="ServerNetworkProperty.cpp" />
     <ClCompile Include="shadowcontrol.cpp" />
     <ClCompile Include="..\shared\sheetsimulator.cpp">
@@ -1322,6 +1326,7 @@ exit 1
     <ClCompile Include="subs.cpp" />
     <ClCompile Include="sun.cpp" />
     <ClCompile Include="..\shared\hl2\survival_gamerules.cpp" />
+    <ClCompile Include="sv_version.cpp" />
     <ClCompile Include="tactical_mission.cpp" />
     <ClCompile Include="..\shared\takedamageinfo.cpp" />
     <ClCompile Include="tanktrain.cpp" />
@@ -1484,6 +1489,7 @@ exit 1
     <ClCompile Include="hl2mp\hl2mp_player.cpp" />
     <ClCompile Include="..\shared\hl2mp\hl2mp_player_shared.cpp" />
     <ClCompile Include="..\shared\hl2mp\hl2mp_weapon_parse.cpp" />
+    <ClCompile Include="hl2mp\admin\hl2mp_serveradmin.cpp" />
     <ClCompile Include="hl2mp\bot\hl2mp_bot.cpp" />
     <ClCompile Include="hl2mp\bot\hl2mp_bot_body.cpp" />
     <ClCompile Include="hl2mp\bot\hl2mp_bot_locomotion.cpp" />
@@ -1641,6 +1647,7 @@ exit 1
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\vpc_scripts\loadaddress.vpc" />
+    <None Include="cpp.hint" />
     <None Include="_vpc_\manifest_server_hl2mp\win64\manifest.txt" />
     <None Include="..\..\game\server\nav_mesh.vpc" />
     <None Include="..\..\vpc_scripts\platform_dirs.vpc" />

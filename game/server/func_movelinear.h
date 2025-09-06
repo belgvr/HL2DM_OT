@@ -33,8 +33,11 @@ public:
 	void		StopMoveSound( void );
 	void		Blocked( CBaseEntity *pOther );
 	void		SetPosition( float flPosition );
+	void		StopMoving();
 
 	int			DrawDebugTextOverlays(void);
+
+	void SetParent( CBaseEntity *pParentEntity, int iAttachment );
 
 	// Input handlers
 	void InputOpen( inputdata_t &inputdata );

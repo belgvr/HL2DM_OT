@@ -19,6 +19,7 @@
 #include "globals.h"
 #include "physics_impact_damage.h"
 #include "te_effect_dispatch.h"
+#include "game.h"
 
 //=============================================================================
 // HPE_BEGIN
@@ -185,7 +186,6 @@ BEGIN_DATADESC( CBreakableSurface )
 	// DEFINE_FIELD( m_ForceUpdateClientData, CBitVec < MAX_PLAYERS > ),  // No need to save/restore this, it's just a temporary flag field
 END_DATADESC()
 
-
 IMPLEMENT_SERVERCLASS_ST(CBreakableSurface, DT_BreakableSurface)
 	SendPropInt(SENDINFO(m_nNumWide), 8,  SPROP_UNSIGNED),
 	SendPropInt(SENDINFO(m_nNumHigh), 8, SPROP_UNSIGNED),
@@ -244,6 +244,10 @@ void CBreakableSurface::Precache(void)
 	BaseClass::Precache();
 }
 
+void CBreakableSurface::PlayPuntSound()
+{
+	EmitSound( "Weapon_PhysCannon.Launch" );
+}
 
 //------------------------------------------------------------------------------
 // Purpose : Window has been touched.  Break out pieces based on touching
@@ -348,6 +352,14 @@ int CBreakableSurface::OnTakeDamage( const CTakeDamageInfo &info )
 		return 0;
 	}
 	
+	if ( mp_ar2_alt_glass.GetBool() )
+	{
+		if ( m_nSurfaceType == SHATTERSURFACE_GLASS && ( info.GetDamageType() & DMG_DISSOLVE ) )
+		{
+			Die( info.GetAttacker(), info.GetDamageForce() );
+			return 0;
+		}
+	}
 
 	return 0;
 }
@@ -381,7 +393,12 @@ void CBreakableSurface::TraceAttack( const CTakeDamageInfo &info, const Vector &
 		Die( info.GetAttacker(), vSurfDir );
 	}
 
-	if (info.GetDamageType() & (DMG_BULLET | DMG_CLUB))
+	if ( info.GetDamageType() & DMG_PHYSGUN )
+	{
+		PlayPuntSound();
+	}
+
+	else if ( info.GetDamageType() & ( DMG_BULLET | DMG_CLUB ) )
 	{
 		// Figure out which panel has taken the damage and break it
 		float flWidth,flHeight;
@@ -609,7 +626,50 @@ void CBreakableSurface::Die( CBaseEntity *pBreaker, const Vector &vAttackDir )
 		return;
 
 	// Play a break sound
-	PhysBreakSound( this, VPhysicsGetObject(), GetAbsOrigin() );
+	const char *soundname = NULL;
+	switch ( m_Material )
+	{
+	default:
+		break;
+	case matGlass:
+		soundname = "Glass.Break";
+		break;
+	case matWood:
+		soundname = "Wood_Box.Break";
+		break;
+	case matComputer:
+		soundname = "Breakable.Computer";
+		break;
+	case matMetal:
+		soundname = "Metal_Box.Break";
+		break;
+	case matFlesh:
+	case matWeb:
+		soundname = "Flesh.Break";
+		break;
+	case matRocks:
+	case matCinderBlock:
+		soundname = "Breakable.Concrete";
+		break;
+	case matCeilingTile:
+		soundname = "ceiling_tile.Break";
+		break;
+	}
+	if ( soundname )
+	{
+		CSoundParameters params;
+		if ( GetParametersForSound( soundname, params, NULL ) )
+		{
+			CPASAttenuationFilter filter( this );
+			EmitSound_t ep;
+			ep.m_nChannel = params.channel;
+			ep.m_pSoundName = params.soundname;
+			ep.m_flVolume = params.volume;
+			ep.m_SoundLevel = params.soundlevel;
+			ep.m_nPitch = params.pitch;
+			EmitSound( filter, entindex(), ep );
+		}
+	}
 
 	m_bIsBroken = true;
 	m_iHealth = 0.0f;

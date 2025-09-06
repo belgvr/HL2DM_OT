@@ -1,9 +1,9 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose:		SLAM with customizable delays for HL2DM
+// Purpose:		SLAM 
 //
-// $Workfile:     $
-// $Date:         $
+// $Workfile:     $
+// $Date:         $
 //
 //-----------------------------------------------------------------------------
 // $Log: $
@@ -61,7 +61,7 @@ public:
 	void				ItemPostFrame(void);
 	bool				Reload(void);
 	void				SetSlamState(int newState);
-	bool				CanAttachSLAM(void);		// In position where can attach SLAM?
+	bool				CanAttachSLAM(trace_t* = NULL);		// In position where can attach SLAM?
 	bool				AnyUndetonatedCharges(void);
 	void				StartTripmineAttach(void);
 	void				TripmineAttach(void);
@@ -70,17 +70,14 @@ public:
 	void				SatchelDetonate(void);
 	void				StartSatchelThrow(void);
 	void				StartSatchelAttach(void);
-	void				SatchelThrow(void);
+	void                SatchelThrow(float flVelocity); // Nova declaração
+
 	void				SatchelAttach(void);
 	bool				Deploy(void);
 	bool				Holster(CBaseCombatWeapon* pSwitchingTo = NULL);
+	bool				HasAnyAmmo(void);
 
-	// Custom delay control function
-	float				GetSlamDelay(ConVar& cvar, float originalDelay);
-
-#ifndef CLIENT_DLL
 	const CUtlVector< CBaseEntity* >& GetSatchelVector();
-#endif
 
 	CWeapon_SLAM();
 
@@ -91,10 +88,12 @@ public:
 
 private:
 	CWeapon_SLAM(const CWeapon_SLAM&);
+	// Adicionadas as novas variáveis
+	float m_flChargeStartTime;
+	float m_flLastHUDUpdateTime;
+	bool m_bIsCharging;
 
-#ifndef CLIENT_DLL
 	CUtlVector< CBaseEntity* > m_SatchelVector;
-#endif
 };
 
 

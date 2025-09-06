@@ -252,6 +252,9 @@ public:
 	CBasePlayer();
 	~CBasePlayer();
 
+	void CompensateTeamScoreOnTeamSwitch( bool enabled ) { m_bHasCompensatedTeamScore = enabled; }
+	bool IsCompensatingTeamScoreOnTeamSwitch() { return m_bHasCompensatedTeamScore; }
+
 	// IPlayerInfo passthrough (because we can't do multiple inheritance)
 	IPlayerInfo *GetPlayerInfo() { return &m_PlayerInfo; }
 	IBotController *GetBotController() { return &m_PlayerInfo; }
@@ -288,6 +291,7 @@ public:
 	virtual bool			WantsLagCompensationOnEntity( const CBasePlayer	*pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 
 	virtual void			Spawn( void );
+	void					DelayedSpawn();
 	virtual void			Activate( void );
 	virtual void			SharedSpawn(); // Shared between client and server.
 	virtual void			ForceRespawn( void );
@@ -459,7 +463,9 @@ public:
 	void					UpdatePlayerSound ( void );
 	virtual void			UpdateStepSound( surfacedata_t *psurface, const Vector &vecOrigin, const Vector &vecVelocity );
 	virtual void			PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
-	virtual const char	   *GetOverrideStepSound( const char *pszBaseStepSoundName ) { return pszBaseStepSoundName; }
+	//virtual const char*		GetOverrideStepSound(const char* pszBaseStepSoundName) = 0;
+	virtual const char*		GetOverrideStepSound(const char* pszBaseStepSoundName) { return pszBaseStepSoundName; }
+
 	virtual void			GetStepSoundVelocities( float *velwalk, float *velrun );
 	virtual void			SetStepSoundTime( stepsoundtimes_t iStepSoundTime, bool bWalking );
 	virtual void			DeathSound( const CTakeDamageInfo &info );
@@ -568,6 +574,7 @@ public:
 	virtual void			PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize = true ) {}
 	virtual void			ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis = NULL ) {}
 	virtual float			GetHeldObjectMass( IPhysicsObject *pHeldObject );
+	virtual CBaseEntity		*GetHeldObject( void );
 
 	void					CheckSuitUpdate();
 	void					SetSuitUpdate(const char *name, int fgroup, int iNoRepeat);
@@ -766,6 +773,15 @@ public:
 	float	GetFOVDistanceAdjustFactor(); // shared between client and server
 	float	GetFOVDistanceAdjustFactorForNetworking();
 
+	void SetNewFOV( int fov ) { m_iFOVMemory = fov; }
+	int	GetNewFOV() { return m_iFOVMemory; }
+
+	float GetLadderCooldownTime() const { return m_flLadderCooldownTime; }
+	void SetLadderCooldownTime( float cooldownTime ) { m_flLadderCooldownTime = cooldownTime; }
+
+	bool UsingGameUI() const { return m_bIsUsingGameUI; }
+	void IsUsingGameUI( bool enabled ) { m_bIsUsingGameUI = enabled; }
+
 	int		GetImpulse( void ) const { return m_nImpulse; }
 
 	// Movement constraints
@@ -773,10 +789,10 @@ public:
 	void	DeactivateMovementConstraint( );
 
 	// talk control
-	virtual bool CanPlayerTalk();
+	// virtual bool CanPlayerTalk();
 	void	NotePlayerTalked() { m_fLastPlayerTalkTime = gpGlobals->curtime; }
 	float	LastTimePlayerTalked() const { return m_fLastPlayerTalkTime; }
-	bool	ArePlayerTalkMessagesAvailable();
+	// bool	ArePlayerTalkMessagesAvailable();
 
 	void	DisableButtons( int nButtons );
 	void	EnableButtons( int nButtons );
@@ -823,6 +839,20 @@ public:
 		}
 	}
 
+	void	UpdatePenetrationTime( float currentTime ) { m_flPenetrationTime = currentTime; }
+	bool	IsPenetrationOngoing( float currentTime ) const { return ( m_flPenetrationTime + 1.0f ) > currentTime; }
+	void	SetPlayerSpeedmodActive( bool enabled ) { m_bSpeedmodActive = enabled; }
+	bool	IsPlayerSpeedmodActive() const { return m_bSpeedmodActive; }
+	void	SetCheckForPenetration( bool penetration ) { m_bCheckPenetration = penetration; }
+	bool	CheckForPenetration() const { return m_bCheckPenetration; }
+	uint64	ConvertSteamID3ToSteamID64( const char *steamID3 );
+	bool IsGagged() const { return m_bIsGagged; }
+	void SetGagged( bool gagged ) { m_bIsGagged = gagged; }
+	bool IsMuted() const { return m_bIsMuted; }
+	void SetMuted( bool muted ) { m_bIsMuted = muted; }
+	bool HasPlayerRTV() const { return m_bHasPlayerRTV; }
+	void PlayerHasRTV( bool PlayerHasVoted ) { m_bHasPlayerRTV = PlayerHasVoted; }
+
 private:
 	// How much of a movement time buffer can we process from this user?
 	int				m_nMovementTicksForUserCmdProcessingRemaining;
@@ -838,13 +868,28 @@ private:
 
 	int					DetermineSimulationTicks( void );
 	void				AdjustPlayerTimeBase( int simulation_ticks );
-	int					iDamageTime;
+
+	float m_flPenetrationTime = 0.0f;
+	bool m_bSpeedmodActive;
+	bool m_bCheckPenetration;
+	float m_flLadderCooldownTime;
+	bool m_bHasCompensatedTeamScore;
+	bool m_bIsUsingGameUI;
+	int iDamageTime;
+	int m_iFOVMemory;
+
+	// Gagged and muted
+	bool m_bIsGagged;
+	bool m_bIsMuted;
+	bool m_bHasPlayerRTV;
 
 public:
 	
 	// How long since this player last interacted with something the game considers an objective/target/goal
 	float				GetTimeSinceLastObjective( void ) const { return ( m_flLastObjectiveTime == -1.f ) ? 999.f : gpGlobals->curtime - m_flLastObjectiveTime; }
 	void				SetLastObjectiveTime( float flTime ) { m_flLastObjectiveTime = flTime; }
+	void           SetAllowPickupWeaponThroughObstacle( bool bValue ) { m_bAllowPickupWeaponThroughObstacle = bValue; }
+	bool           GetAllowPickupWeaponThroughObstacle() const { return m_bAllowPickupWeaponThroughObstacle; }
 
 	// Used by gamemovement to check if the entity is stuck.
 	int m_StuckLast;
@@ -903,6 +948,7 @@ public:
 	bool					m_bLagCompensation;	// user wants lag compenstation
 	bool					m_bPredictWeapons; //  user has client side predicted weapons
 	bool					m_bRequestPredict; //  user has client prediction enabled
+	bool					m_bAllowPickupWeaponThroughObstacle; // flag active only during givedefaultweapons
 	
 	float		GetDeathTime( void ) { return m_flDeathTime; }
 
@@ -977,7 +1023,7 @@ protected:
 	CNetworkVar( int,	m_iDefaultFOV );	// default field of view
 	CNetworkVar( int,	m_iFOVStart );		// What our FOV started at
 	CNetworkVar( float,	m_flFOVTime );		// Time our FOV change started
-	
+	//CNetworkVar(int, m_iFOVServer); // field of view server-side below CNetworkVar( int, m_iFOV ); // field of view in protected: player.h
 	int						m_iObserverLastMode; // last used observer mode
 	CNetworkHandle( CBaseEntity, m_hObserverTarget );	// entity handle to m_iObserverTarget
 	bool					m_bForcedObserverMode; // true, player was forced by invalid targets to switch mode

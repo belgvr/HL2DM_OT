@@ -303,15 +303,16 @@ void CItem::FallThink ( void )
 		shouldMaterialize = (GetFlags() & FL_ONGROUND) ? true : false;
 	}
 
-	if ( shouldMaterialize )
-	{
-		SetThink ( NULL );
+	SetThink ( NULL );
 
+	if ( GetOriginalSpawnOrigin() == vec3_origin )
+	{
 		m_vOriginalSpawnOrigin = GetAbsOrigin();
 		m_vOriginalSpawnAngles = GetAbsAngles();
-
-		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}
+
+	HL2MPRules()->AddLevelDesignerPlacedObject( this );
+
 #endif // HL2MP
 
 #if defined( TF_DLL )
@@ -500,6 +501,7 @@ CBaseEntity* CItem::Respawn( void )
 {
 	SetTouch( NULL );
 	AddEffects( EF_NODRAW );
+	AddEFlags( EFL_NO_PHYSCANNON_INTERACTION );
 
 	VPhysicsDestroyObject();
 
@@ -528,6 +530,7 @@ void CItem::Materialize( void )
 	if ( IsEffectActive( EF_NODRAW ) )
 	{
 		// changing from invisible state to visible.
+		RemoveEFlags( EFL_NO_PHYSCANNON_INTERACTION );
 
 #ifdef HL2MP
 		EmitSound( "AlyxEmp.Charge" );

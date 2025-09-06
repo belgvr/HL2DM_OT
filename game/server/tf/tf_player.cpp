@@ -4198,11 +4198,15 @@ void CTFPlayer::InitClass( void )
 //-----------------------------------------------------------------------------
 bool CTFPlayer::CanPlayerTalk()
 {
+	// don't care about TF2
+	/*
 	// If this player is known to the match, and joined as chat-suspended, they can not. 
 	if ( BHaveChatSuspensionInCurrentMatch() )
 		return false;
 
 	return BaseClass::CanPlayerTalk();
+	*/
+	return true;
 }
 
 //-----------------------------------------------------------------------------

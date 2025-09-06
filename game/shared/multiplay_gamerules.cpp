@@ -65,8 +65,8 @@ ConVar mp_chattime(
 		"10", 
 		FCVAR_REPLICATED,
 		"amount of time players can chat after the game is over",
-		true, 1,
-		true, 120 );
+		true, 10,
+		true, 60 );
 
 #ifdef GAME_DLL
 void MPTimeLimitCallback( IConVar *var, const char *pOldString, float flOldValue )
@@ -626,22 +626,17 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	//=========================================================
 	//=========================================================
-	float CMultiplayRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
+	float CMultiplayRules::FlPlayerFallDamage(CBasePlayer* pPlayer)
 	{
-		int iFallDamage = (int)falldamage.GetFloat();
-
-		switch ( iFallDamage )
+		// A variável correta é 'falldamage', não 'mp_falldamage'
+		if (falldamage.GetFloat() > 0)
 		{
-		case 1://progressive
-			pPlayer->m_Local.m_flFallVelocity -= PLAYER_MAX_SAFE_FALL_SPEED;
-			return pPlayer->m_Local.m_flFallVelocity * DAMAGE_FOR_FALL_SPEED;
-			break;
-		default:
-		case 0:// fixed
-			return 10;
-			break;
+			return falldamage.GetFloat();
 		}
-	} 
+
+		// Se for 0 ou menos, o jogador não leva dano.
+		return 0;
+	}
 
 	//=========================================================
 	//=========================================================
@@ -943,6 +938,11 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		return pWeapon->GetAbsOrigin();
 	}
 
+	QAngle CMultiplayRules::DefaultWeaponRespawnAngle( CBaseCombatWeapon *pWeapon )
+	{
+		return pWeapon->GetAbsAngles();
+	}
+
 	//=========================================================
 	// WeaponShouldRespawn - any conditions inhibiting the
 	// respawning of this weapon?
@@ -1107,7 +1107,8 @@ ConVarRef suitcharger( "sk_suitcharger" );
 
 	bool CMultiplayRules::PlayFootstepSounds( CBasePlayer *pl )
 	{
-		if ( footsteps.GetInt() == 0 )
+		//if ( footsteps.GetInt() == 0 )
+		if (!footsteps.GetBool())
 			return false;
 
 		if ( pl->IsOnLadder() || pl->GetAbsVelocity().Length2D() > 220 )

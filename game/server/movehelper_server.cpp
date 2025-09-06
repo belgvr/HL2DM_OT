@@ -31,8 +31,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar sv_fall_death_blackscreen(	"sv_fall_death_blackscreen",	"0",	FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Enable black screen effect when player dies from fall damage (0=disabled, 1=enabled)");
-
 extern IPhysicsCollision *physcollision;
 
 
@@ -362,10 +360,10 @@ void CMoveHelperServer::Con_NPrintf( int idx, char const* pFormat, ...)
 bool CMoveHelperServer::PlayerFallingDamage( void )
 {
 	float flFallDamage = g_pGameRules->FlPlayerFallDamage( m_pHostPlayer );	
-	if ( flFallDamage > 0 )
+	if ( flFallDamage >= 1 )
 	{
 		int iDamageTaken = m_pHostPlayer->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), flFallDamage, DMG_FALL ) ); 
-		if ( iDamageTaken > 0 )
+		if ( iDamageTaken >= 1 )
 		{
 			StartSound( m_pHostPlayer->GetAbsOrigin(), "Player.FallDamage" );
 		}
@@ -391,16 +389,6 @@ bool CMoveHelperServer::PlayerFallingDamage( void )
         //=============================================================================
 
     }
-
-	if (m_pHostPlayer->m_iHealth <= 0)
-	{
-		if (g_pGameRules->FlPlayerFallDeathDoesScreenFade(m_pHostPlayer) && sv_fall_death_blackscreen.GetBool())
-		{
-			color32 black = { 0, 0, 0, 255 };
-			UTIL_ScreenFade(m_pHostPlayer, black, 0, 9999, FFADE_OUT | FFADE_STAYOUT);
-		}
-		return(false);
-	}
 
 	return(true);
 }

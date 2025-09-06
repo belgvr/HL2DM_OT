@@ -262,6 +262,7 @@ void CFuncVehicleClip::InputDisable( inputdata_t &data )
 
 #define SF_CONVEYOR_VISUAL		0x0001
 #define SF_CONVEYOR_NOTSOLID	0x0002
+#define SF_CONVEYOR_START_DISABLED	0x0003
 
 class CFuncConveyor : public CFuncWall
 {
@@ -293,9 +294,10 @@ LINK_ENTITY_TO_CLASS( func_conveyor, CFuncConveyor );
 BEGIN_DATADESC( CFuncConveyor )
 
 	DEFINE_INPUTFUNC( FIELD_VOID, "ToggleDirection", InputToggleDirection ),
-	DEFINE_INPUTFUNC( FIELD_VOID, "SetSpeed", InputSetSpeed ),
+	DEFINE_INPUTFUNC( FIELD_FLOAT, "SetSpeed", InputSetSpeed ),
 
 	DEFINE_KEYFIELD( m_vecMoveDir, FIELD_VECTOR, "movedir" ),
+	DEFINE_KEYFIELD( m_flSpeed, FIELD_FLOAT, "speed" ),
 	DEFINE_FIELD( m_flConveyorSpeed, FIELD_FLOAT ),
 
 END_DATADESC()
@@ -328,8 +330,13 @@ void CFuncConveyor::Spawn( void )
 		AddSolidFlags( FSOLID_NOT_SOLID );
 	}
 
-	if ( m_flSpeed == 0 )
-		m_flSpeed = 100;
+	if ( !HasSpawnFlags( SF_CONVEYOR_VISUAL ) )
+	{
+		if ( m_flSpeed == 0 )
+		{
+			m_flSpeed = 100;
+		}
+	}
 
 	UpdateSpeed( m_flSpeed );
 }
@@ -1098,6 +1105,19 @@ void CFuncRotating::RotateMove( void )
 {
 	SetMoveDoneTime( 10 );
 
+	QAngle angNormalizedAngles = GetLocalAngles();
+
+	if ( m_vecMoveAng.x )
+		angNormalizedAngles.x = AngleNormalize( angNormalizedAngles.x );
+
+	if ( m_vecMoveAng.y )
+		angNormalizedAngles.y = AngleNormalize( angNormalizedAngles.y );
+
+	if ( m_vecMoveAng.z )
+		angNormalizedAngles.z = AngleNormalize( angNormalizedAngles.z );
+
+	SetLocalAngles( angNormalizedAngles );
+
 	if ( m_bStopAtStartPos )
 	{
 		SetMoveDoneTime( GetNextMoveInterval() );
@@ -1418,7 +1438,11 @@ void CFuncVPhysicsClip::Spawn( void )
 	SetModel( STRING( GetModelName() ) );
 	AddEffects( EF_NODRAW );
 	CreateVPhysics();
-	VPhysicsGetObject()->EnableCollisions( !m_bDisabled );
+	IPhysicsObject *pPhys = VPhysicsGetObject();
+	if ( pPhys )
+	{
+		pPhys->EnableCollisions( !m_bDisabled );
+	}
 }
 
 
@@ -1446,8 +1470,19 @@ bool CFuncVPhysicsClip::EntityPassesFilter( CBaseEntity *pOther )
 	if ( pFilter )
 		return pFilter->PassesFilter( this, pOther );
 
-	if ( pOther->GetMoveType() == MOVETYPE_VPHYSICS && pOther->VPhysicsGetObject()->IsMoveable() )
+	if ( pOther->GetMoveType() == MOVETYPE_VPHYSICS &&
+		pOther->VPhysicsGetObject() &&
+		pOther->VPhysicsGetObject()->IsMoveable() )
 		return true;
+
+	if ( pOther->GetMoveType() == MOVETYPE_VPHYSICS )
+	{
+		IPhysicsObject *pPhys = pOther->VPhysicsGetObject();
+		if ( pPhys && pPhys->IsMoveable() )
+		{
+			return true;
+		}
+	}
 	
 	return false;
 }
@@ -1460,12 +1495,20 @@ bool CFuncVPhysicsClip::ForceVPhysicsCollide( CBaseEntity *pEntity )
 
 void CFuncVPhysicsClip::InputEnable( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->EnableCollisions(true);
+	IPhysicsObject *pPhys = VPhysicsGetObject();
+	if ( pPhys )
+	{
+		pPhys->EnableCollisions( true );
+	}
 	m_bDisabled = false;
 }
 
 void CFuncVPhysicsClip::InputDisable( inputdata_t &inputdata )
 {
-	VPhysicsGetObject()->EnableCollisions(false);
+	IPhysicsObject *pPhys = VPhysicsGetObject();
+	if ( pPhys )
+	{
+		pPhys->EnableCollisions( false );
+	}
 	m_bDisabled = true;
 }

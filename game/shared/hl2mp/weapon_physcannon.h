@@ -239,6 +239,7 @@ private:
 	float			m_flLoadWeight;
 	float			m_savedRotDamping[VPHYSICS_MAX_OBJECT_LIST_COUNT];
 	float			m_savedMass[VPHYSICS_MAX_OBJECT_LIST_COUNT];
+	bool			m_savedDrag;
 	EHANDLE			m_attachedEntity;
 	QAngle			m_vecPreferredCarryAngles;
 	bool			m_bHasPreferredCarryAngles;
@@ -286,7 +287,7 @@ public:
 	bool	DropIfEntityHeld( CBaseEntity *pTarget );	// Drops its held entity if it matches the entity passed in
 	CGrabController &GetGrabController() { return m_grabController; }
 
-	bool	CanHolster( void );
+	bool	CanHolster( void ) const;
 	bool	Holster( CBaseCombatWeapon *pSwitchingTo = NULL );
 	bool	Deploy( void );
 
@@ -308,7 +309,7 @@ public:
 	EHANDLE m_hOldAttachedObject;
 
 	bool	CanPickupObject( CBaseEntity *pTarget );
-protected:
+public:
 	enum FindObjectResult_t
 	{
 		OBJECT_FOUND = 0,

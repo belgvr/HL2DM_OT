@@ -26,6 +26,7 @@
 #include "eventqueue.h"
 #include "physics_collisionevent.h"
 #include "gamestats.h"
+#include "game.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -46,6 +47,8 @@ ConVar	sk_combineball_guidefactor( "sk_combineball_guidefactor","0.5", FCVAR_REP
 ConVar	sk_combine_ball_search_radius( "sk_combine_ball_search_radius", "512", FCVAR_REPLICATED);
 ConVar	sk_combineball_seek_angle( "sk_combineball_seek_angle","15.0", FCVAR_REPLICATED);
 ConVar	sk_combineball_seek_kill( "sk_combineball_seek_kill","0", FCVAR_REPLICATED);
+
+ConVar sv_combine_ball_punt_ownership_fix("sv_combine_ball_punt_ownership_fix", "1", FCVAR_ARCHIVE, "If enabled, players can take ownership of combine balls held by other players by punting them up with the gravity gun.");
 
 // For our ring explosion
 int s_nExplosionTexture = -1;
@@ -768,6 +771,20 @@ void CPropCombineBall::SetBallAsLaunched( void )
 	
 	WhizSoundThink();
 }
+
+bool CPropCombineBall::OnAttemptPhysGunPickup(CBasePlayer* pPhysGunUser, PhysGunPickup_t reason)
+{
+	// Cvar OFF -> comportamento vanilla
+	if (!sv_combine_ball_punt_ownership_fix.GetBool())
+		return CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason);
+
+	// Fix da PR: bloqueia influência externa apenas quando a orb está sendo segurada por outro player
+	return (!m_bHeld || pPhysGunUser == GetOwnerEntity())
+		? CDefaultPlayerPickupVPhysics::OnAttemptPhysGunPickup(pPhysGunUser, reason)
+		: false;
+}
+
+
 
 //-----------------------------------------------------------------------------
 // Lighten the mass so it's zippy toget to the gun
@@ -1567,13 +1584,33 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	Vector preVelocity = pEvent->preVelocity[index];
 	float flSpeed = VectorNormalize( preVelocity );
 
+	auto pHitEntity = pEvent->pEntities[ !index ];
+
+	if ( mp_ar2_alt_glass.GetBool() )
+	{
+		if ( FClassnameIs( pHitEntity, "func_breakable_surf" ) )
+			return;
+	}
+
+	if ( FClassnameIs( pHitEntity, "npc_satchel" ) || // don't slow down on satchel charges
+		FClassnameIs( pHitEntity, "npc_grenade_frag" ) || // not on frag grenades either
+		StringHasPrefix( pHitEntity->GetClassname(), "weapon_" ) || // much less on weapons
+		StringHasPrefix( pHitEntity->GetClassname(), "item_" ) ) // the same for items
+	{
+		Vector vecBounceVelocity = -preVelocity;
+		vecBounceVelocity *= GetSpeed();
+
+		PhysCallbackSetVelocity( pEvent->pObjects[ index ], vecBounceVelocity );
+
+		return;
+	}
+
 	if ( m_nMaxBounces == -1 )
 	{
 		const surfacedata_t *pHit = physprops->GetSurfaceData( pEvent->surfaceProps[!index] );
 
 		if( pHit->game.material != CHAR_TEX_FLESH || !hl2_episodic.GetBool() )
 		{
-			CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 			if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 			{
 				OnHitEntity( pHitEntity, flSpeed, index, pEvent );
@@ -1610,7 +1647,6 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	vecFinalVelocity *= GetSpeed();
 	PhysCallbackSetVelocity( pEvent->pObjects[index], vecFinalVelocity ); 
 
-	CBaseEntity *pHitEntity = pEvent->pEntities[!index];
 	if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 	{
 		OnHitEntity( pHitEntity, flSpeed, index, pEvent );

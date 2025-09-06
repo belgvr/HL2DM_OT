@@ -660,6 +660,10 @@ bool CNPC_Barnacle::CanPickup( CBaseCombatCharacter *pBCC )
 	if( !pBCC )
 		return true;
 
+	// Don't pickup turrets, rollermines, apc drivers
+	if ( FClassnameIs( pBCC, "npc_turret_floor" ) || FClassnameIs( pBCC, "npc_apcdriver" ) || FClassnameIs( pBCC, "npc_rollermine" ) )
+		return false;
+
 	// Don't pickup turrets
 	if( FClassnameIs( pBCC, "npc_turret_floor" ) )
 		return false;
@@ -1615,6 +1619,18 @@ void CNPC_Barnacle::BitePrey( void )
 		return;
 	}
 
+	if ( pVictim->IsPlayer() )
+	{
+		CBasePlayer *pPlayer = static_cast< CBasePlayer * >( pVictim );
+		if ( pPlayer->IsObserver() ) // Barnacles will no longer bite spectators
+		{
+			LostPrey( true );
+			m_flDigestFinish = 0;
+			pPlayer->SetMoveType( MOVETYPE_NOCLIP );
+			return;
+		}
+	}
+
 	EmitSound( "NPC_Barnacle.FinalBite" );
 
 	m_flVictimHeight = GetEnemy()->WorldAlignSize().z;
@@ -1953,6 +1969,9 @@ void CNPC_Barnacle::LostPrey( bool bRemoveRagdoll )
 //-----------------------------------------------------------------------------
 void CNPC_Barnacle::OnTongueTipUpdated()
 {
+	if ( m_hTongueTip == NULL )
+		return;
+
 	// Update the tip's position
 	const Vector &vecNewTip = m_hTongueTip->GetAbsOrigin();
 	if ( vecNewTip != m_vecTip )

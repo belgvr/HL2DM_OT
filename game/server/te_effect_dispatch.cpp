@@ -51,10 +51,10 @@ CTEEffectDispatch::~CTEEffectDispatch( void )
 {
 }
 
+
 IMPLEMENT_SERVERCLASS_ST( CTEEffectDispatch, DT_TEEffectDispatch )
 
-	SendPropDataTable( SENDINFO_DT( m_EffectData ), &REFERENCE_SEND_TABLE( DT_EffectData ) )
-
+SendPropDataTable( SENDINFO_DT( m_EffectData ), &REFERENCE_SEND_TABLE( DT_EffectData ) )
 END_SEND_TABLE()
 
 
@@ -88,4 +88,12 @@ void DispatchEffect( const char *pName, const CEffectData &data )
 void DispatchEffect( const char *pName, const CEffectData &data, CRecipientFilter &filter )
 {
 	te->DispatchEffect( filter, 0.0, data.m_vOrigin, pName, data );
+}
+
+void DispatchEffectNoPred( const char *pName, const CEffectData &data )
+{
+	const CBaseEntity *host = te->GetSuppressHost();
+	te->SetSuppressHost( NULL );
+	DispatchEffect( pName, data );
+	te->SetSuppressHost( ( CBaseEntity * ) host );
 }

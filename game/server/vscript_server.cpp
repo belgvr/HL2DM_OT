@@ -1011,6 +1011,11 @@ static float MaxClients()
 	return gpGlobals->maxClients;
 }
 
+static int GetEntityCount()
+{
+	return engine->GetEntityCount();
+}
+
 static float FrameTime()
 {
 	return gpGlobals->frametime;
@@ -2589,7 +2594,7 @@ bool VScriptServerInit()
 
 				ScriptRegisterFunctionNamed( g_pScriptVM, ScriptTraceLine, "TraceLine", "given 2 points & ent to ignore, return fraction along line that hits world or models" );
 				ScriptRegisterFunctionNamed( g_pScriptVM, ScriptTraceLinePlayersIncluded, "TraceLinePlayersIncluded", "given 2 points & ent to ignore, return fraction along line that hits world, models, players or npcs" );
-
+				ScriptRegisterFunction( g_pScriptVM, GetEntityCount, "Returns the number of used edict slots" );
 				ScriptRegisterFunction( g_pScriptVM, FrameTime, "Get the time spent on the server in the last frame" );
 				ScriptRegisterFunction( g_pScriptVM, MaxClients, "Get the current number of max clients set by the maxplayers command." );
 				ScriptRegisterFunctionNamed( g_pScriptVM, DoEntFireByInstanceHandle, "EntFireByHandle", "Generate and entity i/o event. First parameter is an entity instance." );
@@ -3496,11 +3501,10 @@ DECLARE_SCRIPT_CONST_NAMED( Server, "ConstantNamingConvention", "Constants are n
 REGISTER_SCRIPT_CONST_TABLE( Server )
 #endif
 				g_pScriptVM->SetValue( "Constants", vConstantsTable );
-
-				if ( scriptLanguage == SL_SQUIRREL )
+ 				if ( scriptLanguage == SL_SQUIRREL )
 				{
 					g_pScriptVM->Run( g_Script_vscript_server );
-				}
+				} 
 				g_VScriptGameEventListener.Init();
 
 				VScriptRunScript( "mapspawn", false );

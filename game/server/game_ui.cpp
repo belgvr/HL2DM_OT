@@ -133,6 +133,7 @@ void CGameUI::Deactivate( CBaseEntity *pActivator )
 
 	if (pPlayer)
 	{
+		pPlayer->IsUsingGameUI( false );
 		// Re-enable player motion
 		if ( FBitSet( m_spawnflags, SF_GAMEUI_FREEZE_PLAYER ) )
 		{
@@ -167,10 +168,6 @@ void CGameUI::Deactivate( CBaseEntity *pActivator )
 		m_attack2axis.Set( 0, pPlayer, this );
 		m_nLastButtonState = 0;
 		m_player = NULL;
-	}
-	else
-	{
-		Warning("%s Deactivate(): I have no player when called by %s!\n", GetEntityName().ToCStr(), pActivator ? pActivator->GetEntityName().ToCStr() : NULL);
 	}
 	
 	// Stop thinking
@@ -218,6 +215,7 @@ void CGameUI::InputActivate( inputdata_t &inputdata )
 
 	// Setup our internal data
 	m_player = pPlayer;
+	pPlayer->IsUsingGameUI( true );
 	m_playerOn.FireOutput( pPlayer, this, 0 );
 
 	// Turn the hud off
@@ -264,6 +262,13 @@ void CGameUI::Think( void )
 		return;
 	}
 
+	if ( !pPlayer->IsAlive() )
+	{
+		pPlayer->RemoveFlag( FL_ONTRAIN );
+		Deactivate(pPlayer);
+		return;
+	}
+
 	// If we're forcing an update, state with a clean button state
 	if ( m_bForceUpdate )
 	{
@@ -293,7 +298,6 @@ void CGameUI::Think( void )
 	SetNextThink( gpGlobals->curtime );
 
 	// Deactivate if they jump or press +use.
-	// FIXME: prevent the use from going through in player.cpp
 	if ((( pPlayer->m_afButtonPressed & IN_USE ) && ( m_spawnflags & SF_GAMEUI_USE_DEACTIVATES )) ||
 		(( pPlayer->m_afButtonPressed & IN_JUMP ) && ( m_spawnflags & SF_GAMEUI_JUMP_DEACTIVATES )))
 	{

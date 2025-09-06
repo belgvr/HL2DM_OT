@@ -348,11 +348,17 @@ void CEnvExplosion::InputExplode( inputdata_t &inputdata )
 		RadiusDamage( info, GetAbsOrigin(), iRadius, m_iClassIgnore, m_hEntityIgnore.Get() );
 	}
 
+	if ( !( m_spawnflags & SF_ENVEXPLOSION_NODLIGHTS ) )
+	{
+		CBroadcastRecipientFilter filter2;
+		te->DynamicLight( filter2, 0.0, &GetAbsOrigin(), 255, 173, 41, 0, 200, 0.15, 0 );
+	}
+
 	SetThink( &CEnvExplosion::Smoke );
 	SetNextThink( gpGlobals->curtime + 0.3 );
 
 	// Only do these effects if we're not submerged
-	if ( UTIL_PointContents( GetAbsOrigin() ) & CONTENTS_WATER )
+	if ( !( UTIL_PointContents( GetAbsOrigin() ) & CONTENTS_WATER ) )
 	{
 		// draw sparks
 		if ( !( m_spawnflags & SF_ENVEXPLOSION_NOSPARKS ) )

@@ -34,15 +34,30 @@
 void Host_Say( edict_t *pEdict, bool teamonly );
 
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
+ConVar sv_displaymotd( "sv_displaymotd", "1", 0, "If enabled, display the MOTD to players after server entry." );
 
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
+extern int g_voters;
+
+void CBasePlayer::DelayedSpawn()
+{
+	Spawn();
+}
 
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
+	g_voters++;
 	pPlayer->InitialSpawn();
-	pPlayer->Spawn();
+	// Peter: I can't seem to find anything that would suggest 
+	// this would be broken after connecting to a server, but clearly, 
+	// delaying this fixes: 
+	// 
+	// 1) The spawning angles of 0, 0, 0 
+	// 2) Always spawning in showers on lockdown
+	pPlayer->SetContextThink( &CBasePlayer::DelayedSpawn, gpGlobals->curtime + 0.01f, "DelayedSnapEyeAngles" );
 
+	UTIL_SendConVarValue( pPlayer->edict(), "sv_wpn_sway_pred_legacy", "1" );
 
 	char sName[128];
 	Q_strncpy( sName, pPlayer->GetPlayerName(), sizeof( sName ) );
@@ -63,18 +78,26 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1\n", pPlayer->GetTeam()->GetName() );
 	}
 
-	const ConVar *hostname = cvar->FindVar( "hostname" );
-	const char *title = (hostname) ? hostname->GetString() : "MESSAGE OF THE DAY";
+	if ( pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
+	{
+		pPlayer->RemoveAllItems( true );
+	}
 
-	KeyValues *data = new KeyValues("data");
-	data->SetString( "title", title );		// info panel title
-	data->SetString( "type", "1" );			// show userdata from stringtable entry
-	data->SetString( "msg",	"motd" );		// use this stringtable entry
-	data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
+	if ( sv_displaymotd.GetBool() )
+	{
+		const ConVar *hostname = cvar->FindVar( "hostname" );
+		const char *title = ( hostname ) ? hostname->GetString() : "MESSAGE OF THE DAY";
 
-	pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
+		KeyValues *data = new KeyValues( "data" );
+		data->SetString( "title", title );		// info panel title
+		data->SetString( "type", "1" );			// show userdata from stringtable entry
+		data->SetString( "msg", "motd" );		// use this stringtable entry
+		data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
 
-	data->deleteThis();
+		pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
+
+		data->deleteThis();
+	}
 }
 
 /*
@@ -98,6 +121,8 @@ void ClientActive( edict_t *pEdict, bool bLoadGame )
 	Assert( !bLoadGame );
 
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( CBaseEntity::Instance( pEdict ) );
+	pPlayer->CompensateScoreOnTeamSwitch( false );
+	pPlayer->CompensateTeamScoreOnTeamSwitch( false );
 	FinishClientPutInServer( pPlayer );
 }
 

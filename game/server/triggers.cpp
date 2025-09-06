@@ -841,17 +841,20 @@ int CTriggerHurt::HurtAllTouchers( float dt )
 
 	m_hurtEntities.RemoveAll();
 
-	touchlink_t *root = ( touchlink_t * )GetDataObject( TOUCHLINK );
+	touchlink_t *root = ( touchlink_t * ) GetDataObject( TOUCHLINK );
 	if ( root )
 	{
-		for ( touchlink_t *link = root->nextLink; link != root; link = link->nextLink )
+		for ( touchlink_t *link = root->nextLink; link != root && link != nullptr; link = link->nextLink )
 		{
-			CBaseEntity *pTouch = link->entityTouched;
-			if ( pTouch )
+			if ( link )
 			{
-				if ( HurtEntity( pTouch, fldmg ) )
+				CBaseEntity *pTouch = link->entityTouched;
+				if ( pTouch )
 				{
-					hurtCount++;
+					if ( HurtEntity( pTouch, fldmg ) )
+					{
+						hurtCount++;
+					}
 				}
 			}
 		}
@@ -2190,13 +2193,11 @@ public:
 	
 	float m_flAlternateTicksFix; // Scale factor to apply to the push speed when running with alternate ticks
 	float m_flPushSpeed;
-	bool m_bFixLift;
 };
 
 BEGIN_DATADESC( CTriggerPush )
 	DEFINE_KEYFIELD( m_vecPushDir, FIELD_VECTOR, "pushdir" ),
 	DEFINE_KEYFIELD( m_flAlternateTicksFix, FIELD_FLOAT, "alternateticksfix" ),
-	DEFINE_KEYFIELD(m_bFixLift, FIELD_BOOLEAN, "liftfix"),
 	//DEFINE_FIELD( m_flPushSpeed, FIELD_FLOAT ),
 END_DATADESC()
 
@@ -2323,9 +2324,7 @@ void CTriggerPush::Touch( CBaseEntity *pOther )
 			{
 				pOther->SetGroundEntity( NULL );
 				Vector origin = pOther->GetAbsOrigin();
-				//origin.z += 16.0f; //trigger push fix by SpeedVoltage, credits to him!
-				if (m_bFixLift)
-					origin.z += 16.0f;
+				origin.z += 16.0f;
 				pOther->SetAbsOrigin( origin );
 			}
 
@@ -3169,8 +3168,13 @@ void CTriggerCamera::Enable( void )
 		if ( m_pPath->m_flSpeed != 0 )
 			m_targetSpeed = m_pPath->m_flSpeed;
 		
-		m_flStopTime += m_pPath->GetDelay();
+		// Compute the distance to the next path already
+		m_vecMoveDir = m_pPath->GetLocalOrigin() - GetLocalOrigin();
+		m_moveDistance = VectorNormalize( m_vecMoveDir );
+		m_flStopTime = gpGlobals->curtime + m_pPath->GetDelay();
 	}
+	else
+		m_moveDistance = 0.0f;
 
 
 	// copy over player information. If we're interpolating from
@@ -3210,7 +3214,7 @@ void CTriggerCamera::Enable( void )
 	}
 
 	// Only track if we have a target
-	if ( m_hTarget )
+	if ( m_hTarget || ( m_moveDistance > 0 && m_pPath ) || HasSpawnFlags( SF_CAMERA_PLAYER_INTERRUPT ) )
 	{
 		// follow the player down
 		SetThink( &CTriggerCamera::FollowTarget );
@@ -3291,7 +3295,7 @@ void CTriggerCamera::FollowTarget( )
 		return;
 	}
 
-	if ( !HasSpawnFlags(SF_CAMERA_PLAYER_INFINITE_WAIT) && (!m_hTarget || m_flReturnTime < gpGlobals->curtime) )
+	if ( ( !HasSpawnFlags( SF_CAMERA_PLAYER_INFINITE_WAIT ) && ( m_flReturnTime < gpGlobals->curtime ) ) || ( !m_hTarget && !m_pPath ) )
 	{
 		Disable();
 		return;
@@ -3363,9 +3367,9 @@ void CTriggerCamera::FollowTarget( )
 		}
 	}
 
-	SetNextThink( gpGlobals->curtime );
-
 	Move();
+
+	SetNextThink( gpGlobals->curtime );
 }
 
 void CTriggerCamera::Move()

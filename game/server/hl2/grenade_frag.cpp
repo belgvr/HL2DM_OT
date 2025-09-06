@@ -7,10 +7,11 @@
 
 #include "cbase.h"
 #include "basegrenade_shared.h"
-#include "grenade_frag.h"
+
 #include "Sprite.h"
 #include "SpriteTrail.h"
 #include "soundent.h"
+#include "grenade_frag.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -161,7 +162,7 @@ void CGrenadeFrag::Spawn(void)
 	CreateVPhysics();
 
 	BlipSound();
-	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY; //default grenade blip emitter
 
 	AddSolidFlags(FSOLID_NOT_STANDABLE);
 
@@ -253,12 +254,15 @@ void CGrenadeFrag::CreateEffects(void)
 		m_pMainGlow = CSprite::SpriteCreate(sv_grenade_frag_glow_sprite.GetString(), GetLocalOrigin(), false);
 	}
 
-	int	nAttachment = LookupAttachment("fuse");
+	//int	nAttachment = LookupAttachment("fuse");
+	Vector attachmentpos(0, 0, 8.5);
+	QAngle attachmentangle(0, 0, 90);
+	VectorAngles(attachmentpos, attachmentangle);
 
 	if (m_pMainGlow != NULL)
 	{
-		m_pMainGlow->FollowEntity(this);
-		m_pMainGlow->SetAttachment(this, nAttachment);
+		//m_pMainGlow->FollowEntity(this);
+		//m_pMainGlow->SetAttachment(this, nAttachment);
 
 		int r, g, b, a;
 		GetTeamColors(r, g, b, a, false); // false = glow color
@@ -266,18 +270,26 @@ void CGrenadeFrag::CreateEffects(void)
 
 		m_pMainGlow->SetScale(0.2f);
 		m_pMainGlow->SetGlowProxySize(4.0f);
+		m_pMainGlow->SetParent(this);
+
+		m_pMainGlow->SetLocalOrigin(attachmentpos);
+		m_pMainGlow->SetLocalAngles(attachmentangle);
+
+		m_pMainGlow->SetMoveType(MOVETYPE_NONE);
 	}
 
 	// Start up the eye trail
 	if (!m_pGlowTrail.Get())
-	{
+	//{
+	//	m_pGlowTrail = CSpriteTrail::SpriteTrailCreate(sv_grenade_frag_trail_sprite.GetString(), GetLocalOrigin(), false);
+	//}
 		m_pGlowTrail = CSpriteTrail::SpriteTrailCreate(sv_grenade_frag_trail_sprite.GetString(), GetLocalOrigin(), false);
-	}
+
 
 	if (m_pGlowTrail != NULL)
 	{
-		m_pGlowTrail->FollowEntity(this);
-		m_pGlowTrail->SetAttachment(this, nAttachment);
+		//m_pGlowTrail->FollowEntity(this);
+		//m_pGlowTrail->SetAttachment(this, nAttachment);
 
 		int r, g, b, a;
 		GetTeamColors(r, g, b, a, true); // true = trail color
@@ -286,6 +298,12 @@ void CGrenadeFrag::CreateEffects(void)
 		m_pGlowTrail->SetStartWidth(sv_grenade_frag_trail_startwidth.GetFloat());
 		m_pGlowTrail->SetEndWidth(sv_grenade_frag_trail_endwidth.GetFloat());
 		m_pGlowTrail->SetLifeTime(sv_grenade_frag_trail_lifetime.GetFloat());
+		m_pGlowTrail->SetParent(this);
+
+		m_pGlowTrail->SetLocalOrigin(attachmentpos);
+		m_pGlowTrail->SetLocalAngles(attachmentangle);
+
+		m_pGlowTrail->SetMoveType(MOVETYPE_NONE);
 	}
 }
 // ==================================================================================================
@@ -470,11 +488,13 @@ void CGrenadeFrag::DelayThink()
 
 		if (m_bHasWarnedAI)
 		{
-			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
+			//m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
+			m_flNextBlipTime += FRAG_GRENADE_BLIP_FAST_FREQUENCY; // Keep time accumulated to avoid sound "drift"
 		}
 		else
 		{
-			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+			//m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+			m_flNextBlipTime += FRAG_GRENADE_BLIP_FREQUENCY; // Keep time accumulated to avoid sound "drift"
 		}
 	}
 

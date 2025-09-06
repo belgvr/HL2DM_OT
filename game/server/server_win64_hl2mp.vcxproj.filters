@@ -22,6 +22,9 @@
     <Filter Include="Source Files\HL2MP">
       <UniqueIdentifier>{C4D7E991-DE41-ABD2-99C9-7287C3E94312}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\HL2MP\Admin">
+      <UniqueIdentifier>{4886FCA5-4111-E931-AC91-2E1D59ED4C44}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\HL2MP\Bots">
       <UniqueIdentifier>{25440E75-CB14-57C6-335B-A326A231C4C1}</UniqueIdentifier>
     </Filter>
@@ -1454,6 +1457,9 @@
     <ClInclude Include="serverbenchmark_base.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="serverboottime.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
     <ClInclude Include="ServerNetworkProperty.h">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -1763,9 +1769,6 @@
     <ClInclude Include="hl2\weapon_alyxgun.h">
       <Filter>Source Files\HL2 DLL</Filter>
     </ClInclude>
-    <ClInclude Include="hl2\weapon_crowbar.h">
-      <Filter>Source Files\HL2 DLL</Filter>
-    </ClInclude>
     <ClInclude Include="hl2\grenade_beam.h">
       <Filter>Source Files\HL2 DLL\unused</Filter>
     </ClInclude>
@@ -1792,6 +1795,9 @@
     </ClInclude>
     <ClInclude Include="..\shared\hl2mp\hl2mp_weapon_parse.h">
       <Filter>Source Files\HL2MP</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2mp\admin\hl2mp_serveradmin.h">
+      <Filter>Source Files\HL2MP\Admin</Filter>
     </ClInclude>
     <ClInclude Include="hl2mp\bot\hl2mp_bot.h">
       <Filter>Source Files\HL2MP\Bots</Filter>
@@ -2020,6 +2026,12 @@
     </ClInclude>
     <ClInclude Include="toolframework_server.h">
       <Filter>Tools Framework</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2\weapon_crowbar.h">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClInclude>
+    <ClInclude Include="weapon_stunstick.h">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -2947,6 +2959,9 @@
     <ClCompile Include="serverbenchmark_base.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="serverboottime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="ServerNetworkProperty.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -3023,6 +3038,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\shared\hl2\survival_gamerules.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sv_version.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tactical_mission.cpp">
@@ -3511,6 +3529,9 @@
     <ClCompile Include="..\shared\hl2mp\hl2mp_weapon_parse.cpp">
       <Filter>Source Files\HL2MP</Filter>
     </ClCompile>
+    <ClCompile Include="hl2mp\admin\hl2mp_serveradmin.cpp">
+      <Filter>Source Files\HL2MP\Admin</Filter>
+    </ClCompile>
     <ClCompile Include="hl2mp\bot\hl2mp_bot.cpp">
       <Filter>Source Files\HL2MP\Bots</Filter>
     </ClCompile>
@@ -3896,7 +3917,9 @@
       <Filter>Tools Framework</Filter>
     </ClCompile>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <None Include="cpp.hint" />
+  </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="spawn_helper.nut">
       <Filter>Source Files</Filter>

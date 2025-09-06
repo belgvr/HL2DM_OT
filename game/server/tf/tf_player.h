@@ -1056,7 +1056,7 @@ public:
 	int					GetPrevRoundTeamNum( void ){ return m_nPrevRoundTeamNum; }
 
 	// Talk control
-	virtual bool		CanPlayerTalk() OVERRIDE;
+	virtual bool		CanPlayerTalk();
 
 protected:
 

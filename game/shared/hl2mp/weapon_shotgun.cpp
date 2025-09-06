@@ -22,10 +22,7 @@
 
 extern ConVar sk_auto_reload_time;
 extern ConVar sk_plr_num_shotgun_pellets;
-extern ConVar sv_shotgun_swap_fix;
-
-ConVar sv_shotgun_swap_fix("sv_shotgun_swap_fix", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Prevent shotgun from reloading when quickly weapon swapped after firing (0 = disabled, 1 = enabled)");
-
+ConVar sv_shotgun_pump("sv_shotgun_pump","1",0,	"Defines the shotgun pump when deploying the shotgun. \	1: Default, 2: No pump, 3: Always pump");
 class CWeaponShotgun : public CBaseHL2MPCombatWeapon
 {
 public:
@@ -149,11 +146,17 @@ bool CWeaponShotgun::StartReload( void )
 
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
 
+	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+
+	if ( pPlayer )
+		pPlayer->SetAnimation( PLAYER_RELOAD );
+
 	// Make shotgun shell visible
 	SetBodygroup(1,0);
 
-	pOwner->m_flNextAttack = gpGlobals->curtime;
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+	float flSequenceEndTime = gpGlobals->curtime + SequenceDuration();
+	pOwner->SetNextAttack( flSequenceEndTime );
+	m_flNextPrimaryAttack = flSequenceEndTime;
 
 	m_bInReload = true;
 	return true;
@@ -586,44 +589,53 @@ CWeaponShotgun::CWeaponShotgun( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::ItemHolsterFrame(void)
+void CWeaponShotgun::ItemHolsterFrame( void )
 {
+	m_bInReload = false;
+
 	// Must be player held
-	if (GetOwner() && GetOwner()->IsPlayer() == false)
+	if ( GetOwner() && GetOwner()->IsPlayer() == false )
 		return;
 
 	// We can't be active
-	if (GetOwner()->GetActiveWeapon() == this)
+	if ( GetOwner()->GetActiveWeapon() == this )
 		return;
 
-	// If shotgun swap fix is enabled, check if we recently fired another weapon
-	if (sv_shotgun_swap_fix.GetBool())
-	{
-		CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-		if (pPlayer && pPlayer->m_flNextAttack > gpGlobals->curtime)
-		{
-			// Player recently fired another weapon, don't start reload
-			return;
-		}
-	}
-
 	// If it's been longer than three seconds, reload
-	if ((gpGlobals->curtime - m_flHolsterTime) > sk_auto_reload_time.GetFloat())
+	if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
 	{
 		// Reset the timer
 		m_flHolsterTime = gpGlobals->curtime;
-
-		if (GetOwner() == NULL)
+	
+		if ( GetOwner() == NULL )
 			return;
 
-		if (m_iClip1 == GetMaxClip1())
+		if ( m_iClip1 == GetMaxClip1() )
 			return;
 
 		// Just load the clip with no animations
-		int ammoFill = MIN((GetMaxClip1() - m_iClip1), GetOwner()->GetAmmoCount(GetPrimaryAmmoType()));
-
-		GetOwner()->RemoveAmmo(ammoFill, GetPrimaryAmmoType());
+		int ammoFill = MIN( (GetMaxClip1() - m_iClip1), GetOwner()->GetAmmoCount( GetPrimaryAmmoType() ) );
+		
+		GetOwner()->RemoveAmmo( ammoFill, GetPrimaryAmmoType() );
 		m_iClip1 += ammoFill;
+	}
+
+	m_bDelayedFire1 = false;
+	m_bDelayedFire2 = false;
+
+	int iNeedPump = sv_shotgun_pump.GetInt();
+
+	switch (iNeedPump)
+	{
+	default:
+		// Do nothing, retain the current state of m_bNeedPump
+		break;
+	case 2:
+		m_bNeedPump = false;
+		break;
+	case 3:
+		m_bNeedPump = true;
+		break;
 	}
 }
 

@@ -300,7 +300,7 @@ void CBaseButton::InputPressOut( inputdata_t &inputdata )
 //-----------------------------------------------------------------------------
 int CBaseButton::OnTakeDamage( const CTakeDamageInfo &info )
 {
-	m_OnDamaged.FireOutput(m_hActivator, this);
+	m_OnDamaged.FireOutput( info.GetAttacker(), this );
 
 	// dvsents2: remove obselete health keyvalue from func_button
 	if (!HasSpawnFlags(SF_BUTTON_DAMAGE_ACTIVATES) && (m_iHealth == 0))
@@ -897,6 +897,11 @@ void CRotButton::Spawn( void )
 	m_fRotating = TRUE;
 
 	SetUse(&CRotButton::ButtonUse);
+
+	if ( HasSpawnFlags( SF_BUTTON_LOCKED ) )
+	{
+		m_bLocked = true;
+	}
 
 	//
 	// If touching activates the button, set its touch function.

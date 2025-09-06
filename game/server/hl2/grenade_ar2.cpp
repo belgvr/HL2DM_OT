@@ -16,6 +16,9 @@
 #include "vstdlib/random.h"
 #include "engine/IEngineSound.h"
 #include "world.h"
+#include "func_breakablesurf.h"
+#include "game.h"
+#include "particle_parse.h"
 
 #ifdef PORTAL
 	#include "portal_util_shared.h"
@@ -42,6 +45,8 @@ BEGIN_DATADESC( CGrenadeAR2 )
 	DEFINE_FIELD( m_hSmokeTrail, FIELD_EHANDLE ),
 	DEFINE_FIELD( m_fSpawnTime, FIELD_TIME ),
 	DEFINE_FIELD( m_fDangerRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( m_vecVelocity, FIELD_VECTOR ),
+	DEFINE_FIELD( m_bTouched, FIELD_BOOLEAN ),
 
 	// Function pointers
 	DEFINE_ENTITYFUNC( GrenadeAR2Touch ),
@@ -82,6 +87,8 @@ void CGrenadeAR2::Spawn( void )
 	m_takedamage	= DAMAGE_YES;
 	m_bIsLive		= true;
 	m_iHealth		= 1;
+	m_bTouched = false;
+	m_vecVelocity = vec3_origin;
 
 	SetGravity( UTIL_ScaleForGravity( 400 ) );	// use a lower gravity for grenades to make them easier to see
 	SetFriction( 0.8 );
@@ -91,30 +98,7 @@ void CGrenadeAR2::Spawn( void )
 
 	m_fSpawnTime = gpGlobals->curtime;
 
-	// -------------
-	// Smoke trail.
-	// -------------
-	if( g_CV_SmokeTrail.GetInt() && !IsXbox() )
-	{
-		m_hSmokeTrail = SmokeTrail::CreateSmokeTrail();
-		
-		if( m_hSmokeTrail )
-		{
-			m_hSmokeTrail->m_SpawnRate = 48;
-			m_hSmokeTrail->m_ParticleLifetime = 1;
-			m_hSmokeTrail->m_StartColor.Init(0.1f, 0.1f, 0.1f);
-			m_hSmokeTrail->m_EndColor.Init(0,0,0);
-			m_hSmokeTrail->m_StartSize = 12;
-			m_hSmokeTrail->m_EndSize = m_hSmokeTrail->m_StartSize * 4;
-			m_hSmokeTrail->m_SpawnRadius = 4;
-			m_hSmokeTrail->m_MinSpeed = 4;
-			m_hSmokeTrail->m_MaxSpeed = 24;
-			m_hSmokeTrail->m_Opacity = 0.2f;
-
-			m_hSmokeTrail->SetLifetime(10.0f);
-			m_hSmokeTrail->FollowEntity(this);
-		}
-	}
+	
 }
 
 //-----------------------------------------------------------------------------
@@ -127,6 +111,7 @@ void CGrenadeAR2::Spawn( void )
 void CGrenadeAR2::GrenadeAR2Think( void )
 {
 	SetNextThink( gpGlobals->curtime + 0.05f );
+	DispatchParticleEffect( "Rocket_Smoke_Trail", PATTACH_ABSORIGIN_FOLLOW, this, true, true );
 
 	if (!m_bIsLive)
 	{
@@ -146,6 +131,12 @@ void CGrenadeAR2::GrenadeAR2Think( void )
 		{
 			Detonate();
 		}
+	}
+
+	if ( m_bTouched )
+	{
+		SetAbsVelocity( m_vecVelocity );
+		m_bTouched = false;
 	}
 
 	// The old way of making danger sounds would scare EVERYONE between you and where the grenade
@@ -169,6 +160,19 @@ void CGrenadeAR2::GrenadeAR2Touch( CBaseEntity *pOther )
 	Assert( pOther );
 	if ( !pOther->IsSolid() )
 		return;
+
+	if ( FClassnameIs( pOther, "func_breakable_surf" ) && mp_smg1_alt_glass.GetBool() )
+	{
+		auto pBreakable = static_cast< CBreakableSurface * >( pOther );
+
+		if ( pBreakable )
+		{
+			m_bTouched = true;
+			m_vecVelocity = GetAbsVelocity();
+			pBreakable->Die(this, m_vecVelocity);
+			return;
+		}
+	}
 
 	// If I'm live go ahead and blow up
 	if (m_bIsLive)
@@ -244,6 +248,7 @@ void CGrenadeAR2::Detonate(void)
 void CGrenadeAR2::Precache( void )
 {
 	PrecacheModel("models/Weapons/ar2_grenade.mdl"); 
+	PrecacheParticleSystem( "Rocket_Smoke_Trail" );
 }
 
 

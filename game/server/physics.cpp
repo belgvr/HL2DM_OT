@@ -14,6 +14,9 @@
 #include "vcollide_parse.h"
 #include "soundenvelope.h"
 #include "game.h"
+#ifdef HL2MP
+#include "hl2mp_cvars.h"
+#endif
 #include "utlvector.h"
 #include "init_factory.h"
 #include "igamesystem.h"
@@ -971,6 +974,38 @@ int CCollisionEvent::ShouldSolvePenetration( IPhysicsObject *pObj0, IPhysicsObje
 	// Pointers to the entity for each physics object
 	CBaseEntity *pEntity0 = static_cast<CBaseEntity *>(pGameData0);
 	CBaseEntity *pEntity1 = static_cast<CBaseEntity *>(pGameData1);
+
+	// Determine if one of the entities is a player
+	CBasePlayer *pPlayer = nullptr;
+	CBaseEntity *pOtherEntity = nullptr;
+
+	if ( pEntity0->IsPlayer() )
+	{
+		pPlayer = static_cast< CBasePlayer * >( pEntity0 );
+		pOtherEntity = pEntity1;
+	}
+	else if ( pEntity1->IsPlayer() )
+	{
+		pPlayer = static_cast< CBasePlayer * >( pEntity1 );
+		pOtherEntity = pEntity0;
+	}
+
+	// pre-ob prop fly
+	if ( sv_propflying.GetBool() )
+	{
+		if ( pPlayer && pOtherEntity )
+		{
+			pPlayer->UpdatePenetrationTime( gpGlobals->curtime );
+
+			pPlayer->SetCheckForPenetration( true );
+
+			if ( pPlayer->GetLaggedMovementValue() != 1.1f )
+			{
+				pPlayer->SetLaggedMovementValue( 1.1f );
+				DevMsg( "Increased player movement speed due to penetration.\n" );
+			}
+		}
+	}
 
 	// this can get called as entities are being constructed on the other side of a game load or level transition
 	// Some entities may not be fully constructed, so don't call into their code until the level is running
@@ -2289,6 +2324,9 @@ void CCollisionEvent::AddTouchEvent( CBaseEntity *pEntity0, CBaseEntity *pEntity
 void CCollisionEvent::AddDamageEvent( CBaseEntity *pEntity, const CTakeDamageInfo &info, IPhysicsObject *pInflictorPhysics, bool bRestoreVelocity, const Vector &savedVel, const AngularImpulse &savedAngVel )
 {
 	if ( pEntity->IsMarkedForDeletion() )
+		return;
+
+	if ( !pEntity->VPhysicsGetObject() )
 		return;
 
 	int iTimeBasedDamage = g_pGameRules->Damage_GetTimeBased();

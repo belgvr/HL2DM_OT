@@ -15,6 +15,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+ConVar sv_ammo_crate_exploit_fix("sv_ammo_crate_exploit_fix", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fix ammo crate exploit (0=original behavior, 1=fixed)");
+
 //---------------------------------------------------------
 // Applies ammo quantity scale.
 //---------------------------------------------------------
@@ -877,12 +879,18 @@ void CItem_AmmoCrate::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	if ( pPlayer == NULL )
 		return;
 
+	if ( m_flCloseTime > gpGlobals->curtime )
+		return;
+
+	if ( !pPlayer->IsAlive() )
+		return;
+
 	m_OnUsed.FireOutput( pActivator, this );
 
 	int iSequence = LookupSequence( "Open" );
 
 	// See if we're not opening already
-	if ( GetSequence() != iSequence )
+	if ( GetSequence() != iSequence && pPlayer->IsAlive() )
 	{
 		Vector mins, maxs;
 		trace_t tr;
@@ -921,24 +929,37 @@ void CItem_AmmoCrate::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 //-----------------------------------------------------------------------------
 // Purpose: allows the crate to open up when hit by a crowbar
 //-----------------------------------------------------------------------------
-int CItem_AmmoCrate::OnTakeDamage( const CTakeDamageInfo &info )
+int CItem_AmmoCrate::OnTakeDamage(const CTakeDamageInfo& info)
 {
-	// if it's the player hitting us with a crowbar, open up
-	CBasePlayer *player = ToBasePlayer(info.GetAttacker());
+	CBasePlayer* player = ToBasePlayer(info.GetAttacker());
 	if (player)
 	{
-		CBaseCombatWeapon *weapon = player->GetActiveWeapon();
+		CBaseCombatWeapon* weapon = player->GetActiveWeapon();
 
-		if (weapon && !stricmp(weapon->GetName(), "weapon_crowbar"))
+		if (weapon && (!stricmp(weapon->GetName(), "weapon_crowbar") ||
+			!stricmp(weapon->GetName(), "weapon_stunstick")))
 		{
-			// play the normal use sound
-			player->EmitSound( "HL2Player.Use" );
-			// open the crate
-			Use(info.GetAttacker(), info.GetAttacker(), USE_TOGGLE, 0.0f);
+			// Verificar se o fix está ativo
+			if (sv_ammo_crate_exploit_fix.GetBool())
+			{
+				// MODO CORRIGIDO: Só abre com dano corpo-a-corpo direto
+				if ((info.GetDamageType() & DMG_CLUB) &&
+					info.GetWeapon() &&
+					(info.GetWeapon() == weapon))
+				{
+					player->EmitSound("HL2Player.Use");
+					Use(info.GetAttacker(), info.GetAttacker(), USE_TOGGLE, 0.0f);
+				}
+			}
+			else
+			{
+				// MODO ORIGINAL: Abre com qualquer dano se tiver crowbar
+				player->EmitSound("HL2Player.Use");
+				Use(info.GetAttacker(), info.GetAttacker(), USE_TOGGLE, 0.0f);
+			}
 		}
 	}
 
-	// don't actually take any damage
 	return 0;
 }
 

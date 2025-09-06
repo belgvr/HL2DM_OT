@@ -69,7 +69,12 @@
 #include "dt_utlvector_send.h"
 #include "vote_controller.h"
 #include "ai_speech.h"
+#ifdef HL2MP
+#include "hl2mp_gamerules.h"
 
+
+
+#endif
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
 #endif
@@ -92,17 +97,23 @@ ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.7", FCVAR_CHEAT | FC
 ConVar	spec_freeze_time( "spec_freeze_time", "4.0", FCVAR_CHEAT | FCVAR_REPLICATED, "Time spend frozen in observer freeze cam." );
 ConVar	spec_freeze_traveltime( "spec_freeze_traveltime", "0.4", FCVAR_CHEAT | FCVAR_REPLICATED, "Time taken to zoom in to frame a target in observer freeze cam.", true, 0.01, false, 0 );
 #endif
-
 ConVar sv_bonus_challenge( "sv_bonus_challenge", "0", FCVAR_REPLICATED, "Set to values other than 0 to select a bonus map challenge type." );
 
+
+
+/*
 ConVar sv_chat_bucket_size_tier1( "sv_chat_bucket_size_tier1", "4", FCVAR_NONE, "The maxmimum size of the short term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier1( "sv_chat_seconds_per_msg_tier1", "3", FCVAR_NONE, "The number of seconds to accrue an additional short term chat msg." );
 ConVar sv_chat_bucket_size_tier2( "sv_chat_bucket_size_tier2", "30", FCVAR_NONE, "The maxmimum size of the long term chat msg bucket." );
 ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCVAR_NONE, "The number of seconds to accrue an additional long term chat msg." );
+*/
 
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
-ConVar sv_ear_ring("sv_ear_ring",	"0",	FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Ativa/Desativa o efeito de ear ringing quando o player leva explosão (0 = off, 1 = on)");
+ConVar sv_ear_ring("sv_ear_ring", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the ear-ringing effect when the player is hit by an explosion (0 = off, 1 = on)");
+
+
+
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -586,6 +597,8 @@ CBasePlayer::CBasePlayer( )
 	pl.frags = 0;
 	pl.deaths = 0;
 
+	m_bAllowPickupWeaponThroughObstacle = false;
+
 	m_szNetname[0] = '\0';
 
 	m_iHealth = 0;
@@ -594,6 +607,7 @@ CBasePlayer::CBasePlayer( )
 
 	m_bForceOrigin = false;
 	m_hVehicle = NULL;
+	m_hUseEntity = NULL;
 	m_pCurrentCommand = NULL;
 	m_iLockViewanglesTickNumber = 0;
 	m_qangLockViewangles.Init();
@@ -868,6 +882,9 @@ void CBasePlayer::DeathSound( const CTakeDamageInfo &info )
 
 int CBasePlayer::TakeHealth( float flHealth, int bitsDamageType )
 {
+	if ( !IsAlive() )
+		return 0;
+
 	// clear out any damage types we healed.
 	// UNDONE: generic health should not heal any
 	// UNDONE: time-based damage
@@ -1694,6 +1711,7 @@ void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 	// NVNT set the drag to zero in the case of underwater death.
 	HapticSetDrag(this,0);
 #endif
+	ClearZoomOwner();
 	ClearUseEntity();
 	
 	// this client isn't going to be thinking for a while, so reset the sound until they respawn
@@ -1759,8 +1777,8 @@ void CBasePlayer::Event_Killed( const CTakeDamageInfo &info )
 void CBasePlayer::Event_Dying( const CTakeDamageInfo& info )
 {
 	// NOT GIBBED, RUN THIS CODE
-
-	DeathSound( info );
+	if ( !IsDisconnecting() )
+		DeathSound( info );
 
 	// The dead body rolls out of the vehicle.
 	if ( IsInAVehicle() )
@@ -1977,7 +1995,8 @@ void CBasePlayer::WaterMove()
 		
 		if (m_AirFinished < gpGlobals->curtime)
 		{
-			EmitSound( "Player.DrownStart" );
+			if ( GetWaterLevel() == WL_Waist )
+				EmitSound( "Player.DrownStart" );
 		}
 
 		m_AirFinished = gpGlobals->curtime + AIRTIME;
@@ -2096,16 +2115,16 @@ void CBasePlayer::ShowViewPortPanel( const char * name, bool bShow, KeyValues *d
 }
 
 
-void CBasePlayer::PlayerDeathThink(void)
+void CBasePlayer::PlayerDeathThink( void )
 {
 	float flForward;
 
 	SetNextThink( gpGlobals->curtime + 0.1f );
 
-	if (GetFlags() & FL_ONGROUND)
+	if ( GetFlags() & FL_ONGROUND )
 	{
 		flForward = GetAbsVelocity().Length() - 20;
-		if (flForward <= 0)
+		if ( flForward <= 0 )
 		{
 			SetAbsVelocity( vec3_origin );
 		}
@@ -2127,60 +2146,65 @@ void CBasePlayer::PlayerDeathThink(void)
 		PackDeadPlayerItems();
 	}
 
-	if (GetModelIndex() && (!IsSequenceFinished()) && (m_lifeState == LIFE_DYING))
+	if ( GetModelIndex() && ( !IsSequenceFinished() ) && ( m_lifeState == LIFE_DYING ) )
 	{
-		StudioFrameAdvance( );
+		StudioFrameAdvance();
 
 		m_iRespawnFrames++;
 		if ( m_iRespawnFrames < 60 )  // animations should be no longer than this
 			return;
 	}
 
-	if (m_lifeState == LIFE_DYING)
+	if ( m_lifeState == LIFE_DYING )
 	{
 		m_lifeState = LIFE_DEAD;
 		m_flDeathAnimTime = gpGlobals->curtime;
 	}
-	
+
 	StopAnimation();
+
+	Extinguish();
 
 	IncrementInterpolationFrame();
 	m_flPlaybackRate = 0.0;
-	
-	int fAnyButtonDown = (m_nButtons & ~IN_SCORE);
-	
+
+	int fAnyButtonDown = ( m_nButtons & ~IN_SCORE );
+
 	// Strip out the duck key from this check if it's toggled
-	if ( (fAnyButtonDown & IN_DUCK) && GetToggledDuckState())
+	if ( ( fAnyButtonDown & IN_DUCK ) && GetToggledDuckState() )
 	{
 		fAnyButtonDown &= ~IN_DUCK;
 	}
 
 	// wait for all buttons released
-	if (m_lifeState == LIFE_DEAD)
+	if ( m_lifeState == LIFE_DEAD )
 	{
-		if (fAnyButtonDown)
+		if ( fAnyButtonDown && ( gpGlobals->curtime > ( m_flDeathTime + 5 ) ) )
+		{
+			respawn( this, !IsObserver() );// don't copy a corpse if we're in deathcam.
 			return;
+		}
 
 		if ( g_pGameRules->FPlayerCanRespawn( this ) )
 		{
 			m_lifeState = LIFE_RESPAWNABLE;
 		}
-		
+
 		return;
 	}
 
-// if the player has been dead for one second longer than allowed by forcerespawn, 
-// forcerespawn isn't on. Send the player off to an intermission camera until they 
-// choose to respawn.
-	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > (m_flDeathTime + DEATH_ANIMATION_TIME) ) && !IsObserver() )
+	// if the player has been dead for one second longer than allowed by forcerespawn, 
+	// forcerespawn isn't on. Send the player off to an intermission camera until they 
+	// choose to respawn.
+	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > ( m_flDeathTime + DEATH_ANIMATION_TIME ) ) && !IsObserver() )
 	{
 		// go to dead camera. 
 		StartObserverMode( m_iObserverLastMode );
 	}
-	
-// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
-	if (!fAnyButtonDown 
-		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && (gpGlobals->curtime > (m_flDeathTime + 5))) )
+
+	// wait for any button down,  or mp_forcerespawn is set and the respawn time is up
+	if ( !fAnyButtonDown
+		&& !( g_pGameRules->IsMultiplayer() && forcerespawn.GetInt() > 0 && ( gpGlobals->curtime > ( m_flDeathTime + 5 ) ) ) )
 		return;
 
 	m_nButtons = 0;
@@ -2293,7 +2317,7 @@ bool CBasePlayer::StartObserverMode(int mode)
 	
     AddSolidFlags( FSOLID_NOT_SOLID );
 
-	SetObserverMode( mode );
+	SetObserverMode( OBS_MODE_ROAMING );
 
 	if ( gpGlobals->eLoadType != MapLoad_Background )
 	{
@@ -2301,7 +2325,8 @@ bool CBasePlayer::StartObserverMode(int mode)
 	}
 	
 	// Setup flags
-    m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+	m_Local.m_iHideHUD = HIDEHUD_HEALTH;
+
 	m_takedamage = DAMAGE_NO;		
 
 	// Become invisible
@@ -2637,6 +2662,17 @@ void CBasePlayer::ObserverUse( bool bIsPressed )
 
 void CBasePlayer::JumptoPosition(const Vector &origin, const QAngle &angles)
 {
+	Vector neworigin;
+	QAngle newangles;
+	// Clamp the position and angles to prevent crashes
+	neworigin.x = clamp( origin.x, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	neworigin.y = clamp( origin.y, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	neworigin.z = clamp( origin.z, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+
+	newangles.x = clamp( angles.x, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	newangles.y = clamp( angles.y, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+	newangles.z = clamp( angles.z, MIN_COORD_FLOAT, MAX_COORD_FLOAT );
+
 	SetAbsOrigin( origin );
 	SetAbsVelocity( vec3_origin );	// stop movement
 	SetLocalAngles( angles );
@@ -2896,6 +2932,10 @@ float CBasePlayer::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 	return 0;
 }
 
+CBaseEntity *CBasePlayer::GetHeldObject( void )
+{
+	return NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose:	Server side of jumping rules.  Most jumping logic is already
@@ -4650,6 +4690,29 @@ void CBasePlayer::PostThink()
 		ClientSettingsChanged();
 	}
 
+	if ( IsObserver() )
+	{
+		if ( m_iObserverMode == OBS_MODE_POI || m_iObserverMode == OBS_MODE_FIXED )
+		{
+			// Remove a pointless second third person view
+			m_iObserverMode = OBS_MODE_ROAMING;
+		}
+
+		if ( m_iObserverLastMode == OBS_MODE_ROAMING )
+		{
+			SetMoveType( MOVETYPE_OBSERVER );
+		}
+
+		if ( m_iObserverMode != OBS_MODE_IN_EYE )
+		{
+			m_Local.m_iHideHUD = HIDEHUD_CROSSHAIR;
+		}
+		else
+		{
+			m_Local.m_iHideHUD &= ~HIDEHUD_CROSSHAIR;
+		}
+	}
+
 	m_vecSmoothedVelocity = m_vecSmoothedVelocity * SMOOTHING_FACTOR + GetAbsVelocity() * ( 1 - SMOOTHING_FACTOR );
 
 	if ( !g_fGameOver && !m_iPlayerLocked )
@@ -6095,13 +6158,16 @@ void CBasePlayer::ImpulseCommands( )
 
 			pWeapon = GetActiveWeapon();
 			
-			if( pWeapon->IsEffectActive( EF_NODRAW ) )
+			if ( pWeapon )
 			{
-				pWeapon->Deploy();
-			}
-			else
-			{
-				pWeapon->Holster();
+				if ( pWeapon->IsEffectActive( EF_NODRAW ) )
+				{
+					pWeapon->Deploy();
+				}
+				else
+				{
+					pWeapon->Holster();
+				}
 			}
 		}
 		break;
@@ -6342,6 +6408,7 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		EquipSuit();
 
 		// Give the player everything!
+		
 		GiveAmmo( 255,	"Pistol");
 		GiveAmmo( 255,	"AR2");
 		GiveAmmo( 5,	"AR2AltFire");
@@ -6394,6 +6461,58 @@ void CBasePlayer::CheatImpulseCommands( int iImpulse )
 		}
 		break;
 
+	case 104:
+		SetHealth(100);
+		SetArmorValue(200);
+		EmitSound("HealthKit.Touch");
+		break;
+	case 105:
+		// Executar primeiro o código do case 101
+		//gEvilImpulse101 = true;
+		EquipSuit();
+		SetHealth(100);
+		SetArmorValue(200);
+		// Give the player everything!
+		GiveAmmo(255, "Pistol");
+		GiveAmmo(255, "AR2");
+		GiveAmmo(5, "AR2AltFire");
+		GiveAmmo(255, "SMG1");
+		GiveAmmo(255, "Buckshot");
+		GiveAmmo(3, "smg1_grenade");
+		GiveAmmo(3, "rpg_round");
+		GiveAmmo(5, "grenade");
+		GiveAmmo(32, "357");
+		GiveAmmo(16, "XBowBolt");
+#ifdef HL2_EPISODIC
+		GiveAmmo(5, "Hopwire");
+#endif		
+		GiveNamedItem("weapon_smg1");
+		GiveNamedItem("weapon_frag");
+		GiveNamedItem("weapon_crowbar");
+		GiveNamedItem("weapon_stunstick");
+		GiveNamedItem("weapon_pistol");
+		GiveNamedItem("weapon_ar2");
+		GiveNamedItem("weapon_shotgun");
+		GiveNamedItem("weapon_physcannon");
+		//GiveNamedItem("weapon_bugbait");
+		GiveNamedItem("weapon_rpg");
+		GiveNamedItem("weapon_357");
+		GiveNamedItem("weapon_crossbow");
+		GiveNamedItem("weapon_slam");
+#ifdef HL2_EPISODIC
+		// GiveNamedItem( "weapon_magnade" );
+#endif
+		if (GetHealth() < 100)
+		{
+			TakeHealth(25, DMG_GENERIC);
+		}
+		gEvilImpulse101 = false;
+
+		// Executar depois o código do case 104
+		SetHealth(100);
+		SetArmorValue(200);
+		EmitSound("HealthKit.Touch");
+		break;
 	case 106:
 		// Give me the classname and targetname of this entity.
 		pEntity = FindEntityForward( this, true );
@@ -6613,6 +6732,11 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 		else
 		{
 			// switch to next spec mode if no parameter given
+			CBaseEntity *target = FindNextObserverTarget( false );
+
+			if ( !target )
+				return true;
+			
  			mode = GetObserverMode() + 1;
 			
 			if ( mode > LAST_PLAYER_OBSERVERMODE )
@@ -6654,6 +6778,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			{
 				SetObserverTarget( target );
 			}
+			else
+			{
+				SetObserverMode( OBS_MODE_ROAMING );
+			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
 		{
@@ -6672,6 +6800,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			{
 				SetObserverTarget( target );
 			}
+			else
+			{
+				SetObserverMode( OBS_MODE_ROAMING );
+			}
 		}
 		else if ( GetObserverMode() == OBS_MODE_FREEZECAM )
 		{
@@ -6689,6 +6821,10 @@ bool CBasePlayer::ClientCommand( const CCommand &args )
 			if ( IsValidObserverTarget( target ) )
 			{
 				SetObserverTarget( target );
+			}
+			else
+			{
+				SetObserverMode( OBS_MODE_ROAMING );
 			}
 		}
 
@@ -6963,11 +7099,13 @@ void CBasePlayer::UpdateClientData( void )
 			{
 				variant_t value;
 				g_EventQueue.AddEvent( "game_player_manager", "OnPlayerJoin", value, 0, this, this );
+				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
 			}
 		}
 
 		variant_t value;
 		g_EventQueue.AddEvent( "game_player_manager", "OnPlayerSpawn", value, 0, this, this );
+		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
 	}
 
 	// HACKHACK -- send the message to display the game title
@@ -7651,7 +7789,6 @@ void CBasePlayer::PlayWearableAnimsForPlaybackEvent( wearableanimplayback_t iPla
 //-----------------------------------------------------------------------------
 // Purpose: Put the player in the specified team
 //-----------------------------------------------------------------------------
-
 void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool bAutoBalance /*= false*/ )
 {
 	if ( !GetGlobalTeam( iTeamNum ) )
@@ -7688,7 +7825,25 @@ void CBasePlayer::ChangeTeam( int iTeamNum, bool bAutoTeam, bool bSilent, bool b
 	{
 		GetTeam()->RemovePlayer( this );
 	}
-
+#ifdef HL2MP
+/*
+	if ( GameRules()->IsTeamplay() && iTeamNum != 1 && !IsDisconnecting() && !IsCompensatingTeamScoreOnTeamSwitch() )
+	{
+		CTeam *pCombine = g_Teams[ TEAM_COMBINE ];
+		CTeam *pRebels = g_Teams[ TEAM_REBELS ];
+		if ( iTeamNum == 3 && IsAlive() )
+		{
+			pRebels->AddScore( 1 );
+		}
+		else if ( iTeamNum == 2 && IsAlive() )
+		{
+			pCombine->AddScore( 1 );
+		}
+		CompensateTeamScoreOnTeamSwitch( true );
+	}
+*/
+#endif
+		
 	// Are we being added to a team?
 	if ( iTeamNum )
 	{
@@ -8102,6 +8257,10 @@ void CMovementSpeedMod::InputSpeedMod(inputdata_t &data)
 				pPlayer->m_Local.m_iHideHUD &= ~HIDEHUD_ALL;
 			}
 		}
+		if ( pPlayer->GetLaggedMovementValue() != 1.0f )
+			pPlayer->SetPlayerSpeedmodActive( true );
+		else
+			pPlayer->SetPlayerSpeedmodActive( false );
 
 		pPlayer->SetLaggedMovementValue( data.value.Float() );
 	}
@@ -8115,6 +8274,56 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 
 	pOut->m_Int = ( data & mask );
 }
+#ifdef HL2MP
+static void SendProxy_FOV( const SendProp *pProp, const void *pStructBase, const void *pData, DVariant *pOut, int iElement, int objectID )
+{
+	auto *pPlayer = ( CHL2_Player * ) pStructBase;
+
+	if ( pPlayer )
+	{
+		if ( pPlayer->IsObserver() )
+		{
+			if ( pPlayer->GetObserverMode() == OBS_MODE_IN_EYE )
+			{
+				CBaseEntity *pSpectated = pPlayer->GetObserverTarget();
+
+				if ( pSpectated && pSpectated->IsPlayer() )
+				{
+					CHL2_Player *pSpectatedPlayer = ( CHL2_Player * ) pSpectated;
+
+					if ( pSpectatedPlayer->GetNewFOV() > 0 && pSpectatedPlayer->GetNewFOV() < 180 )
+					{
+						pOut->m_Int = pSpectatedPlayer->GetFOV();
+					}
+					else
+					{
+						pOut->m_Int = 90;
+					}
+					return;
+				}
+			}
+			else
+			{
+				pOut->m_Int = pPlayer->GetNewFOV();
+			}
+		}
+
+		else
+		{
+			if ( pPlayer->IsZooming() )
+				pOut->m_Int = *( int * ) pData;
+			else
+				if ( pPlayer->GetNewFOV() <= 0 || pPlayer->GetNewFOV() >= 180 )
+				{
+					pOut->m_Int = 90;
+				}
+				else
+					pOut->m_Int = pPlayer->GetNewFOV();
+		}
+	}	
+}
+#endif
+
 // -------------------------------------------------------------------------------- //
 // SendTable for CPlayerState.
 // -------------------------------------------------------------------------------- //
@@ -8140,7 +8349,8 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 
 		SendPropFloat		( SENDINFO(m_flFriction),		8,	SPROP_ROUNDDOWN,	0.0f,	4.0f),
 
-		SendPropArray3		( SENDINFO_ARRAY3(m_iAmmo), SendPropInt( SENDINFO_ARRAY(m_iAmmo), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
+		SendPropArray3		( SENDINFO_ARRAY3(m_iAmmo), 
+		SendPropInt			( SENDINFO_ARRAY(m_iAmmo), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 			
 		SendPropInt			( SENDINFO( m_fOnTarget ), 2, SPROP_UNSIGNED ),
 
@@ -8196,10 +8406,18 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 		SendPropInt		(SENDINFO(m_fFlags), PLAYER_FLAG_BITS, SPROP_UNSIGNED|SPROP_CHANGES_OFTEN, SendProxy_CropFlagsToPlayerFlagBitsLength ),
 		SendPropInt		(SENDINFO(m_iObserverMode), 3, SPROP_UNSIGNED ),
 		SendPropEHandle	(SENDINFO(m_hObserverTarget) ),
-		SendPropInt		(SENDINFO(m_iFOV), 8, SPROP_UNSIGNED ),
+#ifdef HL2MP
+		SendPropInt		(SENDINFO(m_iFOV), 8, SPROP_UNSIGNED, SendProxy_FOV ),
+#else
+		SendPropInt(SENDINFO(m_iFOV), 8, SPROP_UNSIGNED),
+#endif
 		SendPropInt		(SENDINFO(m_iFOVStart), 8, SPROP_UNSIGNED ),
 		SendPropFloat	(SENDINFO(m_flFOVTime) ),
-		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED ),
+#ifdef HL2MP
+		SendPropInt		(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED, SendProxy_FOV ),
+#else
+		SendPropInt(SENDINFO(m_iDefaultFOV), 8, SPROP_UNSIGNED),
+#endif
 		SendPropEHandle	(SENDINFO(m_hZoomOwner) ),
 		SendPropArray	( SendPropEHandle( SENDINFO_ARRAY( m_hViewModel ) ), m_hViewModel ),
 		SendPropString	(SENDINFO(m_szLastPlaceName) ),
@@ -8781,8 +8999,9 @@ void CBasePlayer::DeactivateMovementConstraint( )
 //-----------------------------------------------------------------------------
 // Purpose: Fight chat spam with a two tiered token bucket
 //-----------------------------------------------------------------------------
+/*
 bool CBasePlayer::ArePlayerTalkMessagesAvailable( void )
-{
+{	
 	// How long since we last tried to chat?
 	float flTimeElapsedSinceLastMsg = gpGlobals->curtime - m_fLastPlayerTalkAttemptTime;
 	m_fLastPlayerTalkAttemptTime = gpGlobals->curtime;
@@ -8815,10 +9034,11 @@ bool CBasePlayer::ArePlayerTalkMessagesAvailable( void )
 
 	return m_flPlayerTalkAvailableMessagesTier1 > 1.0f && m_flPlayerTalkAvailableMessagesTier2 > 1.0f;
 }
-
+*/
 //-----------------------------------------------------------------------------
 // Purpose: Check if a player can use chat commands at the moment
 //-----------------------------------------------------------------------------
+/*
 bool CBasePlayer::CanPlayerTalk()
 {
 	const float talk_interval = 0.66; // min time between say commands from a client
@@ -8829,7 +9049,7 @@ bool CBasePlayer::CanPlayerTalk()
 
 	return bRateLimitAllowed && bTokenBucketLimitAllowed;
 }
-
+*/
 //-----------------------------------------------------------------------------
 // Perhaps a poorly-named function. This function traces against the supplied
 // NPC's hitboxes (instead of hull). If the trace hits a different NPC, the 
@@ -9617,7 +9837,8 @@ void CBasePlayer::Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo
 	}
 	else
 	{
-		gamestats->Event_PlayerSuicide( this );
+		if ( !IsDisconnecting() )
+			gamestats->Event_PlayerSuicide( this );
 	}
 }
 
@@ -9692,3 +9913,13 @@ void* SendProxy_SendNonLocalDataTable( const SendProp *pProp, const void *pStruc
 }
 REGISTER_SEND_PROXY_NON_MODIFIED_POINTER( SendProxy_SendNonLocalDataTable );
 
+uint64 CBasePlayer::ConvertSteamID3ToSteamID64( const char *steamID3 )
+{
+	int universe = 1; // Default universe (1 = Public)
+	int accountID = 0;
+	sscanf( steamID3, "[U:%d:%d]", &universe, &accountID );
+
+	// SteamID64 calculation formula
+	uint64 steamID64 = 0x0110000100000000ULL + accountID;
+	return steamID64;
+}

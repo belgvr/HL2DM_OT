@@ -13,11 +13,16 @@
 #include "explode.h"
 #include "Sprite.h"
 #include "grenade_satchel.h"
+#include "basegrenade_shared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 #define	SLAM_SPRITE	"sprites/glow1.vmt"
+extern ConVar sv_slam_allow_steal;
+extern ConVar sv_slam_steal_announce;
+extern ConVar sv_slam_steal_range;
+
 
 ConVar    sk_plr_dmg_satchel("sk_plr_dmg_satchel", "0");
 ConVar    sk_npc_dmg_satchel("sk_npc_dmg_satchel", "0");
@@ -28,6 +33,8 @@ ConVar    sk_satchel_radius("sk_satchel_radius", "0");
 // ==================================================================================================
 ConVar sv_satchel_glow_sprite("sv_satchel_glow_sprite", "sprites/glow1.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the satchel's glow");
 ConVar sv_satchel_glow_color("sv_satchel_glow_color", "255,80,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the satchel's glow in R,G,B,A format");
+ConVar sv_satchel_damage("sv_satchel_damage", "150", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage amount for satchel charge explosions (remote detonation)");
+ConVar sv_satchel_radius("sv_satchel_radius", "250", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage radius for satchel charge explosions (remote detonation)");
 
 // CVARS PARA CORES POR TIME (só funciona quando mp_teamplay está 1)
 ConVar sv_satchel_byteams("sv_satchel_byteams", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable team-based colors for satchel when mp_teamplay is 1 (0=disabled, 1=enabled)");
@@ -99,7 +106,7 @@ void CSatchelCharge::Spawn(void)
 	SetGravity(UTIL_ScaleForGravity(560));	// slightly lower gravity
 	SetFriction(1.0);
 	SetSequence(1);
-	SetDamage(150);
+	SetDamage(sv_satchel_damage.GetInt());
 
 	m_bIsAttached = false;
 	m_bInAir = true;
@@ -291,4 +298,63 @@ CSatchelCharge::~CSatchelCharge(void)
 		UTIL_Remove(m_hGlowSprite);
 		m_hGlowSprite = NULL;
 	}
+}
+
+void CSatchelCharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
+	CBasePlayer* pPlayer = ToBasePlayer(pActivator);
+	if (!pPlayer)
+		return;
+
+	if (!sv_slam_allow_steal.GetBool())
+		return;
+
+	// Apenas permite uso se o jogador estiver dentro do range de roubo
+	float flStealRange = sv_slam_steal_range.GetFloat();
+	if ((pPlayer->GetAbsOrigin() - GetAbsOrigin()).Length() > flStealRange)
+		return;
+
+	// Sempre permite recuperar/roubar SLAMs
+	int currentAmmo = pPlayer->GetAmmoCount("slam");
+
+	// Se já tem o máximo (5), descartar
+	if (currentAmmo >= 5)
+	{
+		EmitSound("Weapon_SLAM.SatchelDetonate");
+		if (sv_slam_steal_announce.GetBool())
+		{
+			ClientPrint(pPlayer, HUD_PRINTCENTER, "*FULL* SLAM deactivated");
+		}
+		UTIL_Remove(this);
+		return;
+	}
+
+	// Dar apenas 1 munição
+	pPlayer->GiveAmmo(1, "slam", false);
+	EmitSound("Player.PickupWeapon");
+
+	if (!pPlayer->Weapon_OwnsThisType("weapon_slam"))
+	{
+		pPlayer->GiveNamedItem("weapon_slam");
+	}
+
+	// Mensagem de HUD aparece somente se sv_slam_steal_announce for 1
+	if (sv_slam_steal_announce.GetBool())
+	{
+		ClientPrint(pPlayer, HUD_PRINTCENTER, "SLAM Stolen");
+	}
+	UTIL_Remove(this);
+}
+int CSatchelCharge::OnTakeDamage(const CTakeDamageInfo& info)
+{
+	// Se recebeu dano suficiente, explodir
+	if (m_iHealth <= 0)
+	{
+		ExplosionCreate(GetAbsOrigin() + Vector(0, 0, 16), GetAbsAngles(), GetThrower(),
+			sv_satchel_damage.GetFloat(), sk_satchel_radius.GetFloat(),  // <- era GetInt() e faltava vírgula
+			SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+		UTIL_Remove(this);
+		return 0;  // <- adicionar return
+	}
+	return BaseClass::OnTakeDamage(info);
 }

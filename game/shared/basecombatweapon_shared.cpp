@@ -681,6 +681,8 @@ void CBaseCombatWeapon::Drop( const Vector &vecVelocity )
 	SetRemoveable( true );
 	WeaponManager_AmmoMod( this );
 
+	RemoveEffects( EF_NOSHADOW );
+
 	//If it was dropped then there's no need to respawn it.
 	AddSpawnFlags( SF_NORESPAWN );
 
@@ -1336,17 +1338,21 @@ void CBaseCombatWeapon::SetWeaponVisible( bool visible )
 
 	if ( visible )
 	{
+		RemoveEffects( EF_NOSHADOW );
 		RemoveEffects( EF_NODRAW );
 		if ( vm )
 		{
+			vm->RemoveEffects( EF_NOSHADOW );
 			vm->RemoveEffects( EF_NODRAW );
 		}
 	}
 	else
 	{
+		AddEffects( EF_NOSHADOW );
 		AddEffects( EF_NODRAW );
 		if ( vm )
 		{
+			vm->AddEffects( EF_NOSHADOW );
 			vm->AddEffects( EF_NODRAW );
 		}
 	}
@@ -1473,6 +1479,8 @@ bool CBaseCombatWeapon::Deploy( )
 	MDLCACHE_CRITICAL_SECTION();
 	bool bResult = DefaultDeploy( (char*)GetViewModel(), (char*)GetWorldModel(), GetDrawActivity(), (char*)GetAnimPrefix() );
 
+	RemoveEffects( EF_NOSHADOW );
+
 	return bResult;
 }
 
@@ -1510,6 +1518,8 @@ bool CBaseCombatWeapon::Holster( CBaseCombatWeapon *pSwitchingTo )
 	{
 		pOwner->SetNextAttack( gpGlobals->curtime + flSequenceDuration );
 	}
+
+	AddEffects( EF_NOSHADOW );
 
 	// If we don't have a holster anim, hide immediately to avoid timing issues
 	if ( !flSequenceDuration )
@@ -2828,6 +2838,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CBaseCombatWeapon, DT_LocalActiveWeaponData )
 	RecvPropTime( RECVINFO( m_flTimeWeaponIdle ) ),
 #endif
 END_NETWORK_TABLE()
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Propagation data for weapons. Only sent when a player's holding it.

@@ -910,6 +910,29 @@ void CFuncTank::Precache( void )
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int CFuncTank::UpdateTransmitState()
+{
+	return SetTransmitState( FL_EDICT_FULLCHECK );
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+int CFuncTank::ShouldTransmit( const CCheckTransmitInfo *pInfo )
+{
+	// Always transmit to the controlling player.
+	CBaseCombatCharacter *pController = m_hController.Get();
+	if ( pController && pController->IsPlayer() && pInfo->m_pClientEnt == pController->edict() )
+	{
+		return FL_EDICT_ALWAYS;
+	}
+
+	return BaseClass::ShouldTransmit( pInfo );
+}
+
 void CFuncTank::UpdateOnRemove( void )
 {
 	if ( HasController() )
@@ -1448,6 +1471,9 @@ void CFuncTank::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	// player controlled turret
 	CBasePlayer *pPlayer = ToBasePlayer( pActivator );
 	if ( !pPlayer )
+		return;
+
+	if ( pPlayer->IsPlayer() && pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
 		return;
 
 	if ( value == 2 && useType == USE_SET )
@@ -2157,6 +2183,7 @@ void CFuncTank::DoMuzzleFlash( void )
 		if ( m_iEffectHandling == EH_COMBINE_CANNON )
 		{
 			CEffectData data;
+			data.m_vOrigin = pAnim->GetAbsOrigin();
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_nEntIndex = pAnim->entindex();
 			
@@ -2166,6 +2193,7 @@ void CFuncTank::DoMuzzleFlash( void )
 		else
 		{
 			CEffectData data;
+			data.m_vOrigin = pAnim->GetAbsOrigin();
 			data.m_nEntIndex = pAnim->entindex();
 			data.m_nAttachmentIndex = m_nBarrelAttachment;
 			data.m_flScale = 1.0f;
@@ -2675,6 +2703,8 @@ void CFuncTankLaser::Think( void )
 
 void CFuncTankLaser::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+	CDisablePredictionFiltering disablePred;
+
 	int i;
 	trace_t tr;
 
@@ -2960,6 +2990,7 @@ void CFuncTankAirboatGun::DoMuzzleFlash( void )
 	if ( m_hAirboatGunModel && (m_nGunBarrelAttachment != 0) )
 	{
 		CEffectData data;
+		data.m_vOrigin = m_hAirboatGunModel->GetAbsOrigin();
 		data.m_nEntIndex = m_hAirboatGunModel->entindex();
 		data.m_nAttachmentIndex = m_nGunBarrelAttachment;
 		data.m_flScale = 1.0f;
@@ -2990,6 +3021,8 @@ void CFuncTankAirboatGun::DoImpactEffect( trace_t &tr, int nDamageType )
 
 void CFuncTankAirboatGun::Fire( int bulletCount, const Vector &barrelEnd, const Vector &forward, CBaseEntity *pAttacker, bool bIgnoreSpread )
 {
+	CDisablePredictionFiltering disablePred;
+
 	CAmmoDef *pAmmoDef = GetAmmoDef();
 	int ammoType = pAmmoDef->Index( "AirboatGun" );
 

@@ -64,6 +64,11 @@ ConVar physcannon_cone( "physcannon_cone", "0.97", FCVAR_REPLICATED | FCVAR_CHEA
 ConVar physcannon_ball_cone( "physcannon_ball_cone", "0.997", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_CHEAT );
 
+//New CVAR for fast gathering
+ConVar sv_physcannon_fast_gather("sv_physcannon_fast_gather", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables faster gathering mode for the physcannon. (0=off, 1=on, 2=instant)");
+
+
+
 #ifndef CLIENT_DLL
 extern ConVar hl2_normspeed;
 extern ConVar hl2_walkspeed;
@@ -489,6 +494,7 @@ void CGrabController::AttachEntity( CBasePlayer *pPlayer, CBaseEntity *pEntity, 
 	
 	// Give extra mass to the phys object we're actually picking up
 	pPhys->SetMass( REDUCED_CARRY_MASS );
+	m_savedDrag = pPhys->IsDragEnabled();
 	pPhys->EnableDrag( false );
 
 	m_errorTime = -1.0f; // 1 seconds until error starts accumulating
@@ -552,7 +558,7 @@ void CGrabController::DetachEntity( bool bClearVelocity )
 				continue;
 
 			// on the odd chance that it's gone to sleep while under anti-gravity
-			pPhys->EnableDrag( true );
+			pPhys->EnableDrag( m_savedDrag );
 			pPhys->Wake();
 			pPhys->SetMass( m_savedMass[i] );
 			pPhys->SetDamping( NULL, &m_savedRotDamping[i] );
@@ -789,9 +795,16 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 			Shutdown();
 			return;
 		}
-		
+
 		//Adrian: Oops, our object became motion disabled, let go!
 		IPhysicsObject *pPhys = pAttached->VPhysicsGetObject();
+
+		if ( !pPhys )
+		{
+			Shutdown();
+			return;
+		}
+
 		if ( pPhys && pPhys->IsMoveable() == false )
 		{
 			Shutdown();
@@ -808,7 +821,7 @@ void CPlayerPickupController::Use( CBaseEntity *pActivator, CBaseEntity *pCaller
 		}
 #endif
 		// +ATTACK will throw phys objects
-		if ( m_pPlayer->m_nButtons & IN_ATTACK )
+		if ( pPhys && m_pPlayer->m_nButtons & IN_ATTACK )
 		{
 			Shutdown( true );
 			Vector vecLaunch;
@@ -844,9 +857,7 @@ bool CPlayerPickupController::IsHoldingEntity( CBaseEntity *pEnt )
 
 void PlayerPickupObject( CBasePlayer *pPlayer, CBaseEntity *pObject )
 {
-	
 #ifndef CLIENT_DLL
-	
 	//Don't pick up if we don't have a phys object.
 	if ( pObject->VPhysicsGetObject() == NULL )
 		 return;
@@ -965,6 +976,14 @@ void CWeaponPhysCannon::Precache( void )
 	PrecacheModel( PHYSCANNON_BEAM_SPRITE_NOZ );
 
 	PrecacheScriptSound( "Weapon_PhysCannon.HoldSound" );
+	PrecacheScriptSound( "Weapon_PhysCannon.Launch" );
+	PrecacheScriptSound( "Weapon_PhysCannon.Charge" );
+	PrecacheScriptSound( "Weapon_PhysCannon.DryFire" );
+	PrecacheScriptSound( "Weapon_PhysCannon.Pickup" );
+	PrecacheScriptSound( "Weapon_PhysCannon.OpenClaws" );
+	PrecacheScriptSound( "Weapon_PhysCannon.CloseClaws" );
+	PrecacheScriptSound( "Weapon_PhysCannon.Drop" );
+	PrecacheScriptSound( "Weapon_PhysCannon.TooHeavy" );
 
 	BaseClass::Precache();
 }
@@ -1128,14 +1147,14 @@ void CWeaponPhysCannon::Drop( const Vector &vecVelocity )
 	ForceDrop();
 
 #ifndef CLIENT_DLL
-	UTIL_Remove( this );
+	Delete();
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-bool CWeaponPhysCannon::CanHolster( void ) 
+bool CWeaponPhysCannon::CanHolster( void ) const
 { 
 	//Don't holster this weapon if we're holding onto something
 	if ( m_bActive )
@@ -1298,8 +1317,14 @@ void CWeaponPhysCannon::PuntVPhysics( CBaseEntity *pEntity, const Vector &vecFor
 				
 			if( forward.z < 0 )
 			{
-				//reflect, but flatten the trajectory out a bit so it's easier to hit standing targets
-				forward.z *= -0.65f;
+				// Only affect props, we don't need other objects to be punted upwards if we aim and punt downwards
+				auto pProp = dynamic_cast< CBaseProp * >( pEntity );
+
+				if ( pProp )
+				{
+					//reflect, but flatten the trajectory out a bit so it's easier to hit standing targets
+					forward.z *= -0.65f;
+				}				
 			}
 				
 			// NOTE: Do this first to enable motion (if disabled) - so forces will work
@@ -1461,6 +1486,7 @@ void CWeaponPhysCannon::PrimaryAttack( void )
 			{
 				// We can't punt this yet
 				DryFire();
+				m_flNextPrimaryAttack = gpGlobals->curtime + 0.5f;
 				return;
 			}
 		}
@@ -1982,15 +2008,28 @@ bool CGrabController::UpdateObject( CBasePlayer *pPlayer, float flError )
 	return true;
 }
 
-void CWeaponPhysCannon::UpdateObject( void )
+void CWeaponPhysCannon::UpdateObject(void)
 {
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	Assert( pPlayer );
+	auto* pPlayer = dynamic_cast<CHL2MP_Player*>(GetOwner());
+	Assert(pPlayer);
 
-	float flError = 12;
-	if ( !m_grabController.UpdateObject( pPlayer, flError ) )
+	float fLError = 12;
+	if (!m_grabController.UpdateObject(pPlayer, fLError))
 	{
 		DetachObject();
+
+		auto fastGatherMode = sv_physcannon_fast_gather.GetInt();
+
+		if (fastGatherMode)
+		{
+			if (fastGatherMode > 1)
+			{
+				m_nAttack2Debounce = 0;
+			}
+
+			m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
+		}
+
 		return;
 	}
 }
@@ -2006,20 +2045,13 @@ void CWeaponPhysCannon::DetachObject( bool playSound, bool wasLaunched )
 	if ( m_bActive == false )
 		return;
 
-	CHL2MP_Player *pOwner = (CHL2MP_Player *)ToBasePlayer( GetOwner() );
-	if( pOwner != NULL )
-	{
-		pOwner->EnableSprint( true );
-		pOwner->SetMaxSpeed( hl2_normspeed.GetFloat() );
-	}
-
 	CBaseEntity *pObject = m_grabController.GetAttached();
 
 	m_grabController.DetachEntity( wasLaunched );
 
 	if ( pObject != NULL )
 	{
-		Pickup_OnPhysGunDrop( pObject, pOwner, wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON );
+		Pickup_OnPhysGunDrop( pObject, GetPlayerOwner(), wasLaunched ? LAUNCHED_BY_CANNON : DROPPED_BY_CANNON );
 	}
 	
 	if ( pObject && m_bResetOwnerEntity == true )
@@ -2337,7 +2369,7 @@ void CWeaponPhysCannon::ItemPostFrame()
 		}
 	}
 	
-	if (( pOwner->m_nButtons & IN_ATTACK2 ) == 0 )
+	if ( ( pOwner->m_nButtons & IN_ATTACK2 ) == 0 && CanPerformSecondaryAttack() )
 	{
 		m_nAttack2Debounce = 0;
 	}

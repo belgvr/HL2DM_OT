@@ -15,6 +15,8 @@
 #include "simtimer.h"
 #include "soundenvelope.h"
 
+#include "basemultiplayerplayer.h"
+
 class CAI_Squad;
 class CPropCombineBall;
 
@@ -75,7 +77,7 @@ public:
 //=============================================================================
 // >> HL2_PLAYER
 //=============================================================================
-class CHL2_Player : public CBasePlayer
+class CHL2_Player : public CBaseMultiplayerPlayer
 {
 public:
 	DECLARE_CLASS( CHL2_Player, CBasePlayer );
@@ -171,6 +173,12 @@ public:
 	bool IsSprinting( void ) { return m_fIsSprinting; }
 	bool CanSprint( void );
 	void EnableSprint( bool bEnable);
+	bool IsNewSprinting() const
+	{
+		return m_HL2Local.m_bNewSprinting;
+	}
+	bool IsSpeedcrawling() const { return m_bSpeedcrawl; }
+	void SetSpeedCrawl( bool enabled ) { m_bSpeedcrawl = enabled; }
 
 	bool CanZoom( CBaseEntity *pRequester );
 	void ToggleZoom(void);
@@ -242,6 +250,7 @@ public:
 	virtual	bool		IsHoldingEntity( CBaseEntity *pEnt );
 	virtual void		ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldindThis );
 	virtual float		GetHeldObjectMass( IPhysicsObject *pHeldObject );
+	virtual CBaseEntity *GetHeldObject( void );
 
 	virtual bool		IsFollowingPhysics( void ) { return (m_afPhysicsFlags & PFLAG_ONBARNACLE) > 0; }
 	void				InputForceDropPhysObjects( inputdata_t &data );
@@ -312,6 +321,8 @@ private:
 
 	CNetworkVar( bool, m_fIsSprinting );
 	CNetworkVarForDerived( bool, m_fIsWalking );
+
+	bool m_bSpeedcrawl;
 
 protected:	// Jeep: Portal_Player needs access to this variable to overload PlayerUse for picking up objects through portals
 	bool				m_bPlayUseDenySound;		// Signaled by PlayerUse, but can be unset by HL2 ladder code...

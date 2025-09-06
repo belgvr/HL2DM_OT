@@ -336,6 +336,7 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CTimerEntity::Spawn( void )
 {
+	SetThink( &CTimerEntity::FireTimer );
 	if (!m_iUseRandomTime && (m_flRefireTime < LOGIC_TIMER_MIN_INTERVAL))
 	{
 		m_flRefireTime = LOGIC_TIMER_MIN_INTERVAL;
@@ -2244,7 +2245,7 @@ void CLogicBranch::UpdateOnRemove()
 		CBaseEntity *pEntity = m_Listeners.Element( i ).Get();
 		if ( pEntity )
 		{
-			g_EventQueue.AddEvent( this, "_OnLogicBranchRemoved", 0, this, this );
+			g_EventQueue.AddEvent( pEntity, "_OnLogicBranchRemoved", 0, this, this );
 		}
 	}
 	

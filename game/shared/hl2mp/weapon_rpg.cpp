@@ -54,18 +54,22 @@ static ConVar sk_apc_missile_damage("sk_apc_missile_damage", "15");
 #endif
 
 
-ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
+ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", ".3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
 // CVars para o sistema secundário da RPG
-ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
+ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
 ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 1.0f, true, 10000.0f);
-ConVar sv_rpg_missile_shotdown("sv_rpg_missile_shotdown", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable or disable the ability to shoot down RPG missiles. 1 = Yes, 0 = No");
+// CVars para o sistema de shotdown
+// (derrubar o míssil da RPG
+// e ganhar crédito de kill)
+ConVar sv_rpg_missile_shotdown("sv_rpg_missile_shotdown", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable or disable the ability to shoot down RPG missiles. 1 = Yes, 0 = No");
 
-ConVar sv_rpg_missile_kill_credit("sv_rpg_missile_kill_credit", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Who gets kill credit when missile is shot down. 0=Original shooter, 1=Who shot it down");
-ConVar sv_rpg_missile_hitbox_scale("sv_rpg_missile_hitbox_scale", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Scale factor for RPG missile hitbox. Higher = easier to hit", true, 1.0f, true, 50.0f);
+ConVar sv_rpg_missile_kill_credit("sv_rpg_missile_kill_credit", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Who gets kill credit when missile is shot down. 0=Original shooter, 1=Who shot it down");
+ConVar sv_rpg_missile_hitbox_scale("sv_rpg_missile_hitbox_scale", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Scale factor for RPG missile hitbox. Higher = easier to hit", true, 1.0f, true, 50.0f);
 
-ConVar sv_rpg_weapon_switch("sv_rpg_weapon_switch", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Allow weapon switching while RPG missile is active. 0=Block switching, 1=Allow switching");
-ConVar sv_rpg_missile_shotdown_explode("sv_rpg_missile_shotdown_explode", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY,	"Shot down missiles explode on ground impact. 0=No explosion, 1=Explode normally");
+ConVar sv_rpg_weapon_switch("sv_rpg_weapon_switch", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Allow weapon switching while RPG missile is active. 0=Block switching, 1=Allow switching");
+ConVar sv_rpg_missile_shotdown_explode("sv_rpg_missile_shotdown_explode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shot down missiles explode on ground impact. 0=No explosion, 1=Explode normally");
 
+ConVar sv_rpg_toggle_last_state("sv_rpg_toggle_last_state", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Remember laser toggle state between weapon switches. 0=Always start ON, 1=Remember last state");
 
 //-----------------------------------------------------------------------------
 // Laser Dot
@@ -665,7 +669,7 @@ void CMissile::SeekThink(void)
 		SetNextThink(gpGlobals->curtime + 0.1f);
 		return;
 	}
-	
+
 	CBaseEntity* pBestDot = NULL;
 	float		flBestDist = MAX_TRACE_LENGTH;
 	float		dotDist;
@@ -1446,7 +1450,9 @@ CWeaponRPG::CWeaponRPG()
 	m_bInitialStateUpdate = false;
 	m_bHideGuiding = false;
 	m_bGuiding = false;
-	m_bLaserToggleMode = true;  // ADICIONAR ESTA LINHA
+	m_bLaserToggleMode = true;
+	m_bLastKnownLaserState = true;
+	m_bLastAttack2State = false;  // ADICIONAR ESTA LINHA
 
 	m_fMinRange1 = m_fMinRange2 = 40 * 12;
 	m_fMaxRange1 = m_fMaxRange2 = 500 * 12;
@@ -1608,35 +1614,33 @@ void CWeaponRPG::PrimaryAttack(void)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::SecondaryAttack(void)
 {
-	// Check if secondary mode is enabled
-	if (!sv_rpg_secondary_mode.GetBool())
-		return;
-
-	// Can't toggle while missile is active
-	if (m_hMissile != NULL)
-		return;
-
-	// Toggle laser mode
-	m_bLaserToggleMode = !m_bLaserToggleMode;
-
-	if (m_bLaserToggleMode == true)
-	{
-		StartGuiding();
-
-#ifndef CLIENT_DLL
-		EmitSound("Weapon_RPG.LaserOn");
-#endif
-	}
-	else
-	{
-		StopGuiding();
-
-#ifndef CLIENT_DLL
-		EmitSound("Weapon_RPG.LaserOff");
-#endif
-	}
-
-	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
+	//	// Check if secondary mode is enabled
+	//	if (!sv_rpg_secondary_mode.GetBool())
+	//		return;
+	//
+	//	// Can't toggle while missile is active
+	//	if (m_hMissile != NULL)
+	//		return;
+	//
+	//	// Toggle laser mode
+	//	m_bLaserToggleMode = !m_bLaserToggleMode;
+	//	m_bLastKnownLaserState = m_bLaserToggleMode;  // ADICIONAR ESTA LINHA
+	//	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
+	//
+	//	if (m_bLaserToggleMode == true)
+	//	{
+	//		StartGuiding();
+	//#ifndef CLIENT_DLL
+	//		EmitSound("Weapon_RPG.LaserOn");
+	//#endif
+	//	}
+	//	else
+	//	{
+	//		StopGuiding();
+	//#ifndef CLIENT_DLL
+	//		EmitSound("Weapon_RPG.LaserOff");
+	//#endif
+	//	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1645,10 +1649,18 @@ void CWeaponRPG::SecondaryAttack(void)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::DecrementAmmo(CBaseCombatCharacter* pOwner)
 {
+	// SALVAR o estado atual do laser ANTES de decrementar
+	// (isso captura o estado do último tiro antes da munição acabar)
+	m_bLastKnownLaserState = m_bLaserToggleMode;
+
 	// Take away our primary ammo type
 	pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : state - 
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : state - 
@@ -1658,8 +1670,8 @@ void CWeaponRPG::SuppressGuiding(bool state)
 	m_bHideGuiding = state;
 
 #ifndef CLIENT_DLL
-	// ✅ CORRIGIDO: Se não tem laser toggle ativo, força parar
-	if (!m_bLaserToggleMode)
+	// Se não tem laser toggle ativo OU está sendo suprimido, força parar TUDO
+	if (!m_bLaserToggleMode || state)
 	{
 		if (m_hLaserDot != NULL)
 		{
@@ -1670,20 +1682,21 @@ void CWeaponRPG::SuppressGuiding(bool state)
 		return;
 	}
 
-	if (m_hLaserDot == NULL && !state && m_bLaserToggleMode)
+	// Se chegou aqui, laser deveria estar ativo
+	if (m_hLaserDot == NULL && m_bLaserToggleMode && !state)
 	{
 		StartGuiding();
 	}
 
 	if (m_hLaserDot != NULL)
 	{
-		if (state)
-		{
-			m_hLaserDot->TurnOff();
-		}
-		else if (m_bLaserToggleMode) // ✅ CORRIGIDO: Só liga se modo laser ativo
+		if (m_bLaserToggleMode && !state)
 		{
 			m_hLaserDot->TurnOn();
+		}
+		else
+		{
+			m_hLaserDot->TurnOff();
 		}
 	}
 #endif
@@ -1707,16 +1720,50 @@ bool CWeaponRPG::Lower(void)
 void CWeaponRPG::ItemPostFrame(void)
 {
 	BaseClass::ItemPostFrame();
-
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
 	if (pPlayer == NULL)
 		return;
 
-	//If we're pulling the weapon out for the first time, wait to draw the laser
+	// Controle do laser toggle (igual zoom da .357)
+	if (sv_rpg_secondary_mode.GetBool())
+	{
+		bool bAttack2 = (pPlayer->m_nButtons & IN_ATTACK2) != 0;
+
+		// Só toggle quando PRESSIONA (não ao segurar)
+		if (bAttack2 && !m_bLastAttack2State)
+		{
+			// Can't toggle while missile is active
+			if (m_hMissile == NULL)
+			{
+				// Toggle laser mode
+				m_bLaserToggleMode = !m_bLaserToggleMode;
+				m_bLastKnownLaserState = m_bLaserToggleMode;
+
+				if (m_bLaserToggleMode == true)
+				{
+					StartGuiding();
+#ifndef CLIENT_DLL
+					pPlayer->EmitSound("Weapon_RPG.LaserOn");
+#endif
+				}
+				else
+				{
+					StopGuiding();
+#ifndef CLIENT_DLL
+					pPlayer->EmitSound("Weapon_RPG.LaserOff");
+#endif
+				}
+			}
+		}
+
+		// Atualizar estado anterior
+		m_bLastAttack2State = bAttack2;
+	}
+
+	// If we're pulling the weapon out for the first time, wait to draw the laser
 	if ((m_bInitialStateUpdate) && (GetActivity() != ACT_VM_DRAW))
 	{
-		// ✅ CORRIGIDO: Só inicia o laser se estiver no modo laser
+		// Só inicia o laser se estiver no modo laser
 		if (m_bLaserToggleMode)
 		{
 			StartGuiding();
@@ -1724,26 +1771,18 @@ void CWeaponRPG::ItemPostFrame(void)
 		m_bInitialStateUpdate = false;
 	}
 
-	// ✅ CORRIGIDO: Melhor lógica para suprimir o laser
+	// Suprimir laser apenas por condições visuais/animação, NÃO por munição
 	bool shouldSuppressLaser = (GetIdealActivity() == ACT_VM_IDLE_LOWERED) ||
-		(!m_bLaserToggleMode) ||
-		(pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0);
+		(!m_bLaserToggleMode);
 
 	SuppressGuiding(shouldSuppressLaser);
 
-	//Move the laser
+	// Move the laser
 	UpdateLaserPosition();
-
-	// ✅ CORRIGIDO: Para o laser quando não há munição E não há míssil ativo
-	if (pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0 && m_hMissile == NULL)
-	{
-		StopGuiding();
-		m_bLaserToggleMode = false; // Reset do modo quando sem munição
-	}
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: 
+// Purpose: suppe
 // Output : Vector
 //-----------------------------------------------------------------------------
 Vector CWeaponRPG::GetLaserPosition(void)
@@ -1766,7 +1805,7 @@ Vector CWeaponRPG::GetLaserPosition(void)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::UpdateNPCLaserPosition(const Vector& vecTarget)
 {
-
+	//
 }
 
 //-----------------------------------------------------------------------------
@@ -1774,6 +1813,7 @@ void CWeaponRPG::UpdateNPCLaserPosition(const Vector& vecTarget)
 //-----------------------------------------------------------------------------
 void CWeaponRPG::SetNPCLaserPosition(const Vector& vecTarget)
 {
+	//
 }
 
 //-----------------------------------------------------------------------------
@@ -1801,7 +1841,19 @@ bool CWeaponRPG::Deploy(void)
 {
 	m_bInitialStateUpdate = true;
 
-	// ✅ CORRIGIDO: Garantir que laser está no estado correto
+	// Controlar estado inicial do laser baseado na ConVar
+	if (sv_rpg_toggle_last_state.GetBool() == false)
+	{
+		// Sempre inicia com laser ligado
+		m_bLaserToggleMode = true;
+	}
+	else
+	{
+		// Usar o último estado conhecido (salvo antes da munição acabar)
+		m_bLaserToggleMode = m_bLastKnownLaserState;
+	}
+
+	// Se não está no modo laser, garantir que está desligado
 	if (!m_bLaserToggleMode)
 	{
 		StopGuiding();
@@ -1813,10 +1865,18 @@ bool CWeaponRPG::Deploy(void)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
 bool CWeaponRPG::Holster(CBaseCombatWeapon* pSwitchingTo)
 {
-	// ✅ CORRIGIDO: Sempre para o laser ao guardar a arma
+	// Sempre para o laser ao guardar a arma (visualmente)
 	StopGuiding();
+
+	m_bLastAttack2State = false; // Evita problemas no próximo uso
+
+	// NOTA: m_bLaserToggleMode é mantido intacto para ser usado no próximo Deploy()
+	// se sv_rpg_toggle_last_state estiver ativo
 
 	return BaseClass::Holster(pSwitchingTo);
 }
@@ -1849,6 +1909,9 @@ void CWeaponRPG::StartGuiding(void)
 //-----------------------------------------------------------------------------
 // Purpose: Turn off the guiding laser
 //-----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
+// Purpose: Turn off the guiding laser
+//-----------------------------------------------------------------------------
 void CWeaponRPG::StopGuiding(void)
 {
 	m_bGuiding = false;
@@ -1862,6 +1925,7 @@ void CWeaponRPG::StopGuiding(void)
 		m_hLaserDot = NULL;
 	}
 #else
+	// Força desligar o beam visual também
 	if (m_pBeam)
 	{
 		m_pBeam->brightness = 0.0f;
@@ -2465,3 +2529,15 @@ void CLaserDot::OnDataChanged(DataUpdateType_t updateType)
 }
 
 #endif	//CLIENT_DLL
+bool CWeaponRPG::CanHolster(void) const
+{
+	// Se a cvar permitir troca, sempre pode holster
+	if (sv_rpg_weapon_switch.GetBool())
+		return BaseClass::CanHolster();
+
+	// Se não permitir, só pode holster se não há míssil ativo
+	if (m_hMissile != NULL)
+		return false;
+
+	return BaseClass::CanHolster();
+}

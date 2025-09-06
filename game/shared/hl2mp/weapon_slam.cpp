@@ -1,6 +1,6 @@
-//========= Copyright Valve Corporation, All rights reserved. ============//
+﻿//========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose: SLAM weapon with customizable delays for HL2DM
+// Purpose:
 //
 //=============================================================================//
 
@@ -10,7 +10,7 @@
 #include "in_buttons.h"
 #include "engine/IEngineSound.h"
 
-#if defined( CLIENT_DLL )
+#if defined(CLIENT_DLL)
 #include "c_hl2mp_player.h"
 #else
 #include "hl2mp_player.h"
@@ -25,23 +25,39 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// ==================================================================================================
+// CVARS FOR SLAM CUSTOMIZATION
+// ==================================================================================================
+// Throw/Charge System
+ConVar sv_slam_throw_charge_enable("sv_slam_throw_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the SLAM satchel throw.");
+ConVar sv_slam_charge_time("sv_slam_charge_time", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max charge-up time for all SLAM throws in seconds.");
+ConVar sv_slam_charge_hud("sv_slam_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows a charge bar on the HUD if enabled for SLAM.");
+ConVar sv_slam_throw_velocity_min("sv_slam_throw_velocity_min", "200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged satchel throw.");
+ConVar sv_slam_throw_velocity_max("sv_slam_throw_velocity_max", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged satchel throw.");
+ConVar sv_slam_throw_forward_offset("sv_slam_throw_forward_offset", "18.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Forward offset for the SLAM throw origin.");
+ConVar sv_slam_throw_velocity_default("sv_slam_throw_velocity_default", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default velocity for satchel throw when charge is disabled ");
+
+// Timing/Delay CVars
+ConVar sv_slam_deploy_delay("sv_slam_deploy_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after deploying SLAM before next action can be taken.");
+ConVar sv_slam_secondary_delay("sv_slam_secondary_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after secondary attack (detonate) before next action.");
+ConVar sv_slam_primary_delay("sv_slam_primary_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after primary attack (place/throw) before next action.");
+ConVar sv_slam_switch_mode_delay("sv_slam_switch_mode_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between tripmine/satchel modes.");
+ConVar sv_slam_holster_delay("sv_slam_holster_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when holstering SLAM.");
+ConVar sv_slam_wall_switch_delay("sv_slam_wall_switch_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between wall attach and throw modes.");
+ConVar sv_slam_detonate_ready_delay("sv_slam_detonate_ready_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay for detonation explosion after trigger.");
+ConVar sv_slam_hud_update_rate("sv_slam_hud_update_rate", "0.05", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Rate at which charge HUD updates (in seconds).");
+
+// Other settings
+ConVar sv_slam_attachment_range("sv_slam_attachment_range", "42.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for attaching SLAM to surfaces.");
+ConVar sv_slam_throw_vertical_offset("sv_slam_throw_vertical_offset", "24.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical offset for throw origin.");
+ConVar sv_slam_attach_range("sv_slam_attach_range", "128.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for satchel attachment mode.");
+
+// SLAM Steal System
+ConVar sv_slam_allow_steal("sv_slam_allow_steal", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Allow players to steal armed SLAMs with +use key");
+ConVar sv_slam_steal_range("sv_slam_steal_range", "100.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for stealing SLAMs");
+ConVar sv_slam_steal_announce("sv_slam_steal_announce", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Announce SLAM steals in chat");
+
 #define	SLAM_PRIMARY_VOLUME		450
-
-// ==================================================================================================
-// CVARS PARA CONTROLE DE DELAYS DO SLAM/SATCHEL - VALORES PADR�O = ORIGINAL HARDCODED
-// ==================================================================================================
-ConVar sv_slam_deploy_delay("sv_slam_deploy_delay", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Deploy delay when switching to SLAM (default: 1.5 = original SequenceDuration)");
-ConVar sv_slam_secondary_delay("sv_slam_secondary_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between secondary attacks/detonations (default: 0.5 = original SequenceDuration)");
-ConVar sv_slam_primary_delay("sv_slam_primary_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between primary attacks (default: 1.0 = original SequenceDuration)");
-ConVar sv_slam_switch_mode_delay("sv_slam_switch_mode_delay", "1.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between tripmine/satchel modes (default: 1.2 = original SequenceDuration)");
-
-// CVARS PARA DELAYS DE TROCA DE ARMA E RESPONSIVIDADE
-ConVar sv_slam_holster_delay("sv_slam_holster_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when holstering SLAM to switch to another weapon (default: 0.5)");
-ConVar sv_slam_idle_delay("sv_slam_idle_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between weapon idle animations and actions (default: 0.3)");
-ConVar sv_slam_ready_delay("sv_slam_ready_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before weapon becomes fully ready after deploy (default: 0.2)");
-ConVar sv_slam_wall_switch_delay("sv_slam_wall_switch_delay", "0.8", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay for automatic wall detection switching (default: 0.8)");
-ConVar sv_slam_detonate_ready_delay("sv_slam_detonate_ready_delay", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds after deploying SLAM before detonation is allowed (0=instant, default: 1.5=original behavior)");
-// ==================================================================================================
 
 IMPLEMENT_NETWORKCLASS_ALIASED(Weapon_SLAM, DT_Weapon_SLAM)
 
@@ -102,6 +118,9 @@ DEFINE_FIELD(m_bThrowSatchel, FIELD_BOOLEAN),
 DEFINE_FIELD(m_bAttachSatchel, FIELD_BOOLEAN),
 DEFINE_FIELD(m_bAttachTripmine, FIELD_BOOLEAN),
 DEFINE_FIELD(m_flWallSwitchTime, FIELD_TIME),
+DEFINE_FIELD(m_flChargeStartTime, FIELD_TIME),
+DEFINE_FIELD(m_flLastHUDUpdateTime, FIELD_TIME),
+DEFINE_FIELD(m_bIsCharging, FIELD_BOOLEAN),
 
 // Function Pointers
 DEFINE_FUNCTION(SlamTouch),
@@ -122,14 +141,6 @@ acttable_t	CWeapon_SLAM::m_acttable[] =
 
 IMPLEMENT_ACTTABLE(CWeapon_SLAM);
 #endif
-
-//-----------------------------------------------------------------------------
-// Purpose: Helper function to calculate delay based on CVar setting
-//-----------------------------------------------------------------------------
-float CWeapon_SLAM::GetSlamDelay(ConVar& cvar, float originalDelay)
-{
-	return cvar.GetFloat();  // Usa diretamente o valor da CVar
-}
 
 void CWeapon_SLAM::Spawn()
 {
@@ -155,7 +166,6 @@ void CWeapon_SLAM::Precache(void)
 	UTIL_PrecacheOther("npc_satchel");
 #endif
 
-	PrecacheScriptSound("Weapon_SLAM.TripMineMode");
 	PrecacheScriptSound("Weapon_SLAM.SatchelDetonate");
 	PrecacheScriptSound("Weapon_SLAM.SatchelThrow");
 }
@@ -168,6 +178,13 @@ void CWeapon_SLAM::Precache(void)
 void CWeapon_SLAM::SetPickupTouch(void)
 {
 	SetTouch(&CWeapon_SLAM::SlamTouch);
+#ifndef CLIENT_DLL
+	if (GetSpawnFlags() & SF_NORESPAWN)
+	{
+		SetThink(&CWeapon_SLAM::SUB_Remove);
+		SetNextThink(gpGlobals->curtime + 30.0f);
+	}
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -199,18 +216,10 @@ void CWeapon_SLAM::SlamTouch(CBaseEntity* pOther)
 bool CWeapon_SLAM::Holster(CBaseCombatWeapon* pSwitchingTo)
 {
 	SetThink(NULL);
-
-	// DELAY CUSTOMIZADO PARA HOLSTER (TROCAR DO SLAM PARA OUTRA ARMA)
-	CBaseCombatCharacter* pOwner = GetOwner();
-	if (pOwner)
-	{
-		pOwner->SetNextAttack(gpGlobals->curtime + sv_slam_holster_delay.GetFloat());
-	}
-
 	return BaseClass::Holster(pSwitchingTo);
 }
 
-#ifndef CLIENT_DLL
+#ifdef GAME_DLL
 const CUtlVector< CBaseEntity* >& CWeapon_SLAM::GetSatchelVector()
 {
 	m_SatchelVector.RemoveAll();
@@ -254,6 +263,7 @@ void CWeapon_SLAM::PrimaryAttack(void)
 		return;
 	}
 
+	// Only allow this attack if we have ammo
 	if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
 	{
 		return;
@@ -262,13 +272,24 @@ void CWeapon_SLAM::PrimaryAttack(void)
 	switch (m_tSlamState)
 	{
 	case SLAM_TRIPMINE_READY:
-		if (CanAttachSLAM())
-		{
-			StartTripmineAttach();
-		}
+		StartTripmineAttach();
 		break;
 	case SLAM_SATCHEL_THROW:
-		StartSatchelThrow();
+		// Apenas inicia o carregamento se a CVar estiver ativada
+		if (sv_slam_throw_charge_enable.GetBool())
+		{
+			m_bIsCharging = true;
+			m_flChargeStartTime = gpGlobals->curtime;
+			SendWeaponAnim(ACT_SLAM_THROW_THROW_ND);
+			m_flNextPrimaryAttack = FLT_MAX;
+			m_flNextSecondaryAttack = FLT_MAX;
+		}
+		else
+		{
+			// Comportamento original
+			StartSatchelThrow();
+			m_bThrowSatchel = true;
+		}
 		break;
 	case SLAM_SATCHEL_ATTACH:
 		StartSatchelAttach();
@@ -310,10 +331,8 @@ void CWeapon_SLAM::SatchelDetonate()
 		CSatchelCharge* pSatchel = dynamic_cast<CSatchelCharge*>(pEntity);
 		if (pSatchel->m_bIsLive && pSatchel->GetThrower() && GetOwner() && pSatchel->GetThrower() == GetOwner())
 		{
-			//pSatchel->Use( GetOwner(), GetOwner(), USE_ON, 0 );
-			//variant_t emptyVariant;
-			//pSatchel->AcceptInput( "Explode", NULL, NULL, emptyVariant, 5 );
-			g_EventQueue.AddEvent(pSatchel, "Explode", 0.20, GetOwner(), GetOwner());
+			// USANDO CVAR PARA DELAY DE DETONAÇÃO
+			g_EventQueue.AddEvent(pSatchel, "Explode", sv_slam_detonate_ready_delay.GetFloat(), GetOwner(), GetOwner());
 		}
 	}
 #endif
@@ -327,7 +346,7 @@ void CWeapon_SLAM::SatchelDetonate()
 // Purpose: Returns true if there are any undetonated charges in the world
 //			that belong to this player
 // Input  :
-// Output :
+// Output  :
 //-----------------------------------------------------------------------------
 bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 {
@@ -346,6 +365,8 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 	return false;
 }
 
+ConVar mp_allow_immediate_slam_detonation("mp_allow_immediate_slam_detonation", "0", FCVAR_NOTIFY, "If enabled, allows a thrown SLAM to be detonated as soon as it is thrown rather than wait for the deploy animation of the detonator to finish");
+
 //-----------------------------------------------------------------------------
 // Purpose:
 // Input  :
@@ -353,37 +374,38 @@ bool CWeapon_SLAM::AnyUndetonatedCharges(void)
 //-----------------------------------------------------------------------------
 void CWeapon_SLAM::StartSatchelDetonate()
 {
+	Activity activity = GetActivity();
+	if (activity != ACT_SLAM_STICKWALL_IDLE && activity != ACT_SLAM_THROW_TO_STICKWALL)
+	{
+		if (!mp_allow_immediate_slam_detonation.GetBool())
+		{
+			if (GetActivity() != ACT_SLAM_STICKWALL_IDLE
+				&& GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE)
+				return;
+		}
 
-	if (GetActivity() != ACT_SLAM_DETONATOR_IDLE && GetActivity() != ACT_SLAM_THROW_IDLE)
-		return;
-
-	// -----------------------------------------
-	//  Play detonate animation
-	// -----------------------------------------
-	if (m_bNeedReload)
-	{
-		SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_ATTACH)
-	{
-		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
-	}
-	else if (m_tSlamState == SLAM_SATCHEL_THROW)
-	{
-		SendWeaponAnim(ACT_SLAM_THROW_DETONATE);
+		// -----------------------------------------
+		//  Play detonate animation
+		// -----------------------------------------
+		if (m_bNeedReload || m_tSlamState == SLAM_TRIPMINE_READY)
+		{
+			SendWeaponAnim(ACT_SLAM_DETONATOR_DETONATE);
+		}
+		else
+		{
+			SendWeaponAnim(m_tSlamState == SLAM_SATCHEL_THROW ? ACT_SLAM_THROW_DETONATE : ACT_SLAM_STICKWALL_DETONATE);
+		}
 	}
 	else
 	{
-		return;
+		SendWeaponAnim(ACT_SLAM_STICKWALL_DETONATE);
 	}
 	SatchelDetonate();
 
-	// DELAY CUSTOMIZADO PARA SECONDARY ATTACK (DETONA��O)
-	float originalDuration = SequenceDuration();
-	m_flNextPrimaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_secondary_delay, originalDuration);
-	m_flNextSecondaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_secondary_delay, originalDuration);
+	// USANDO CVARS PARA DELAYS
+	m_flNextPrimaryAttack = gpGlobals->curtime + sv_slam_secondary_delay.GetFloat();
+	m_flNextSecondaryAttack = gpGlobals->curtime + sv_slam_secondary_delay.GetFloat();
 }
-
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -401,37 +423,41 @@ void CWeapon_SLAM::TripmineAttach(void)
 	m_bAttachTripmine = false;
 
 	Vector vecSrc, vecAiming;
-
 	// Take the eye position and direction
 	vecSrc = pOwner->EyePosition();
-
 	QAngle angles = pOwner->GetLocalAngles();
-
 	AngleVectors(angles, &vecAiming);
 
 	trace_t tr;
-
-	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr);
-
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
 		CBaseEntity* pEntity = tr.m_pEnt;
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
 		{
-
 #ifndef CLIENT_DLL
+			CBaseEntity* pEntity = tr.m_pEnt;
+			CBaseCombatCharacter* pBCC = ToBaseCombatCharacter(pEntity);
+			if (pBCC)
+			{
+				return;
+			}
+
 			QAngle angles;
 			VectorAngles(tr.plane.normal, angles);
-
 			angles.x += 90;
 
 			CBaseEntity* pEnt = CBaseEntity::Create("npc_tripmine", tr.endpos + tr.plane.normal * 3, angles, NULL);
-
 			CTripmineGrenade* pMine = (CTripmineGrenade*)pEnt;
+			pMine->AttachToEntity(pEntity);
 			pMine->m_hOwner = GetOwner();
 
+			//// GUARDAR NOME DO DONO DA TRIPMINE
+			//CBasePlayer* pOwnerPlayer = ToBasePlayer(GetOwner());
+			//if (pOwnerPlayer)
+			//{
+			//	pMine->SetOwnerName(pOwnerPlayer->GetPlayerName());
+			//}
 #endif
-
 			pOwner->RemoveAmmo(1, m_iSecondaryAmmoType);
 		}
 	}
@@ -462,12 +488,8 @@ void CWeapon_SLAM::StartTripmineAttach(void)
 
 	trace_t tr;
 
-	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
-
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
-		// ALERT( at_console, "hit %f\n", tr.flFraction );
-
 		CBaseEntity* pEntity = tr.m_pEnt;
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
 		{
@@ -491,16 +513,11 @@ void CWeapon_SLAM::StartTripmineAttach(void)
 			m_bAttachTripmine = true;
 			m_bNeedDetonatorDraw = m_bDetonatorArmed;
 		}
-		else
-		{
-			// ALERT( at_console, "no deploy\n" );
-		}
 	}
 
-	// DELAY CUSTOMIZADO PARA PRIMARY ATTACK (COLOCAR TRIPMINE)
-	float originalDuration = SequenceDuration();
-	m_flNextPrimaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_primary_delay, originalDuration);
-	m_flNextSecondaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_primary_delay, originalDuration);
+	// USANDO CVARS PARA DELAYS
+	m_flNextPrimaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
+	m_flNextSecondaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
 }
 
 //-----------------------------------------------------------------------------
@@ -508,26 +525,29 @@ void CWeapon_SLAM::StartTripmineAttach(void)
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeapon_SLAM::SatchelThrow(void)
+void CWeapon_SLAM::SatchelThrow(float flVelocity)
 {
 #ifndef CLIENT_DLL
 	m_bThrowSatchel = false;
 
-	// Only the player fires this way so we can cast
 	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+	if (!pPlayer) return;
+
+	// Se charge estiver desabilitado, usa velocidade padrão
+	if (!sv_slam_throw_charge_enable.GetBool())
+	{
+		flVelocity = sv_slam_throw_velocity_default.GetFloat();
+	}
 
 	Vector vecSrc = pPlayer->WorldSpaceCenter();
 	Vector vecFacing = pPlayer->BodyDirection3D();
-	vecSrc = vecSrc + vecFacing * 18.0;
-	// BUGBUG: is this because vecSrc is not from Weapon_ShootPosition()???
-	vecSrc.z += 24.0f;
+	vecSrc = vecSrc + vecFacing * sv_slam_throw_forward_offset.GetFloat();
+	vecSrc.z += sv_slam_throw_vertical_offset.GetFloat();
 
 	Vector vecThrow;
 	GetOwner()->GetVelocity(&vecThrow, NULL);
-	vecThrow += vecFacing * 500;
+	vecThrow += vecFacing * flVelocity;
 
-	// Player may have turned to face a wall during the throw anim in which case
-	// we don't want to throw the SLAM into the wall
 	if (CanAttachSLAM())
 	{
 		vecThrow = vecFacing;
@@ -543,15 +563,37 @@ void CWeapon_SLAM::SatchelThrow(void)
 		pSatchel->SetLocalAngularVelocity(QAngle(0, 400, 0));
 		pSatchel->m_bIsLive = true;
 		pSatchel->m_pMyWeaponSLAM = this;
+
+		// GUARDAR NOME DO DONO
+		//CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+		//if (pOwner)
+		//{
+		//	//Q_strncpy(pSatchel->m_szOwnerName, pOwner->GetPlayerName(), 64);
+		//	pSatchel->SetOwnerName(pOwner->GetPlayerName());
+
+		//}
+
+		// SÓ REMOVE MUNIÇÃO SE SATCHEL FOI CRIADO COM SUCESSO
+		pPlayer->RemoveAmmo(1, m_iSecondaryAmmoType);
+
+		// SE CHEGOU A 0 MUNIÇÃO, FORÇA RELOAD PARA MODO DETONADOR
+		if (pPlayer->GetAmmoCount(m_iSecondaryAmmoType) <= 0 && AnyUndetonatedCharges())
+		{
+			m_bDetonatorArmed = true;
+			m_bNeedReload = true;
+			m_bNeedDetonatorDraw = true;
+		}
 	}
 
-	pPlayer->RemoveAmmo(1, m_iSecondaryAmmoType);
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
-
 #endif
 
-	// Play throw sound
 	EmitSound("Weapon_SLAM.SatchelThrow");
+
+	m_flNextPrimaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
+	m_flNextSecondaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
+
+	pPlayer->OnMyWeaponFired(this);
 }
 
 //-----------------------------------------------------------------------------
@@ -581,10 +623,9 @@ void CWeapon_SLAM::StartSatchelThrow(void)
 	m_bNeedReload = true;
 	m_bThrowSatchel = true;
 
-	// DELAY CUSTOMIZADO PARA PRIMARY ATTACK (JOGAR SATCHEL)
-	float originalDuration = SequenceDuration();
-	m_flNextPrimaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_primary_delay, originalDuration);
-	m_flNextSecondaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_primary_delay, originalDuration);
+	// USANDO CVARS PARA DELAYS
+	m_flNextPrimaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
+	m_flNextSecondaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
 }
 
 //-----------------------------------------------------------------------------
@@ -608,9 +649,7 @@ void CWeapon_SLAM::SatchelAttach(void)
 
 	trace_t tr;
 
-	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr);
-
-	if (tr.fraction < 1.0)
+	if (CanAttachSLAM(&tr))
 	{
 		CBaseEntity* pEntity = tr.m_pEnt;
 		if (pEntity && !(pEntity->GetFlags() & FL_CONVEYOR))
@@ -654,7 +693,8 @@ void CWeapon_SLAM::StartSatchelAttach(void)
 
 	trace_t tr;
 
-	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * 128), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr);
+	// USANDO CVAR PARA RANGE DE ATTACHMENT
+	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * sv_slam_attach_range.GetFloat()), MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr);
 
 	if (tr.fraction < 1.0)
 	{
@@ -687,9 +727,8 @@ void CWeapon_SLAM::StartSatchelAttach(void)
 			m_bNeedReload = true;
 			m_bAttachSatchel = true;
 
-			// DELAY CUSTOMIZADO PARA PRIMARY ATTACK (ANEXAR SATCHEL NA PAREDE)
-			float originalDuration = SequenceDuration();
-			m_flNextPrimaryAttack = gpGlobals->curtime + GetSlamDelay(sv_slam_primary_delay, originalDuration);
+			// USANDO CVARS PARA DELAYS
+			m_flNextPrimaryAttack = gpGlobals->curtime + sv_slam_primary_delay.GetFloat();
 		}
 	}
 #endif
@@ -717,7 +756,6 @@ void CWeapon_SLAM::SLAMThink(void)
 	if (m_flWallSwitchTime > gpGlobals->curtime)
 		return;
 
-
 	// If not in tripmine mode we need to check to see if we are close to
 	// a wall. If we are we go into satchel_attach mode
 	CBaseCombatCharacter* pOwner = GetOwner();
@@ -731,10 +769,8 @@ void CWeapon_SLAM::SLAMThink(void)
 				SetSlamState(SLAM_TRIPMINE_READY);
 				int iAnim = m_bDetonatorArmed ? ACT_SLAM_THROW_TO_STICKWALL : ACT_SLAM_THROW_TO_TRIPMINE_ND;
 				SendWeaponAnim(iAnim);
-
-				// DELAY CUSTOMIZADO PARA SWITCH MODE
-				float originalDuration = SequenceDuration();
-				m_flWallSwitchTime = gpGlobals->curtime + GetSlamDelay(sv_slam_wall_switch_delay, originalDuration);
+				// USANDO CVAR PARA WALL SWITCH DELAY
+				m_flWallSwitchTime = gpGlobals->curtime + sv_slam_wall_switch_delay.GetFloat();
 				m_bNeedReload = false;
 			}
 		}
@@ -745,11 +781,9 @@ void CWeapon_SLAM::SLAMThink(void)
 				SetSlamState(SLAM_SATCHEL_THROW);
 				int iAnim = m_bDetonatorArmed ? ACT_SLAM_STICKWALL_TO_THROW : ACT_SLAM_TRIPMINE_TO_THROW_ND;
 				SendWeaponAnim(iAnim);
-
-				// DELAY CUSTOMIZADO PARA SWITCH MODE
-				float originalDuration = SequenceDuration();
-				m_flWallSwitchTime = gpGlobals->curtime + GetSlamDelay(sv_slam_wall_switch_delay, originalDuration);
-				m_bNeedReload = false;
+				// USANDO CVAR PARA WALL SWITCH DELAY
+				m_flWallSwitchTime = gpGlobals->curtime + sv_slam_wall_switch_delay.GetFloat();
+				m_bNeedReload = m_bAttachTripmine = false;
 			}
 		}
 	}
@@ -760,7 +794,7 @@ void CWeapon_SLAM::SLAMThink(void)
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-bool CWeapon_SLAM::CanAttachSLAM(void)
+bool CWeapon_SLAM::CanAttachSLAM(trace_t* pTrace)
 {
 	CHL2MP_Player* pOwner = ToHL2MPPlayer(GetOwner());
 
@@ -780,7 +814,8 @@ bool CWeapon_SLAM::CanAttachSLAM(void)
 
 	trace_t tr;
 
-	Vector	vecEnd = vecSrc + (vecAiming * 42);
+	// USANDO CVAR PARA ATTACHMENT RANGE
+	Vector	vecEnd = vecSrc + (vecAiming * sv_slam_attachment_range.GetFloat());
 	UTIL_TraceLine(vecSrc, vecEnd, MASK_SOLID, pOwner, COLLISION_GROUP_NONE, &tr);
 
 	if (tr.fraction < 1.0)
@@ -794,7 +829,19 @@ bool CWeapon_SLAM::CanAttachSLAM(void)
 			{
 				return false;
 			}
+
+			CBaseGrenade* pGrenade = dynamic_cast<CBaseGrenade*>(pEntity);
+			if (pGrenade)
+			{
+				return false;
+			}
 		}
+
+		if (pTrace != NULL)
+		{
+			*pTrace = tr;
+		}
+
 		return true;
 	}
 	else
@@ -817,24 +864,61 @@ void CWeapon_SLAM::ItemPostFrame(void)
 		return;
 	}
 
-	SLAMThink();
-
-	if ((pOwner->m_nButtons & IN_ATTACK2) && (m_flNextSecondaryAttack <= gpGlobals->curtime))
+	// Se estiver carregando, processa o carregamento
+	if (m_bIsCharging)
 	{
-		SecondaryAttack();
-	}
-	else if (!m_bNeedReload && (pOwner->m_nButtons & IN_ATTACK) && (m_flNextPrimaryAttack <= gpGlobals->curtime))
-	{
-		PrimaryAttack();
-	}
+		float flChargeTime = gpGlobals->curtime - m_flChargeStartTime;
+		float flChargePercent = clamp(flChargeTime / sv_slam_charge_time.GetFloat(), 0.0f, 1.0f);
 
-	// -----------------------
-	//  No buttons down
-	// -----------------------
+		// USANDO CVAR PARA HUD UPDATE RATE
+		if (sv_slam_charge_hud.GetBool() && (gpGlobals->curtime - m_flLastHUDUpdateTime) > sv_slam_hud_update_rate.GetFloat())
+		{
+			char hudText[256];
+			int barLength = 20;
+			int filled = (int)(flChargePercent * barLength);
+			char bar[22];
+			for (int i = 0; i < barLength; i++)
+			{
+				bar[i] = (i < filled) ? '|' : ' ';
+			}
+			bar[barLength] = '\0';
+			Q_snprintf(hudText, sizeof(hudText), "Charging SLAM [%s] %d%%", bar, (int)(flChargePercent * 100));
+			ClientPrint(pOwner, HUD_PRINTCENTER, hudText);
+			m_flLastHUDUpdateTime = gpGlobals->curtime;
+		}
+
+		// Se o jogador soltou o botão, lança a granada
+		if (!(pOwner->m_nButtons & IN_ATTACK))
+		{
+			float flVelocity = Lerp(flChargePercent, sv_slam_throw_velocity_min.GetFloat(), sv_slam_throw_velocity_max.GetFloat());
+			SatchelThrow(flVelocity);
+			m_bIsCharging = false;
+			ClientPrint(pOwner, HUD_PRINTCENTER, "\n"); // Limpa o HUD
+		}
+	}
 	else
 	{
-		WeaponIdle();
-		return;
+		// Lógica original quando não está carregando
+		SLAMThink();
+
+		if (AnyUndetonatedCharges())
+			m_bDetonatorArmed = true;
+		else
+			m_bDetonatorArmed = false;
+
+		if ((pOwner->m_nButtons & IN_ATTACK2) && (m_flNextSecondaryAttack <= gpGlobals->curtime))
+		{
+			SecondaryAttack();
+		}
+		else if (!m_bNeedReload && (pOwner->m_nButtons & IN_ATTACK) && (m_flNextPrimaryAttack <= gpGlobals->curtime))
+		{
+			PrimaryAttack();
+		}
+		else
+		{
+			WeaponIdle();
+			return;
+		}
 	}
 }
 
@@ -866,9 +950,13 @@ void CWeapon_SLAM::Weapon_Switch(void)
 		pOwner->ClearActiveWeapon();
 	}
 #endif
-
 }
 
+//-----------------------------------------------------------------------------
+// Purpose:
+// Input  :
+// Output :
+//-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 // Purpose:
 // Input  :
@@ -895,8 +983,15 @@ void CWeapon_SLAM::WeaponIdle(void)
 
 		if (m_bThrowSatchel)
 		{
-			SatchelThrow();
-			if (m_bDetonatorArmed && !m_bNeedDetonatorDraw)
+			// Sempre usa velocidade padrão aqui, SatchelThrow vai decidir internamente
+			SatchelThrow(sv_slam_throw_velocity_default.GetFloat());
+
+			// Se não tem mais munição após o throw, força transição para detonador
+			if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0 && m_bDetonatorArmed)
+			{
+				iAnim = ACT_SLAM_DETONATOR_IDLE;
+			}
+			else if (m_bDetonatorArmed && !m_bNeedDetonatorDraw)
 			{
 				iAnim = ACT_SLAM_THROW_THROW2;
 			}
@@ -924,7 +1019,7 @@ void CWeapon_SLAM::WeaponIdle(void)
 		}
 		else if (m_bNeedReload)
 		{
-			// If owner had ammo draw the correct SLAM type
+			// Se o dono tiver munição, faz a animação de recarregar
 			if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) > 0)
 			{
 				switch (m_tSlamState)
@@ -973,7 +1068,7 @@ void CWeapon_SLAM::WeaponIdle(void)
 				}
 				m_bClearReload = true;
 			}
-			// If no ammo and armed, idle with only the detonator
+			// Se não tiver munição e o detonador estiver armado, faz a animação de idle
 			else if (m_bDetonatorArmed)
 			{
 				iAnim = m_bNeedDetonatorDraw ? ACT_SLAM_DETONATOR_DRAW : ACT_SLAM_DETONATOR_IDLE;
@@ -987,15 +1082,15 @@ void CWeapon_SLAM::WeaponIdle(void)
 #endif
 			}
 		}
-		else if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
+		// Se não tiver munição e não estiver armado, dropa a arma
+		else if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0 && !m_bDetonatorArmed)
 		{
 #ifndef CLIENT_DLL
 			pOwner->Weapon_Drop(this);
 			UTIL_Remove(this);
 #endif
 		}
-
-		// If I don't need to reload just do the appropriate idle
+		// Se não precisar recarregar, apenas faz o idle
 		else
 		{
 			switch (m_tSlamState)
@@ -1037,14 +1132,14 @@ void CWeapon_SLAM::WeaponIdle(void)
 			}
 		}
 		SendWeaponAnim(iAnim);
-
-		// DELAY CUSTOMIZADO PARA WEAPON IDLE - CONTROLA RESPONSIVIDADE GERAL
-		SetWeaponIdleTime(gpGlobals->curtime + sv_slam_idle_delay.GetFloat());
 	}
 }
 
 bool CWeapon_SLAM::Deploy(void)
 {
+	m_bThrowSatchel = false;
+	m_bAttachTripmine = false;
+
 	CBaseCombatCharacter* pOwner = GetOwner();
 	if (!pOwner)
 	{
@@ -1096,23 +1191,17 @@ bool CWeapon_SLAM::Deploy(void)
 		}
 	}
 
-	bool result = DefaultDeploy((char*)GetViewModel(), (char*)GetWorldModel(), iActivity, (char*)GetAnimPrefix());
+	return DefaultDeploy((char*)GetViewModel(), (char*)GetWorldModel(), iActivity, (char*)GetAnimPrefix());
+}
 
-	// DELAY CUSTOMIZADO PARA DEPLOY (TROCAR PARA A ARMA)
-	if (result)
-	{
-		float deployDelay = sv_slam_deploy_delay.GetFloat();
-		float readyDelay = sv_slam_ready_delay.GetFloat();
-		float detonateReadyDelay = sv_slam_detonate_ready_delay.GetFloat();
+bool CWeapon_SLAM::HasAnyAmmo(void)
+{
+	if (AnyUndetonatedCharges() || m_iClip2 > 0)
+		return true;
+	else
+		return false;
 
-		m_flNextPrimaryAttack = gpGlobals->curtime + deployDelay;
-		m_flNextSecondaryAttack = gpGlobals->curtime + detonateReadyDelay; // Usa delay espec�fico para detona��o
-
-		// Delay adicional para weapon ficar "ready"
-		SetWeaponIdleTime(gpGlobals->curtime + readyDelay);
-	}
-
-	return result;
+	return BaseClass::HasAnyAmmo();
 }
 
 //-----------------------------------------------------------------------------
@@ -1131,4 +1220,9 @@ CWeapon_SLAM::CWeapon_SLAM(void)
 	m_bAttachTripmine = false;
 	m_bNeedDetonatorDraw = false;
 	m_bNeedDetonatorHolster = false;
+
+	// INICIALIZAR NOVAS VARIÁVEIS
+	m_flChargeStartTime = 0.0f;
+	m_flLastHUDUpdateTime = 0.0f;
+	m_bIsCharging = false;
 }

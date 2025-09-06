@@ -1,6 +1,6 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose:
+// Purpose: 
 //
 // $NoKeywords: $
 //=============================================================================//
@@ -15,9 +15,7 @@
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 
 #ifdef CLIENT_DLL
-
 #include "iviewrender_beams.h"
-
 #endif
 
 #ifndef CLIENT_DLL
@@ -26,8 +24,10 @@
 #include "beam_shared.h"
 
 class CWeaponRPG;
-class CLaserDot;
 class RocketTrail;
+
+// Forward declaration
+class CLaserDot;
 
 //###########################################################################
 //	>> CMissile		(missile launcher class is below this one!)
@@ -35,6 +35,7 @@ class RocketTrail;
 class CMissile : public CBaseCombatCharacter
 {
 	DECLARE_CLASS(CMissile, CBaseCombatCharacter);
+	DECLARE_DATADESC();
 
 public:
 	CMissile();
@@ -58,19 +59,19 @@ public:
 	void	DumbFire(void);
 	void	SetGracePeriod(float flGracePeriod);
 
-	// Secondary mode functions
-	void	SetDumbFireMode(bool bDumbFire) { m_bDumbFireMode = bDumbFire; }
-
 	int		OnTakeDamage_Alive(const CTakeDamageInfo& info);
 	void	Event_Killed(const CTakeDamageInfo& info);
 
 	virtual float	GetDamage() { return m_flDamage; }
 	virtual void	SetDamage(float flDamage) { m_flDamage = flDamage; }
 
+	// NEW: Dumb fire mode for secondary attack
+	void	SetDumbFireMode(bool bDumbFire) { m_bDumbFireMode = bDumbFire; }
+	bool	IsDumbFireMode() const { return m_bDumbFireMode; }
+
 	unsigned int PhysicsSolidMaskForEntity(void) const;
 
 	CHandle<CWeaponRPG>		m_hOwner;
-	CHandle<CBaseEntity>	m_hAttacker;		// ADICIONE ESTA LINHA
 
 	static CMissile* Create(const Vector& vecOrigin, const QAngle& vecAngles, edict_t* pentOwner);
 
@@ -82,7 +83,7 @@ protected:
 	// Creates the smoke trail
 	void CreateSmokeTrail(void);
 
-	// Gets the shooting position
+	// Gets the shooting position 
 	void GetShootPosition(CLaserDot* pLaserDot, Vector* pShootPosition);
 
 	CHandle<RocketTrail>	m_hRocketTrail;
@@ -90,11 +91,12 @@ protected:
 	float					m_flMarkDeadTime;
 	float					m_flDamage;
 
+	// NEW: Additional members for enhanced functionality
+	bool					m_bDumbFireMode;	// Secondary fire mode
+	EHANDLE					m_hAttacker;		// Who shot down the missile
+
 private:
 	float					m_flGracePeriodEndsAt;
-	bool					m_bDumbFireMode;		// Dumb fire mode for secondary system
-
-	DECLARE_DATADESC();
 };
 
 
@@ -105,13 +107,12 @@ CBaseEntity* CreateLaserDot(const Vector& origin, CBaseEntity* pOwner, bool bVis
 void SetLaserDotTarget(CBaseEntity* pLaserDot, CBaseEntity* pTarget);
 void EnableLaserDot(CBaseEntity* pLaserDot, bool bEnable);
 
-
 //-----------------------------------------------------------------------------
 // Specialized mizzizzile
 //-----------------------------------------------------------------------------
 class CAPCMissile : public CMissile
 {
-	DECLARE_CLASS(CMissile, CMissile);
+	DECLARE_CLASS(CAPCMissile, CMissile);
 	DECLARE_DATADESC();
 
 public:
@@ -148,7 +149,7 @@ private:
 	float	m_flReachedTargetTime;
 	float	m_flIgnitionTime;
 	bool	m_bGuidingDisabled;
-	float 	m_flLastHomingSpeed;
+	float   m_flLastHomingSpeed;
 	EHANDLE m_hSpecificTarget;
 	string_t m_strHint;
 };
@@ -159,7 +160,7 @@ private:
 //-----------------------------------------------------------------------------
 CAPCMissile* FindAPCMissileInCone(const Vector& vecOrigin, const Vector& vecDirection, float flAngle);
 
-#endif
+#endif // CLIENT_DLL guard
 
 //-----------------------------------------------------------------------------
 // RPG
@@ -183,8 +184,7 @@ public:
 	void	Precache(void);
 
 	void	PrimaryAttack(void);
-	void	SecondaryAttack(void);		// Toggle laser mode
-
+	void	SecondaryAttack(void);		// NEW: Secondary attack for laser toggle
 	virtual float GetFireRate(void) { return 1; };
 	void	ItemPostFrame(void);
 
@@ -197,7 +197,7 @@ public:
 	bool	WeaponShouldBeLowered(void);
 	bool	Lower(void);
 
-	bool	CanHolster(void);
+	bool	CanHolster(void) const;
 
 	virtual void Drop(const Vector& vecVelocity);
 
@@ -221,10 +221,16 @@ public:
 	void	UpdateLaserPosition(Vector vecMuzzlePos = vec3_origin, Vector vecEndPos = vec3_origin);
 	Vector	GetLaserPosition(void);
 
+	bool m_bLastKnownLaserState;  // Estado do laser antes da munição acabar
+	bool m_bLastAttack2State;
+
 	// NPC RPG users cheat and directly set the laser pointer's origin
 	void	UpdateNPCLaserPosition(const Vector& vecTarget);
 	void	SetNPCLaserPosition(const Vector& vecTarget);
 	const Vector& GetNPCLaserPosition(void);
+
+	// NEW: Missile access
+	CBaseEntity* GetMissile(void) { return m_hMissile; }
 
 #ifdef CLIENT_DLL
 
@@ -246,8 +252,6 @@ public:
 
 #endif	//CLIENT_DLL
 
-	CBaseEntity* GetMissile(void) { return m_hMissile; }
-
 #ifndef CLIENT_DLL
 	DECLARE_ACTTABLE();
 #endif
@@ -261,13 +265,31 @@ protected:
 	CNetworkHandle(CBaseEntity, m_hMissile);
 	CNetworkVar(Vector, m_vecLaserDot);
 
+	// NEW: Laser toggle mode
+	bool			m_bLaserToggleMode;		// Controls if laser is enabled/disabled
+
 #ifndef CLIENT_DLL
 	CHandle<CLaserDot>	m_hLaserDot;
 #endif
 
 private:
-	bool				m_bLaserToggleMode;		// Toggle state for laser ON/OFF
+	bool m_bLaserTogglePressed;
+	int m_iRPGShotCount;
 	CWeaponRPG(const CWeaponRPG&);
 };
+
+//-----------------------------------------------------------------------------
+// CVars - External declarations
+//-----------------------------------------------------------------------------
+#ifndef CLIENT_DLL
+extern ConVar sv_rpg_missile_ignition_delay;
+extern ConVar sv_rpg_secondary_mode;
+extern ConVar sv_rpg_secondary_missile_velocity;
+extern ConVar sv_rpg_missile_shotdown;
+extern ConVar sv_rpg_missile_kill_credit;
+extern ConVar sv_rpg_missile_hitbox_scale;
+extern ConVar sv_rpg_weapon_switch;
+extern ConVar sv_rpg_missile_shotdown_explode;
+#endif
 
 #endif // WEAPON_RPG_H

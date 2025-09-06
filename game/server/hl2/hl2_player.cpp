@@ -99,7 +99,7 @@ ConVar player_showpredictedposition_timestep( "player_showpredictedposition_time
 ConVar player_squad_transient_commands( "player_squad_transient_commands", "1", FCVAR_REPLICATED );
 ConVar player_squad_double_tap_time( "player_squad_double_tap_time", "0.25" );
 
-ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_CHEAT );
+ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_NOTIFY );
 
 ConVar autoaim_unlock_target( "autoaim_unlock_target", "0.8666" );
 
@@ -391,21 +391,42 @@ CHL2_Player::CHL2_Player()
 	m_iArmorReductionFrom = 0;
 }
 
+///////////////////////
+// NEW: Drain rates.
+///////////////////////
+#ifdef HL2MP
+#define STR_SPRINT_DRAIN_RATE "25"		// 100 units in 8 seconds
+#else
+#define STR_SPRINT_DRAIN_RATE "12.5"	// 100 units in 4 seconds
+#endif
+
+void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue );
+ConVar sv_sprint_drain_rate( "sv_sprint_drain_rate", STR_SPRINT_DRAIN_RATE, FCVAR_ARCHIVE, "Drain rate of sprint, in energy units per second.", true, 0, false, 0, &callback_sv_sprint );
+///////////////////////
+
 //
 // SUIT POWER DEVICES
 //
 #define SUITPOWER_CHARGE_RATE	12.5											// 100 units in 8 seconds
 
-#ifdef HL2MP
-	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
+/*#ifdef HL2MP
+CSuitPowerDevice SuitDeviceSprint(bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat());				// 100 units in 4 seconds
 #else
 	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 12.5f );				// 100 units in 8 seconds
-#endif
+#endif*/
+
+CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat() );
+
+void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue )
+{
+	// We need to recreate SuitDeviceSprint with the new value.
+	SuitDeviceSprint = CSuitPowerDevice( bits_SUIT_DEVICE_SPRINT, sv_sprint_drain_rate.GetFloat() );
+}
 
 #ifdef HL2_EPISODIC
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
+CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 1.111 );	// 100 units in 90 second
 #else
-	CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
+CSuitPowerDevice SuitDeviceFlashlight( bits_SUIT_DEVICE_FLASHLIGHT, 2.222 );	// 100 units in 45 second
 #endif
 CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
 
@@ -501,10 +522,48 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 	bool bJustPressedSpeed = !!( nChangedButtons & IN_SPEED );
 
-	const bool bWantSprint = ( CanSprint() && IsSuitEquipped() && ( mv->m_nButtons & IN_SPEED ) );
+	const bool bWantSprint = ( CanSprint() && IsSuitEquipped() && ( mv->m_nButtons & IN_SPEED ) && !( mv->m_nButtons & IN_DUCK ) );
 	const bool bWantsToChangeSprinting = ( m_HL2Local.m_bNewSprinting != bWantSprint ) && ( nChangedButtons & IN_SPEED ) != 0;
 
 	bool bSprinting = m_HL2Local.m_bNewSprinting;
+
+	// Completely block sprinting under water
+	if ( GetWaterLevel() == 3 )
+		bSprinting = false;
+
+	if ( GetGroundEntity() == NULL && ( mv->m_nButtons & IN_SPEED ) )
+		bSprinting = true;
+
+	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && bSprinting )
+	{
+		bSprinting = false;
+		SetSpeedCrawl( false );
+	}
+
+	if ( m_Local.m_bDucked && !m_Local.m_bDucking && ( mv->m_nButtons & IN_DUCK ) && !IsSpeedcrawling() )
+	{
+		bSprinting = false;
+	}
+	
+	if ( m_Local.m_bDucked && m_Local.m_bDucking && m_HL2Local.m_bNewSprinting == false && ( mv->m_nButtons & IN_SPEED ) )
+	{
+		bSprinting = true;
+		SetSpeedCrawl( true );
+	}
+
+	if ( IsSpeedcrawling() )
+	{
+		if ( ( mv->m_nButtons & IN_SPEED ) )
+		{
+			bSprinting = true;
+		}
+	}
+
+	if ( !m_Local.m_bDucked && !m_Local.m_bDucking )
+	{
+		SetSpeedCrawl( false );
+	}
+
 	if ( bWantsToChangeSprinting )
 	{
 		if ( bWantSprint )
@@ -576,9 +635,11 @@ void CHL2_Player::HandleSpeedChanges( CMoveData *mv )
 
 void CHL2_Player::ReduceTimers( CMoveData *mv )
 {
+	bool bPlayerNotMoving = mv->m_vecVelocity.Length() < 0.1f;
+
 	bool bSprinting = mv->m_flClientMaxSpeed == HL2_SPRINT_SPEED;
 
-	if ( bSprinting )
+	if ( bSprinting && !bPlayerNotMoving )
 	{
 		SuitPower_AddDevice( SuitDeviceSprint );
 	}
@@ -589,6 +650,7 @@ void CHL2_Player::ReduceTimers( CMoveData *mv )
 
 	SuitPower_Update();
 }
+
 
 //-----------------------------------------------------------------------------
 // This happens when we powerdown from the mega physcannon to the regular one
@@ -937,7 +999,6 @@ void CHL2_Player::PreThink(void)
 	{
 		if ( m_nButtons & IN_ZOOM )
 		{
-			//FIXME: Held weapons like the grenade get sad when this happens
 	#ifdef HL2_EPISODIC
 			// Episodic allows players to zoom while using a func_tank
 			CBaseCombatWeapon* pWep = GetActiveWeapon();
@@ -1107,6 +1168,22 @@ bool CHL2_Player::HandleInteraction(int interactionType, void *data, CBaseCombat
 
 void CHL2_Player::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 {
+	float m_flcurrentTime = gpGlobals->curtime;
+
+	if ( !IsPenetrationOngoing( m_flcurrentTime ) && CheckForPenetration() )
+	{
+		// Reset the player's speed if penetration is no longer ongoing
+
+		if ( GetLaggedMovementValue() != 1.0f )
+		{
+			SetLaggedMovementValue( 1.0f );
+
+			DevMsg( "Reset player movement speed to default.\n" );
+		}
+
+		SetCheckForPenetration( false );
+	}
+
 	// Handle FL_FROZEN.
 	if ( m_afPhysicsFlags & PFLAG_ONBARNACLE )
 	{
@@ -1971,6 +2048,10 @@ bool CHL2_Player::SuitPower_RemoveDevice( const CSuitPowerDevice &device )
 #define SUITPOWER_BEGIN_RECHARGE_DELAY	0.5f
 bool CHL2_Player::SuitPower_ShouldRecharge( void )
 {
+	// Suitpower cheat on?
+	if ( sv_infinite_aux_power.GetBool() )
+		return true;
+
 	// Make sure all devices are off.
 	if( m_HL2Local.m_bitsActiveDevices != 0x00000000 )
 		return false;
@@ -2647,13 +2728,17 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 	// If I was dry on ammo for my best weapon and justed picked up ammo for it,
 	// autoswitch to my best weapon now.
 	//
-	if (bCheckAutoSwitch)
+	const char *cl_autowepswitch = engine->GetClientConVarValue( engine->IndexOfEdict( this->edict() ), "cl_autowepswitch" ); // if cl_autowepswitch is 0, it will not switch weapon.
+	if ( cl_autowepswitch && atoi( cl_autowepswitch ) >= 1 )
 	{
-		CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
-
-		if ( pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex )
+		if ( bCheckAutoSwitch )
 		{
-			SwitchToNextBestWeapon(GetActiveWeapon());
+			CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon( this, GetActiveWeapon() );
+
+			if ( pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex )
+			{
+				SwitchToNextBestWeapon( GetActiveWeapon() );
+			}
 		}
 	}
 
@@ -2829,6 +2914,14 @@ void CHL2_Player::PlayerUse ( void )
 
 	if ( m_afButtonPressed & IN_USE )
 	{
+		// game_ui, don't deactivate if +USE on an entity
+		CBaseEntity *pUseEntity = FindUseEntity();
+
+		if ( UsingGameUI() && pUseEntity )
+		{
+			m_afButtonPressed &= ~IN_USE;
+			return;
+		}
 		// Currently using a latched entity?
 		if ( ClearUseEntity() )
 		{
@@ -3189,6 +3282,11 @@ float CHL2_Player::GetHeldObjectMass( IPhysicsObject *pHeldObject )
 	return mass;
 }
 
+CBaseEntity *CHL2_Player::GetHeldObject( void )
+{
+	return PhysCannonGetHeldEntity( GetActiveWeapon() );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Force the player to drop any physics objects he's carrying
 //-----------------------------------------------------------------------------
@@ -3213,10 +3311,11 @@ void CHL2_Player::ForceDropOfCarriedPhysObjects( CBaseEntity *pOnlyIfHoldingThis
 #endif
 
 	// Drop any objects being handheld.
-	ClearUseEntity();
+	if ( pOnlyIfHoldingThis == NULL || pOnlyIfHoldingThis == GetUseEntity() )
+		ClearUseEntity();
 
 	// Then force the physcannon to drop anything it's holding, if it's our active weapon
-	PhysCannonForceDrop( GetActiveWeapon(), NULL );
+	PhysCannonForceDrop( GetActiveWeapon(), pOnlyIfHoldingThis );
 }
 
 void CHL2_Player::InputForceDropPhysObjects( inputdata_t &data )
@@ -3749,6 +3848,9 @@ const impactdamagetable_t &CHL2_Player::GetPhysicsImpactDamageTable()
 //-----------------------------------------------------------------------------
 void CHL2_Player::Splash( void )
 {
+	if ( IsObserver() )
+		return;
+
 	CEffectData data;
 	data.m_fFlags = 0;
 	data.m_vOrigin = GetAbsOrigin();

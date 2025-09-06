@@ -8,6 +8,9 @@
 #include "cbase.h"
 #include "game.h"
 #include "physics.h"
+#ifdef HL2MP
+#include "hl2mp_player.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,21 +27,60 @@ void MapCycleFileChangedCallback( IConVar *var, const char *pOldString, float fl
 	}
 }
 
+
+void mp_teamplay_changed(IConVar* var, const char* pOldValue, float flOldValue)
+{
+	CHL2MPRules* pGameRules = dynamic_cast<CHL2MPRules*>(g_pGameRules);
+	if (!pGameRules)
+		return;
+
+	ConVarRef teamplay_ref(var);
+	bool bNewTeamplay = teamplay_ref.GetBool();
+
+	Msg("Teamplay mode changed to: %s\n", bNewTeamplay ? "Team Deathmatch" : "Deathmatch");
+
+	pGameRules->ChangeTeamplayMode(bNewTeamplay);
+}
+
+void flashlight_changed( IConVar *pConVar, const char *pOldString, float flOldValue )
+{
+	ConVarRef var( pConVar );
+	if ( !var.IsValid() )
+	{
+		return;
+	}
+
+	if ( var.GetInt() < 1 )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; ++i )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( !pPlayer )
+				return;
+
+			pPlayer->FlashlightTurnOff();
+		}
+	}
+}
+
 ConVar	displaysoundlist( "displaysoundlist","0" );
 ConVar  mapcyclefile( "mapcyclefile", "mapcycle.txt", FCVAR_NONE, "Name of the .txt file used to cycle the maps on multiplayer servers ", MapCycleFileChangedCallback );
 ConVar  servercfgfile( "servercfgfile","server.cfg" );
 ConVar  lservercfgfile( "lservercfgfile","listenserver.cfg" );
-
 // multiplayer server rules
-ConVar	teamplay( "mp_teamplay","0", FCVAR_NOTIFY );
-ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
+ConVar	teamplay("mp_teamplay", "0", FCVAR_NOTIFY, "Should teamplay settings be on or off", mp_teamplay_changed);
+
+//ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
+ConVar falldamage("mp_falldamage", "10", FCVAR_NOTIFY, "Fall damage amount. Set to 0 or -1 to disable."); //updated cvar, by ribas
+
 ConVar	weaponstay( "mp_weaponstay","0", FCVAR_NOTIFY );
 ConVar	forcerespawn( "mp_forcerespawn","1", FCVAR_NOTIFY );
 ConVar	footsteps( "mp_footsteps","1", FCVAR_NOTIFY );
 #ifdef CSTRIKE
 ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY );
 #else
-ConVar	flashlight( "mp_flashlight","0", FCVAR_NOTIFY );
+ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY, 0, flashlight_changed );
 #endif
 ConVar	aimcrosshair( "mp_autocrosshair","1", FCVAR_NOTIFY );
 ConVar	decalfrequency( "decalfrequency","10", FCVAR_NOTIFY );
@@ -46,6 +88,11 @@ ConVar	teamlist( "mp_teamlist","hgrunt;scientist", FCVAR_NOTIFY );
 ConVar	teamoverride( "mp_teamoverride","1" );
 ConVar	defaultteam( "mp_defaultteam","0" );
 ConVar	allowNPCs( "mp_allowNPCs","1", FCVAR_NOTIFY );
+ConVar	sv_propflying( "sv_propflying", "1", FCVAR_NOTIFY );
+ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
+ConVar mp_ar2_alt_glass( "mp_ar2_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, AR2 orbs will punch through glass" );
+ConVar sv_hudtargetid( "sv_hudtargetid", "1", FCVAR_NOTIFY, "If enabled, shows a custom HUD target ID in-game" );
+ConVar sv_hudtargetid_channel( "sv_hudtargetid_channel", "1", 0, "Selects which text channel to use for the HUD target ID\nNOTE: If you notice text conflicting, then there is a channel conflict" );
 
 // Engine Cvars
 const ConVar	*g_pDeveloper = NULL;

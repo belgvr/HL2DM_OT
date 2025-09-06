@@ -29,6 +29,7 @@
 #include "utldict.h"
 #include "collisionutils.h"
 #include "movevars_shared.h"
+#include "inetchannel.h"
 #include "inetchannelinfo.h"
 #include "tier0/vprof.h"
 #include "ndebugoverlay.h"
@@ -591,7 +592,10 @@ CBasePlayer *UTIL_GetLocalPlayer( void )
 #endif
 		}
 
-		return NULL;
+		// return NULL;
+		
+		// return something in multiplayer
+		return UTIL_PlayerByIndex( 1 );
 	}
 
 	return UTIL_PlayerByIndex( 1 );
@@ -1088,6 +1092,28 @@ void ClientPrint( CBasePlayer *player, int msg_dest, const char *msg_name, const
 	UTIL_ClientPrintFilter( user, msg_dest, msg_name, param1, param2, param3, param4 );
 }
 
+void UTIL_PrintToAllClients( const char *msg, const char *param1, const char *param2, const char *param3, const char *param4 )
+{
+	if ( msg )
+	{
+		CReliableBroadcastRecipientFilter filter;
+		UTIL_SayText2Filter( filter, NULL, true, msg, param1, param2, param3, param4 );
+	}
+}
+
+void UTIL_PrintToClient( CBasePlayer *player, const char *msg, const char *param1, const char *param2, const char *param3, const char *param4 )
+{
+	if ( !player )
+		return;
+
+	if ( msg )
+	{
+		CSingleUserRecipientFilter user( player );
+		user.MakeReliable();
+		UTIL_SayText2Filter( user, NULL, true, msg, param1, param2, param3, param4 );
+	}
+}
+
 void UTIL_SayTextFilter( IRecipientFilter& filter, const char *pText, CBasePlayer *pPlayer, bool bChat )
 {
 	UserMessageBegin( filter, "SayText" );
@@ -1186,6 +1212,26 @@ void UTIL_ShowMessageAll( const char *pString )
 	UTIL_ShowMessage( pString, NULL );
 }
 
+#define NET_SETCONVAR 5
+#define NETMSG_BITS 6
+
+void UTIL_SendConVarValue( edict_t *pEdict, const char *pConVarName, const char *pConVarValue )
+{
+	char data[ 256 ];
+	bf_write buffer( data, sizeof( data ) );
+	buffer.WriteUBitLong( NET_SETCONVAR, NETMSG_BITS );
+	buffer.WriteByte( 1 );
+	buffer.WriteString( pConVarName );
+	buffer.WriteString( pConVarValue );
+
+	INetChannel *pChannel = ( INetChannel * ) engine->GetPlayerNetInfo( pEdict->m_EdictIndex );
+
+	if ( pChannel )
+	{
+		pChannel->SendData( buffer );
+	}
+}
+
 // So we always return a valid surface
 static csurface_t	g_NullSurface = { "**empty**", 0 };
 
@@ -1251,9 +1297,7 @@ void UTIL_SetModel( CBaseEntity *pEntity, const char *pModelName )
 	int i = modelinfo->GetModelIndex( pModelName );
 	if ( i == -1 )	
 	{
-		Error("%i/%s - %s:  UTIL_SetModel:  not precached: %s\n", pEntity->entindex(),
-			STRING( pEntity->GetEntityName() ),
-			pEntity->GetClassname(), pModelName);
+		i = 1;
 	}
 
 	CBaseAnimating *pAnimating = pEntity->GetBaseAnimating();
@@ -2154,11 +2198,20 @@ void UTIL_SetClientVisibilityPVS( edict_t *pClient, const unsigned char *pvs, in
 
 		g_CheckClient.m_bClientPVSIsExpanded = false;
 
+		// old, revert if problematic
+		/*
 		unsigned *pFrom = (unsigned *)pvs;
 		unsigned *pMask = (unsigned *)g_CheckClient.m_checkPVS;
 		unsigned *pTo = (unsigned *)g_CheckClient.m_checkVisibilityPVS;
 
 		int limit = pvssize / 4;
+		*/
+
+		size_t *pFrom = ( size_t * ) pvs;
+		size_t *pMask = ( size_t * ) g_CheckClient.m_checkPVS;
+		size_t *pTo = ( size_t * ) g_CheckClient.m_checkVisibilityPVS;
+		int limit = pvssize / static_cast< int >( sizeof( size_t ) );
+
 		int i;
 
 		for ( i = 0; i < limit; i++ )
@@ -2171,7 +2224,9 @@ void UTIL_SetClientVisibilityPVS( edict_t *pClient, const unsigned char *pvs, in
 			}
 		}
 
-		int remainder = pvssize % 4;
+		// int remainder = pvssize % 4;
+		int remainder = pvssize % static_cast< int >( sizeof( size_t ) );
+
 		for ( i = 0; i < remainder; i++ )
 		{
 			((unsigned char *)&pTo[limit])[i] = ((unsigned char *)&pFrom[limit])[i] & !((unsigned char *)&pMask[limit])[i];
@@ -3011,6 +3066,9 @@ static ConCommand voxeltree_view( "voxeltree_view", CC_VoxelTreeView, "View enti
 
 void CC_VoxelTreePlayerView( void )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Msg( "VoxelTreePlayerView\n" );
 
 	CBasePlayer *pPlayer = static_cast<CBasePlayer*>( UTIL_GetLocalPlayer() );
@@ -3022,6 +3080,9 @@ static ConCommand voxeltree_playerview( "voxeltree_playerview", CC_VoxelTreePlay
 
 void CC_VoxelTreeBox( const CCommand &args )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Vector vecMin, vecMax;
 	if ( args.ArgC() >= 6 )
 	{
@@ -3076,6 +3137,9 @@ static ConCommand voxeltree_box( "voxeltree_box", CC_VoxelTreeBox, "View entitie
 
 void CC_VoxelTreeSphere( const CCommand &args )
 {
+	if ( engine->IsDedicatedServer() )
+		return;
+
 	Vector vecCenter;
 	float flRadius;
 	if ( args.ArgC() >= 4 )

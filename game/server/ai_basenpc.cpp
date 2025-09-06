@@ -6605,6 +6605,10 @@ void CAI_BaseNPC::CheckPhysicsContacts()
 	if ( GetMoveType() == MOVETYPE_STEP && VPhysicsGetObject())
 	{
 		IPhysicsObject *pPhysics = VPhysicsGetObject();
+
+		if ( !pPhysics )
+			return;
+
 		IPhysicsFrictionSnapshot *pSnapshot = pPhysics->CreateFrictionSnapshot();
 		CBaseEntity *pGroundEntity = GetGroundEntity();
 		float heightCheck = GetAbsOrigin().z + GetHullMaxs().z;
@@ -8450,8 +8454,11 @@ void CAI_BaseNPC::HandleAnimEvent( animevent_t *pEvent )
 
 				Assert( pWeapon != NULL	); 
 
- 				GetActiveWeapon()->Holster();
-				SetActiveWeapon( NULL );
+				if ( GetActiveWeapon() != NULL )
+				{
+					GetActiveWeapon()->Holster();
+					SetActiveWeapon( NULL );
+				}
 
 				//Force the NPC to recalculate it's arrival activity since it'll most likely be wrong now that we don't have a weapon out.
 				GetNavigator()->SetArrivalSequence( ACT_INVALID );
