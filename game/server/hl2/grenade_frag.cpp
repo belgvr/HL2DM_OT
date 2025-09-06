@@ -162,7 +162,7 @@ void CGrenadeFrag::Spawn(void)
 	CreateVPhysics();
 
 	BlipSound();
-	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY; //default grenade blip emitter
 
 	AddSolidFlags(FSOLID_NOT_STANDABLE);
 
@@ -488,11 +488,13 @@ void CGrenadeFrag::DelayThink()
 
 		if (m_bHasWarnedAI)
 		{
-			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
+			//m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FAST_FREQUENCY;
+			m_flNextBlipTime += FRAG_GRENADE_BLIP_FAST_FREQUENCY; // Keep time accumulated to avoid sound "drift"
 		}
 		else
 		{
-			m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+			//m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+			m_flNextBlipTime += FRAG_GRENADE_BLIP_FREQUENCY; // Keep time accumulated to avoid sound "drift"
 		}
 	}
 

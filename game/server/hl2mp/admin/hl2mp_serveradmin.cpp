@@ -35,6 +35,8 @@ CUtlDict<int, unsigned short> g_alreadyNominatedMaps;
 
 CUtlVector<CUtlString> g_recentlyPlayedMaps;
 
+CUtlDict<CUtlString, unsigned short> g_CustomColors;
+
 const int MAX_NOMINATIONS = 5;
 
 ConVar sv_rtv_enabled("sv_rtv_enabled", "0", 0);
@@ -50,6 +52,8 @@ bool g_bAdminSystem = false;
 // global list of admins
 CUtlVector<CHL2MP_Admin*> g_AdminList;
 FileHandle_t g_AdminLogFile = FILESYSTEM_INVALID_HANDLE;
+
+CUtlDict<AdminGroup_t, unsigned short> g_AdminGroups;
 
 ConVar sv_showadminpermissions("sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to");
 
@@ -165,6 +169,293 @@ void RemoveTrailingWhitespace(CUtlString& str)
 	}
 	str.SetLength(end + 1);
 }
+
+const char* GetColorConstant(const char* colorName)
+{
+	if (!colorName || !*colorName)
+		return CHAT_DEFAULT;
+
+	// Check if it's a direct hex code (starts with #)
+	if (colorName[0] == '#' && strlen(colorName) == 7)
+	{
+		// Validate and convert hex format
+		// Use a static string that gets replaced each call
+		static CUtlString hexResult;
+		hexResult = "\x07";
+		for (int i = 1; i < 7; i++)
+		{
+			char c = colorName[i];
+			if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+			{
+				return CHAT_DEFAULT; // Invalid hex
+			}
+			hexResult += (char)toupper(c);
+		}
+		return hexResult.Get();
+	}
+
+	// Look up color name in loaded colors
+	char lowerColorName[64];
+	Q_strncpy(lowerColorName, colorName, sizeof(lowerColorName));
+	Q_strlower(lowerColorName);
+
+	int colorIndex = g_CustomColors.Find(lowerColorName);
+	if (colorIndex != g_CustomColors.InvalidIndex())
+	{
+		const char* hexCode = g_CustomColors[colorIndex].Get();
+
+		if (hexCode[0] == '#' && strlen(hexCode) == 7)
+		{
+			static CUtlString colorResult;
+			colorResult = "\x07";
+			for (int i = 1; i < 7; i++)
+			{
+				colorResult += (char)toupper(hexCode[i]);
+			}
+			return colorResult.Get();
+		}
+	}
+
+	return CHAT_DEFAULT;
+}
+
+void LoadCustomColors()
+{
+	// Clear existing colors
+	g_CustomColors.Purge();
+
+	FileHandle_t file = filesystem->Open("cfg/colors/colors.txt", "r", "MOD");
+	if (!file)
+	{
+		Msg("Warning: Could not load cfg/colors/colors.txt\n");
+		return;
+	}
+
+	const int bufferSize = 256;
+	char buffer[bufferSize];
+	int lineNumber = 0;
+
+	while (filesystem->ReadLine(buffer, bufferSize, file))
+	{
+		lineNumber++;
+
+		// Remove trailing whitespace
+		int len = strlen(buffer);
+		while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r' || buffer[len - 1] == ' ' || buffer[len - 1] == '\t'))
+		{
+			buffer[len - 1] = '\0';
+			len--;
+		}
+
+		// Skip empty lines and comments
+		if (len == 0 || buffer[0] == '/' || buffer[0] == '#')
+			continue;
+
+		// Find the comma separator
+		const char* commaPtr = strchr(buffer, ',');
+		if (!commaPtr)
+		{
+			Msg("Warning: Invalid color format on line %d in colors.txt\n", lineNumber);
+			continue;
+		}
+
+		// Extract color name and hex code
+		int commaPos = commaPtr - buffer;
+		char colorNameBuffer[64];
+		char hexCodeBuffer[16];
+
+		// Copy the color name (everything before comma)
+		Q_strncpy(colorNameBuffer, buffer, commaPos + 1);
+		colorNameBuffer[commaPos] = '\0';
+
+		// Copy the hex code (everything after comma)
+		Q_strcpy(hexCodeBuffer, commaPtr + 1);
+
+		// Trim whitespace from color name
+		char* namePtr = colorNameBuffer;
+		while (*namePtr == ' ' || *namePtr == '\t') namePtr++;
+		char* nameEnd = namePtr + strlen(namePtr) - 1;
+		while (nameEnd > namePtr && (*nameEnd == ' ' || *nameEnd == '\t'))
+		{
+			*nameEnd = '\0';
+			nameEnd--;
+		}
+
+		// Trim whitespace from hex code
+		char* hexPtr = hexCodeBuffer;
+		while (*hexPtr == ' ' || *hexPtr == '\t') hexPtr++;
+		char* hexEnd = hexPtr + strlen(hexPtr) - 1;
+		while (hexEnd > hexPtr && (*hexEnd == ' ' || *hexEnd == '\t'))
+		{
+			*hexEnd = '\0';
+			hexEnd--;
+		}
+
+		// Store the color
+		char lowerName[64];
+		Q_strncpy(lowerName, namePtr, sizeof(lowerName));
+		Q_strlower(lowerName);
+
+		// Store the color
+		CUtlString finalColorName(lowerName);
+		CUtlString finalHexCode(hexPtr);
+		g_CustomColors.Insert(finalColorName.Get(), finalHexCode);
+		DevMsg("Loaded color: %s = %s\n", namePtr, hexPtr);
+	}
+
+	filesystem->Close(file);
+	Msg("Loaded %d custom colors from colors.txt\n", g_CustomColors.Count());
+}
+
+AdminChatFormat GetPlayerChatFormat(CBasePlayer* pPlayer)
+{
+	AdminChatFormat format = { "", CHAT_DEFAULT, CHAT_DEFAULT, CHAT_WHITE, CHAT_DEFAULT, CHAT_DEFAULT };
+	if (!pPlayer) return format;
+
+	const char* steamID = engine->GetPlayerNetworkIDString(pPlayer->edict());
+	CHL2MP_Admin* pAdmin = CHL2MP_Admin::GetAdmin(steamID);
+
+	if (pAdmin)
+	{
+		// Player is an admin - use their assigned group
+		int groupIndex = g_AdminGroups.Find(pAdmin->GetGroupName());
+		if (groupIndex != g_AdminGroups.InvalidIndex())
+		{
+			const AdminGroup_t& group = g_AdminGroups[groupIndex];
+			format.tag = group.tag;
+
+			// Store colors in static buffers to avoid overwriting
+			static char tagColorBuffer[8];
+			static char nameColorBuffer[8];
+			static char textColorBuffer[8];
+			static char rebelTeamColorBuffer[8];
+			static char combineTeamColorBuffer[8];
+
+			const char* tempTagColor = GetColorConstant(group.tagColor.Get());
+			Q_strncpy(tagColorBuffer, tempTagColor, sizeof(tagColorBuffer));
+			format.tagColor = tagColorBuffer;
+
+			const char* tempNameColor = GetColorConstant(group.nameColor.Get());
+			Q_strncpy(nameColorBuffer, tempNameColor, sizeof(nameColorBuffer));
+			format.nameColor = nameColorBuffer;
+
+			const char* tempTextColor = GetColorConstant(group.textColor.Get());
+			Q_strncpy(textColorBuffer, tempTextColor, sizeof(textColorBuffer));
+			format.textColor = textColorBuffer;
+
+			const char* tempRebelTeamColor = GetColorConstant(group.rebelTeamColor.Get());
+			Q_strncpy(rebelTeamColorBuffer, tempRebelTeamColor, sizeof(rebelTeamColorBuffer));
+			format.rebelTeamColor = rebelTeamColorBuffer;
+
+			const char* tempCombineTeamColor = GetColorConstant(group.combineTeamColor.Get());
+			Q_strncpy(combineTeamColorBuffer, tempCombineTeamColor, sizeof(combineTeamColorBuffer));
+			format.combineTeamColor = combineTeamColorBuffer;
+		}
+	}
+	else
+	{
+		// Player is NOT an admin - find the default group
+		for (int i = 0; i < g_AdminGroups.Count(); i++)
+		{
+			const AdminGroup_t& group = g_AdminGroups.Element(i);
+			if (group.isDefault)
+			{
+				format.tag = group.tag;
+
+				// Use static buffers here too to avoid the same overwriting issue
+				static char defaultTagColorBuffer[8];
+				static char defaultNameColorBuffer[8];
+				static char defaultTextColorBuffer[8];
+				static char defaultRebelTeamColorBuffer[8];
+				static char defaultCombineTeamColorBuffer[8];
+
+				const char* tempTagColor = GetColorConstant(group.tagColor.Get());
+				Q_strncpy(defaultTagColorBuffer, tempTagColor, sizeof(defaultTagColorBuffer));
+				format.tagColor = defaultTagColorBuffer;
+
+				const char* tempNameColor = GetColorConstant(group.nameColor.Get());
+				Q_strncpy(defaultNameColorBuffer, tempNameColor, sizeof(defaultNameColorBuffer));
+				format.nameColor = defaultNameColorBuffer;
+
+				const char* tempTextColor = GetColorConstant(group.textColor.Get());
+				Q_strncpy(defaultTextColorBuffer, tempTextColor, sizeof(defaultTextColorBuffer));
+				format.textColor = defaultTextColorBuffer;
+
+				const char* tempRebelTeamColor = GetColorConstant(group.rebelTeamColor.Get());
+				Q_strncpy(defaultRebelTeamColorBuffer, tempRebelTeamColor, sizeof(defaultRebelTeamColorBuffer));
+				format.rebelTeamColor = defaultRebelTeamColorBuffer;
+
+				const char* tempCombineTeamColor = GetColorConstant(group.combineTeamColor.Get());
+				Q_strncpy(defaultCombineTeamColorBuffer, tempCombineTeamColor, sizeof(defaultCombineTeamColorBuffer));
+				format.combineTeamColor = defaultCombineTeamColorBuffer;
+
+				break;
+			}
+		}
+	}
+
+	return format;
+}
+
+CUtlString ProcessChatColors(const char* message, const char* defaultTextColor)
+{
+	if (!message || !*message)
+		return CUtlString("");
+
+	CUtlString result;
+	int messageLen = strlen(message);
+	int pos = 0;
+	bool hasColorOverride = false;
+
+	while (pos < messageLen)
+	{
+		// Look for color tags: {colorname} or {#hexcode}
+		// Look for color tags: {colorname} or {#hexcode}
+		if (message[pos] == '{')
+		{
+			// Find the closing brace
+			int closePos = pos + 1;
+			while (closePos < messageLen && message[closePos] != '}')
+				closePos++;
+
+			if (closePos < messageLen) // Found closing brace
+			{
+				// Extract the color tag content
+				int tagLen = closePos - pos - 1;
+				char colorTag[64];
+				if (tagLen > 0 && tagLen < 63)
+				{
+					Q_strncpy(colorTag, &message[pos + 1], tagLen + 1);
+					colorTag[tagLen] = '\0';
+					// Get the color code
+					const char* colorCode = GetColorConstant(colorTag);
+
+					if (colorCode && Q_strcmp(colorCode, CHAT_DEFAULT) != 0)
+					{
+						// Valid color found - replace the tag with the color code
+						result += colorCode;
+						hasColorOverride = true;
+						pos = closePos + 1;
+						continue;
+					}
+				}
+			}
+		}
+
+		// No color tag found, add the character as-is
+		result += message[pos];
+		pos++;
+	}
+
+	// If no color overrides were found, prepend the default text color
+	if (!hasColorOverride)
+	{
+		return result; // Return the message without any color prefix
+	}
+
+	return result;
+}
+
 
 void StartMapVote()
 {
@@ -311,10 +602,10 @@ void CheckRTVThreshold(CBasePlayer* pPlayer)
 //-----------------------------------------------------------------------------
 // Purpose: Constructor/destructor
 //-----------------------------------------------------------------------------
-CHL2MP_Admin::CHL2MP_Admin(const char* steamID, const char* permissions)
+CHL2MP_Admin::CHL2MP_Admin(const char* steamID, const char* groupName)
 {
-	m_steamID = V_strdup(steamID);          // make a copy of the steamID string
-	m_permissions = V_strdup(permissions);  // make a copy of the permissions string
+	m_steamID = V_strdup(steamID);
+	m_groupName = V_strdup(groupName);
 
 	Assert(!g_pHL2MPAdmin);
 	g_pHL2MPAdmin = this;
@@ -324,14 +615,12 @@ CHL2MP_Admin::~CHL2MP_Admin()
 {
 	if (m_steamID)
 	{
-		free((void*)m_steamID);   // free the copied steamID string
+		free((void*)m_steamID);
 	}
-
-	if (m_permissions)
+	if (m_groupName)
 	{
-		free((void*)m_permissions);  // free the copied permissions string
+		free((void*)m_groupName);
 	}
-
 	g_pHL2MPAdmin = NULL;
 }
 
@@ -340,27 +629,31 @@ CHL2MP_Admin::~CHL2MP_Admin()
 //-----------------------------------------------------------------------------
 bool CHL2MP_Admin::HasPermission(char flag) const
 {
-	if (!m_permissions)
+	// 1. Encontre o grupo do admin
+	int groupIndex = g_AdminGroups.Find(m_groupName);
+	if (groupIndex == g_AdminGroups.InvalidIndex())
+	{
 		return false;
+	}
 
-	DevMsg("Checking permission flag %c against permissions %s\n", flag, m_permissions);
+	// 2. Pegue as flags do grupo
+	const CUtlString& groupFlags = g_AdminGroups[groupIndex].flags;
 
-	bool hasPermission = (strchr(m_permissions, flag) != nullptr) || (strchr(m_permissions, ADMIN_ROOT) != nullptr);
+	// 3. Cheque por permissão de root ('z')
+	if (strchr(groupFlags.Get(), ADMIN_ROOT) != nullptr)
+	{
+		return true;
+	}
 
-	// quick dev perms check
-	if (hasPermission)
-		DevMsg("Admin has the required permission.\n");
-	else
-		DevMsg("Admin does NOT have the required permission.\n");
-
-	return hasPermission;
+	// 4. Cheque se o grupo tem a flag específica
+	return strchr(groupFlags.Get(), flag) != nullptr;
 }
 
 
 //-----------------------------------------------------------------------------
 // Purpose: Add a new admin with SteamID and permissions to the global admin list
 //-----------------------------------------------------------------------------
-void CHL2MP_Admin::AddAdmin(const char* steamID, const char* permissions)
+void CHL2MP_Admin::AddAdmin(const char* steamID, const char* groupName)
 {
 	// check if admin already exists
 	CHL2MP_Admin* existingAdmin = GetAdmin(steamID);
@@ -371,17 +664,17 @@ void CHL2MP_Admin::AddAdmin(const char* steamID, const char* permissions)
 	}
 
 	// steamID needs to be valid
-	if (steamID == nullptr || permissions == nullptr)
+	if (steamID == nullptr || groupName == nullptr)
 	{
-		Msg("Invalid admin data: SteamID or permissions are null.\n");
+		Msg("Invalid admin data: SteamID or group name are null.\n");
 		return;
 	}
 
 	// if the steamID doesn't exist, add it
-	CHL2MP_Admin* pNewAdmin = new CHL2MP_Admin(steamID, permissions);
+	CHL2MP_Admin* pNewAdmin = new CHL2MP_Admin(steamID, groupName);
 	g_AdminList.AddToTail(pNewAdmin);
 
-	Msg("Added admin with SteamID %s and permissions %s.\n", steamID, permissions);
+	Msg("Added admin with SteamID %s and group %s.\n", steamID, groupName);
 }
 
 //-----------------------------------------------------------------------------
@@ -445,29 +738,38 @@ bool CHL2MP_Admin::IsPlayerAdmin(CBasePlayer* pPlayer, const char* requiredFlags
 		return false;
 
 	const char* steamID = engine->GetPlayerNetworkIDString(pPlayer->edict());
-
 	CHL2MP_Admin* pAdmin = GetAdmin(steamID);
 
 	if (pAdmin)
 	{
-		if (pAdmin->HasPermission(ADMIN_ROOT))  // root is z, all permissions
+		// 1. Encontre o grupo do admin na lista global de grupos
+		int groupIndex = g_AdminGroups.Find(pAdmin->GetGroupName());
+		if (groupIndex == g_AdminGroups.InvalidIndex())
 		{
-			DevMsg("Admin has root ('z') flag, granting all permissions.\n");
+			// Grupo não encontrado, o que significa que o admin não tem permissões válidas
+			return false;
+		}
+
+		// 2. Pegue as flags do grupo
+		const CUtlString& groupFlags = g_AdminGroups[groupIndex].flags;
+
+		// 3. Cheque por permissão de root ('z')
+		// Se o grupo tem a flag 'z', ele tem todas as permissões
+		if (strchr(groupFlags.Get(), ADMIN_ROOT) != nullptr)
+		{
 			return true;
 		}
 
-		// else does this player have at least one flag?
+		// 4. Cheque se o grupo tem pelo menos uma das flags necessárias
 		for (int i = 0; requiredFlags[i] != '\0'; i++)
 		{
-			if (pAdmin->HasPermission(requiredFlags[i]))
+			if (strchr(groupFlags.Get(), requiredFlags[i]) != nullptr)
 			{
-				// they do
 				return true;
 			}
 		}
 	}
 
-	// or they don't
 	return false;
 }
 
@@ -537,7 +839,8 @@ static void AdminSay(const CCommand& args)
 	// format and print the message
 	if (isServerConsole)
 	{
-		UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_LIME "(ADMIN)Console:" CHAT_WHITE " % s\n", messageText.Get()));
+		UTIL_PrintToAllClients(UTIL_VarArgs(CHAT_LIME "(ADMIN)Console:" CHAT_WHITE " %s\n", messageText.Get()));
+
 	}
 	else
 	{
@@ -843,19 +1146,25 @@ static void ReloadAdminsCommand(const CCommand& args)
 		pPlayer,
 		nullptr,
 		"refreshed",
-		"admin cache"
+		"admin cache and groups"
 	);
 
-	// reboot system...
+	// Clear existing admin groups before reloading
+	g_AdminGroups.Purge();
+
+	LoadCustomColors();
+
+
+	// reboot system (this will reload both groups and admins)
 	CHL2MP_Admin::InitAdminSystem();
 
 	if (isServerConsole)
 	{
-		Msg("Admins list has been reloaded.\n");
+		Msg("Admin groups and admins list have been reloaded.\n");
 	}
 	else
 	{
-		UTIL_PrintToClient(pPlayer, CHAT_ADMIN_HIGHLIGHT "Admins list has been reloaded.\n");
+		UTIL_PrintToClient(pPlayer, CHAT_ADMIN_HIGHLIGHT "Admin groups and admins list have been reloaded.\n");
 	}
 }
 
@@ -6211,46 +6520,120 @@ void CHL2MP_Admin::InitAdminSystem()
 	g_bAdminSystem = true;
 	CHL2MP_Admin::ClearAllAdmins();
 
-	// parse admins from the file
-	KeyValues* kv = new KeyValues("Admins");
+	// Clear existing admin groups before reloading
+	g_AdminGroups.Purge();
 
-	if (!kv->LoadFromFile(filesystem, "cfg/admin/admins.txt", "GAME"))
+	// Load custom colors from colors.txt
+	LoadCustomColors();
+
+	// 1. LOAD GROUPS FROM groups.txt
+	KeyValues* kvGroups = new KeyValues("groups");
+	if (!kvGroups->LoadFromFile(filesystem, "cfg/admin/groups.txt", "GAME"))
 	{
-		Msg("Error: Unable to load admins.txt\n");
-		kv->deleteThis();
+		Msg("Error: Unable to load groups.txt\n");
+		kvGroups->deleteThis();
 		return;
 	}
 
-	KeyValues* pSubKey = kv->GetFirstSubKey();
-	while (pSubKey)
+	// Find the "groups" section
+	KeyValues* pGroupsSection = kvGroups;
+	if (pGroupsSection)
 	{
-		const char* steamID = pSubKey->GetName();
-		const char* permissions = pSubKey->GetString();
+		KeyValues* pGroupKey = pGroupsSection->GetFirstSubKey();
+		while (pGroupKey)
+		{
+			const char* groupName = pGroupKey->GetName();
+			const char* flags = pGroupKey->GetString("flags", "");
 
-		// debug
-		DevMsg("SteamID: %s, Permissions: %s\n", steamID, permissions);
+			AdminGroup_t newGroup;
+			newGroup.name = groupName;
+			newGroup.flags = pGroupKey->GetString("flags", "");
+			newGroup.tag = pGroupKey->GetString("tag", "");
+			newGroup.tagColor = pGroupKey->GetString("tagcolor", "chat_default");
+			newGroup.nameColor = pGroupKey->GetString("namecolor", "chat_default");
+			newGroup.textColor = pGroupKey->GetString("textcolor", "chat_white");
+			newGroup.rebelTeamColor = pGroupKey->GetString("rebelteamcolor", "chat_rebel");
+			newGroup.combineTeamColor = pGroupKey->GetString("combineteamcolor", "chat_combine");
+			newGroup.isDefault = pGroupKey->GetBool("default", false);
+			g_AdminGroups.Insert(newGroup.name, newGroup);
+			Msg("Loaded group: %s with flags: %s (default: %s)\n", groupName, newGroup.flags.Get(), newGroup.isDefault ? "yes" : "no");
 
-		// add the admin to the global admin list
-		CHL2MP_Admin::AddAdmin(steamID, permissions);
+			pGroupKey = pGroupKey->GetNextKey();
+		}
+	}
+	else
+	{
+		Msg("Error: No 'groups' section found in groups.txt\n");
+		kvGroups->deleteThis();
+		return;
+	}
+	kvGroups->deleteThis();
 
-		pSubKey = pSubKey->GetNextKey();
+	// 2. LOAD ADMINS FROM admins.txt  
+	KeyValues* kvAdmins = new KeyValues("admins");
+	if (!kvAdmins->LoadFromFile(filesystem, "cfg/admin/admins.txt", "GAME"))
+	{
+		Msg("Error: Unable to load admins.txt\n");
+		kvAdmins->deleteThis();
+		return;
 	}
 
-	kv->deleteThis();
-	DevMsg("Admin list loaded from admins.txt.\n");
+	// Find the "admins" section
+	KeyValues* pAdminsSection = kvAdmins;
+	if (pAdminsSection)
+	{
+		KeyValues* pAdminKey = pAdminsSection->GetFirstSubKey();
+		while (pAdminKey)
+		{
+			const char* steamID = pAdminKey->GetName();
+			// Check if this admin entry has a "group" subkey
+			KeyValues* pGroupSubKey = pAdminKey->FindKey("group");
+			if (pGroupSubKey)
+			{
+				// This admin is assigned to a group
+				const char* groupName = pGroupSubKey->GetString();
+				if (groupName && *groupName != '\0')
+				{
+					CHL2MP_Admin::AddAdmin(steamID, groupName);
+					Msg("Loaded admin: SteamID=%s, Group=%s\n", steamID, groupName);
+				}
+			}
+			else
+			{
+				// This admin has direct permissions (legacy format)
+				const char* permissionsString = pAdminKey->GetString();
+				if (permissionsString && *permissionsString != '\0')
+				{
+					// Create a solo group for this admin
+					AdminGroup_t soloGroup;
+					soloGroup.name.Format("solo_admin_%s", steamID);
+					soloGroup.flags = permissionsString;
+					g_AdminGroups.Insert(soloGroup.name, soloGroup);
+					CHL2MP_Admin::AddAdmin(steamID, soloGroup.name.Get());
+					Msg("Loaded solo admin: SteamID=%s, Flags=%s\n", steamID, permissionsString);
+				}
+			}
+			pAdminKey = pAdminKey->GetNextKey();
+		}
+	}
+	else
+	{
+		Msg("Error: No 'admins' section found in admins.txt\n");
+		kvAdmins->deleteThis();
+		return;
+	}
+	kvAdmins->deleteThis();
 
+	// 3. SETUP LOGGING
 	if (!filesystem->IsDirectory("cfg/admin/logs", "GAME"))
 	{
 		filesystem->CreateDirHierarchy("cfg/admin/logs", "GAME");
 	}
-
 	char date[9];
 	time_t now = time(0);
 	strftime(date, sizeof(date), "%Y%m%d", localtime(&now));
-
 	char logFileName[256];
 	Q_snprintf(logFileName, sizeof(logFileName), "cfg/admin/logs/ADMINLOG_%s.txt", date);
-
 	g_AdminLogFile = filesystem->Open(logFileName, "a+", "GAME");
 	if (!g_AdminLogFile)
 	{

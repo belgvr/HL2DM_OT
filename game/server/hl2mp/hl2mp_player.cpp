@@ -542,6 +542,9 @@ void CHL2MP_Player::DelayedLoadPlayerSettings()
 
 void CHL2MP_Player::Spawn(void)
 {
+	//Msg("CHL2MP_Player::Spawn called - footstep system loaded\n");
+	//BaseClass::Spawn();
+
 	// m_flNextModelChangeTime = 0.0f;
 	// m_flNextTeamChangeTime = 0.0f;
 

@@ -56,6 +56,9 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar footsteps;
+extern ConVar sv_footsteps;
+
 #if defined(GAME_DLL) && !defined(_XBOX)
 	extern ConVar sv_pushaway_max_force;
 	extern ConVar sv_pushaway_force;
@@ -533,7 +536,9 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 	if ( GetMoveType() == MOVETYPE_NOCLIP || GetMoveType() == MOVETYPE_OBSERVER )
 		return;
 
-	if ( !sv_footsteps.GetFloat() )
+	//if ( !sv_footsteps.GetFloat() )
+	if ( !sv_footsteps.GetBool() )
+
 		return;
 
 	speed = VectorLength( vecVelocity );
@@ -667,7 +672,8 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 //-----------------------------------------------------------------------------
 void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force )
 {
-	if ( gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat() )
+	//if ( gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat() )
+	if (!footsteps.GetBool())
 		return;
 
 #if defined( CLIENT_DLL )
@@ -719,7 +725,7 @@ void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, flo
 	// in MP, server removes all players in the vecOrigin's PVS, these players generate the footsteps client side
 	if ( gpGlobals->maxClients > 1 )
 	{
-		filter.RemoveRecipientsByPVS( vecOrigin );
+		//filter.RemoveRecipientsByPVS( vecOrigin );
 	}
 #endif
 

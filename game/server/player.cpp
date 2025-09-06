@@ -71,6 +71,9 @@
 #include "ai_speech.h"
 #ifdef HL2MP
 #include "hl2mp_gamerules.h"
+
+
+
 #endif
 #if defined USES_ECON_ITEMS
 #include "econ_wearable.h"
@@ -108,6 +111,8 @@ ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCV
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
 ConVar sv_ear_ring("sv_ear_ring", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the ear-ringing effect when the player is hit by an explosion (0 = off, 1 = on)");
+
+
 
 
 // memdbgon must be the last include file in a .cpp file!!!

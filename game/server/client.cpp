@@ -40,6 +40,8 @@
 #endif
 #include "tier0/icommandline.h"
 
+#include "hl2mp/admin/hl2mp_serveradmin.h"
+
 #ifdef TF_DLL
 #include "tf_player.h"
 #include "tf_gamerules.h"
@@ -62,6 +64,13 @@ extern bool IsInCommentaryMode( void );
 extern ConVar sv_equalizer;
 ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
 ConVar sv_talk_interval("sv_talk_interval", "0.5", FCVAR_NOTIFY, "Minimum time between player chat messages", true, 0.0, true, 10.0);
+
+ConVar sv_team_combine_prefix("sv_team_combine_prefix", "[COMBINE]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for Combine team players");
+ConVar sv_team_combine_color("sv_team_combine_color", "#0064FF", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for Combine team prefix, refer to /cfg/colors/colors.cfg or use hex colors, example for blue: #0000ff");
+ConVar sv_team_rebel_prefix("sv_team_rebel_prefix", "[REBEL]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for Rebel team players");
+ConVar sv_team_rebel_color("sv_team_rebel_color", "#ff5050", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for Rebel team prefix, refer to /cfg/colors/colors.cfg or use hex colors, example for red: #ff0000");
+ConVar sv_teamchat_prefix("sv_teamchat_prefix", "[TEAM]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for team chat messages");
+ConVar sv_teamchat_color("sv_teamchat_color", "#ffffff", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for team chat prefix");
 
 ConVar  *sv_cheats = NULL;
 
@@ -171,33 +180,73 @@ char * CheckChatText( CBasePlayer *pPlayer, char *text )
 	return p;
 }
 
+char* StripColorCodes(const char* input, char* output, int outputSize)
+{
+	if (!input || !output || outputSize <= 0)
+		return output;
+
+	int inputLen = strlen(input);
+	int outputPos = 0;
+
+	for (int i = 0; i < inputLen && outputPos < outputSize - 1; i++)
+	{
+		// Skip color codes (format: .RRGGBB)
+		if (input[i] == '.' && i + 6 < inputLen)
+		{
+			// Check if next 6 characters are hex digits
+			bool isColorCode = true;
+			for (int j = 1; j <= 6; j++)
+			{
+				char c = input[i + j];
+				if (!((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')))
+				{
+					isColorCode = false;
+					break;
+				}
+			}
+
+			if (isColorCode)
+			{
+				i += 6; // Skip the 6 hex digits
+				continue;
+			}
+		}
+
+		output[outputPos++] = input[i];
+	}
+
+	output[outputPos] = '\0';
+	return output;
+}
+
 //// HOST_SAY
 // String comes in as
 // say blah blah blah
 // or as
 // blah blah blah
 //
-void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
+void Host_Say(edict_t* pEdict, const CCommand& args, bool teamonly)
 {
-	CBasePlayer *client;
+	CBasePlayer* client;
 	int		j;
-	char *p;
-	char	text[ 256 ];
-	char    szTemp[ 256 ];
-	const char *cpSay = "say";
-	const char *cpSayTeam = "say_team";
-	const char *pcmd = args[ 0 ];
+	char* p;
+	char	text[256];
+	char    szTemp[256];
+	const char* cpSay = "say";
+	const char* cpSayTeam = "say_team";
+	const char* pcmd = args[0];
 	bool bSenderDead = false;
+	bool bIsPlayerWithCustomFormatting = false;
 
 	// We can get a raw string now, without the "say " prepended
-	if ( args.ArgC() == 0 )
+	if (args.ArgC() == 0)
 		return;
 
-	if ( !stricmp( pcmd, cpSay ) || !stricmp( pcmd, cpSayTeam ) )
+	if (!stricmp(pcmd, cpSay) || !stricmp(pcmd, cpSayTeam))
 	{
-		if ( args.ArgC() >= 2 )
+		if (args.ArgC() >= 2)
 		{
-			p = ( char * ) args.ArgS();
+			p = (char*)args.ArgS();
 		}
 		else
 		{
@@ -207,128 +256,288 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	}
 	else  // Raw text, need to prepend argv[0]
 	{
-		if ( args.ArgC() >= 2 )
+		if (args.ArgC() >= 2)
 		{
-			Q_snprintf( szTemp, sizeof( szTemp ), "%s %s", ( char * ) pcmd, ( char * ) args.ArgS() );
+			Q_snprintf(szTemp, sizeof(szTemp), "%s %s", (char*)pcmd, (char*)args.ArgS());
 		}
 		else
 		{
 			// Just a one word command, use the first word...sigh
-			Q_snprintf( szTemp, sizeof( szTemp ), "%s", ( char * ) pcmd );
+			Q_snprintf(szTemp, sizeof(szTemp), "%s", (char*)pcmd);
 		}
 		p = szTemp;
 	}
 
-	CBasePlayer *pPlayer = NULL;
-	if ( pEdict )
+	CBasePlayer* pPlayer = NULL;
+	if (pEdict)
 	{
-		pPlayer = ( ( CBasePlayer * ) CBaseEntity::Instance( pEdict ) );
-		Assert( pPlayer );
+		pPlayer = ((CBasePlayer*)CBaseEntity::Instance(pEdict));
+		Assert(pPlayer);
 
 		// make sure the text has valid content
-		p = CheckChatText( pPlayer, p );
+		p = CheckChatText(pPlayer, p);
 	}
 
-	if ( !p )
+	if (!p)
 		return;
 
-	if ( !p || strspn( p, " \t" ) == strlen( p ) )
+	if (!p || strspn(p, " \t") == strlen(p))
 		return;
 
-	if ( pEdict )
+	if (pEdict)
 	{
-		if ( !pPlayer->CanSpeak() )
+		if (!pPlayer->CanSpeak())
 			return;
 
 		// See if the player wants to modify of check the text
-		pPlayer->CheckChatText( p, 127 );	// though the buffer szTemp that p points to is 256, 
+		pPlayer->CheckChatText(p, 127);	// though the buffer szTemp that p points to is 256, 
 		// chat text is capped to 127 in CheckChatText above
 
-		Assert( strlen( pPlayer->GetPlayerName() ) > 0 );
+		Assert(strlen(pPlayer->GetPlayerName()) > 0);
 
-		bSenderDead = ( pPlayer->m_lifeState != LIFE_ALIVE );
+		bSenderDead = (pPlayer->m_lifeState != LIFE_ALIVE);
 	}
 	else
 	{
 		bSenderDead = false;
 	}
 
-	if ( !CommandLine()->CheckParm( "-noadmin" ) )
+	if (!CommandLine()->CheckParm("-noadmin"))
 	{
-		if ( Q_strncmp( p, "/kick", strlen( "/kick" ) ) == 0 ||
-			Q_strncmp( p, "/ban", strlen( "/ban" ) ) == 0 ||
-			Q_strncmp( p, "/addban", strlen( "/addban" ) ) == 0 ||
-			Q_strncmp( p, "/unban", strlen( "/unban" ) ) == 0 ||
-			Q_strncmp( p, "/slap", strlen( "/slap" ) ) == 0 ||
-			Q_strncmp( p, "/slay", strlen( "/slay" ) ) == 0 ||
-			Q_strncmp( p, "/noclip", strlen( "/noclip" ) ) == 0 ||
-			Q_strncmp( p, "/team", strlen( "/team" ) ) == 0 ||
-			Q_strncmp( p, "/gag", strlen( "/gag" ) ) == 0 ||
-			Q_strncmp( p, "/ungag", strlen( "/ungag" ) ) == 0 ||
-			Q_strncmp( p, "/mute", strlen( "/mute" ) ) == 0 ||
-			Q_strncmp( p, "/unmute", strlen( "/unmute" ) ) == 0 ||
-			Q_strncmp( p, "/bring", strlen( "/bring" ) ) == 0 ||
-			Q_strncmp( p, "/goto", strlen( "/goto" ) ) == 0 ||
-			Q_strncmp( p, "/map", strlen( "/map" ) ) == 0 ||
-			Q_strncmp( p, "/cvar", strlen( "/cvar" ) ) == 0 ||
-			Q_strncmp( p, "/exec", strlen( "/exec" ) ) == 0 ||
-			Q_strncmp( p, "/rcon", strlen( "/rcon" ) ) == 0 ||
-			Q_strncmp( p, "/say", strlen( "/say" ) ) == 0 ||
-			Q_strncmp( p, "/csay", strlen( "/csay" ) ) == 0 ||
-			Q_strncmp( p, "/psay", strlen( "/psay" ) ) == 0 ||
-			Q_strncmp( p, "/chat", strlen( "/chat" ) ) == 0 )
+		if (Q_strncmp(p, "/kick", strlen("/kick")) == 0 ||
+			Q_strncmp(p, "/ban", strlen("/ban")) == 0 ||
+			Q_strncmp(p, "/addban", strlen("/addban")) == 0 ||
+			Q_strncmp(p, "/unban", strlen("/unban")) == 0 ||
+			Q_strncmp(p, "/slap", strlen("/slap")) == 0 ||
+			Q_strncmp(p, "/slay", strlen("/slay")) == 0 ||
+			Q_strncmp(p, "/noclip", strlen("/noclip")) == 0 ||
+			Q_strncmp(p, "/team", strlen("/team")) == 0 ||
+			Q_strncmp(p, "/gag", strlen("/gag")) == 0 ||
+			Q_strncmp(p, "/ungag", strlen("/ungag")) == 0 ||
+			Q_strncmp(p, "/mute", strlen("/mute")) == 0 ||
+			Q_strncmp(p, "/unmute", strlen("/unmute")) == 0 ||
+			Q_strncmp(p, "/bring", strlen("/bring")) == 0 ||
+			Q_strncmp(p, "/goto", strlen("/goto")) == 0 ||
+			Q_strncmp(p, "/map", strlen("/map")) == 0 ||
+			Q_strncmp(p, "/cvar", strlen("/cvar")) == 0 ||
+			Q_strncmp(p, "/exec", strlen("/exec")) == 0 ||
+			Q_strncmp(p, "/rcon", strlen("/rcon")) == 0 ||
+			Q_strncmp(p, "/say", strlen("/say")) == 0 ||
+			Q_strncmp(p, "/csay", strlen("/csay")) == 0 ||
+			Q_strncmp(p, "/psay", strlen("/psay")) == 0 ||
+			Q_strncmp(p, "/chat", strlen("/chat")) == 0)
 		{
-			if ( args.ArgC() > 1 )
+			if (args.ArgC() > 1)
 			{
 				return;
 			}
 		}
 
-		if ( FStrEq( p, "/sa" ) ||
-			FStrEq( p, "/credits" ) ||
-			FStrEq( p, "/version" ) ||
-			FStrEq( p, "/help" ) ||
-			FStrEq( p, "/reloadadmins" ) )
+		if (FStrEq(p, "/sa") ||
+			FStrEq(p, "/credits") ||
+			FStrEq(p, "/version") ||
+			FStrEq(p, "/help") ||
+			FStrEq(p, "/reloadadmins"))
 			return;
 	}
 
-	if ( pPlayer && pPlayer->IsGagged() )
+	if (pPlayer && pPlayer->IsGagged())
 		return;
 
-	const char *pszFormat = NULL;
-	const char *pszPrefix = NULL;
-	const char *pszLocation = NULL;
-	if ( g_pGameRules )
+	const char* pszFormat = NULL;
+	const char* pszPrefix = NULL;
+	const char* pszLocation = NULL;
+	if (g_pGameRules)
 	{
-		pszFormat = g_pGameRules->GetChatFormat( teamonly, pPlayer );
-		pszPrefix = g_pGameRules->GetChatPrefix( teamonly, pPlayer );
-		pszLocation = g_pGameRules->GetChatLocation( teamonly, pPlayer );
+		pszFormat = g_pGameRules->GetChatFormat(teamonly, pPlayer);
+		pszPrefix = g_pGameRules->GetChatPrefix(teamonly, pPlayer);
+		pszLocation = g_pGameRules->GetChatLocation(teamonly, pPlayer);
 	}
 
-	const char *pszPlayerName = pPlayer ? pPlayer->GetPlayerName() : "Console";
+	const char* pszPlayerName = pPlayer ? pPlayer->GetPlayerName() : "Console";
 
-	if ( pszPrefix && strlen( pszPrefix ) > 0 )
+	// Check if player is an admin and get their formatting
+	if (pPlayer)
 	{
-		if ( pszLocation && strlen( pszLocation ) )
+		AdminChatFormat format = GetPlayerChatFormat(pPlayer);
+
+		// Process the message for color overrides
+		CUtlString processedMessage = ProcessChatColors(p, format.textColor);
+
+		// Determine prefix type based on chat mode
+		const char* prefixText = "";
+		const char* prefixColor = "";
+
+		if (teamonly)
 		{
-			Q_snprintf( text, sizeof( text ), "%s %s @ %s: ", pszPrefix, pszPlayerName, pszLocation );
+			// Team chat - use team chat prefix
+			prefixText = sv_teamchat_prefix.GetString();
+			prefixColor = GetColorConstant(sv_teamchat_color.GetString());
 		}
 		else
 		{
-			Q_snprintf( text, sizeof( text ), "%s %s: ", pszPrefix, pszPlayerName );
+			// Regular chat - check for team play mode
+			bool isTeamplay = false;
+			if (g_pGameRules && g_pGameRules->IsTeamplay() && pPlayer)
+			{
+				isTeamplay = true;
+				CTeam* pTeam = pPlayer->GetTeam();
+				if (pTeam)
+				{
+					// Check team by name or ID
+					if (Q_stricmp(pTeam->GetName(), "Combine") == 0 || pTeam->GetTeamNumber() == 2)
+					{
+						prefixText = sv_team_combine_prefix.GetString();
+						prefixColor = GetColorConstant(sv_team_combine_color.GetString());
+					}
+					else if (Q_stricmp(pTeam->GetName(), "Rebels") == 0 || pTeam->GetTeamNumber() == 3)
+					{
+						prefixText = sv_team_rebel_prefix.GetString();
+						prefixColor = GetColorConstant(sv_team_rebel_color.GetString());
+					}
+				}
+			}
+		}
+
+		if (!format.tag.IsEmpty())
+		{
+			bIsPlayerWithCustomFormatting = true;
+			// Player with tag (admin or default group with tag)
+			if (prefixText && strlen(prefixText) > 0)
+			{
+				// With prefix (team or team chat)
+				if (pszPrefix && strlen(pszPrefix) > 0)
+				{
+					if (pszLocation && strlen(pszLocation))
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s %s%s @ %s: %s%s\n",
+							prefixColor, prefixText,
+							format.tagColor, format.tag.Get(),
+							format.nameColor, pszPlayerName, pszLocation,
+							format.textColor, processedMessage.Get());
+					}
+					else
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s %s%s: %s%s\n",
+							prefixColor, prefixText,
+							format.tagColor, format.tag.Get(),
+							format.nameColor, pszPlayerName,
+							format.textColor, processedMessage.Get());
+					}
+				}
+				else
+				{
+					Q_snprintf(text, sizeof(text), "%s%s %s%s %s%s: %s%s\n",
+						prefixColor, prefixText,
+						format.tagColor, format.tag.Get(),
+						format.nameColor, pszPlayerName,
+						format.textColor, processedMessage.Get());
+				}
+			}
+			else
+			{
+				// No prefix - regular chat without teams
+				if (pszPrefix && strlen(pszPrefix) > 0)
+				{
+					if (pszLocation && strlen(pszLocation))
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s @ %s: %s%s\n",
+							format.tagColor, format.tag.Get(),
+							format.nameColor, pszPlayerName, pszLocation,
+							format.textColor, processedMessage.Get());
+					}
+					else
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s: %s%s\n",
+							format.tagColor, format.tag.Get(),
+							format.nameColor, pszPlayerName,
+							format.textColor, processedMessage.Get());
+					}
+				}
+				else
+				{
+					Q_snprintf(text, sizeof(text), "%s%s %s%s: %s%s\n",
+						format.tagColor, format.tag.Get(),
+						format.nameColor, pszPlayerName,
+						format.textColor, processedMessage.Get());
+				}
+			}
+		}
+		else
+		{
+			// Player with no tag but still has custom colors (default group)
+			bIsPlayerWithCustomFormatting = true;
+			if (prefixText && strlen(prefixText) > 0)
+			{
+				// With prefix but no tag
+				if (pszPrefix && strlen(pszPrefix) > 0)
+				{
+					if (pszLocation && strlen(pszLocation))
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s @ %s: %s%s\n",
+							prefixColor, prefixText,
+							format.nameColor, pszPlayerName, pszLocation,
+							format.textColor, processedMessage.Get());
+					}
+					else
+					{
+						Q_snprintf(text, sizeof(text), "%s%s %s%s: %s%s\n",
+							prefixColor, prefixText,
+							format.nameColor, pszPlayerName,
+							format.textColor, processedMessage.Get());
+					}
+				}
+				else
+				{
+					Q_snprintf(text, sizeof(text), "%s%s %s%s: %s%s\n",
+						prefixColor, prefixText,
+						format.nameColor, pszPlayerName,
+						format.textColor, processedMessage.Get());
+				}
+			}
+			else
+			{
+				// No prefix and no tag - plain chat
+				if (pszPrefix && strlen(pszPrefix) > 0)
+				{
+					if (pszLocation && strlen(pszLocation))
+					{
+						Q_snprintf(text, sizeof(text), "%s%s @ %s: %s%s\n",
+							format.nameColor, pszPlayerName, pszLocation,
+							format.textColor, processedMessage.Get());
+					}
+					else
+					{
+						Q_snprintf(text, sizeof(text), "%s%s: %s%s\n",
+							format.nameColor, pszPlayerName,
+							format.textColor, processedMessage.Get());
+					}
+				}
+				else
+				{
+					Q_snprintf(text, sizeof(text), "%s%s: %s%s\n",
+						format.nameColor, pszPlayerName,
+						format.textColor, processedMessage.Get());
+				}
+			}
 		}
 	}
 	else
 	{
-		Q_snprintf( text, sizeof( text ), "%s: ", pszPlayerName );
+		// Console message
+		Q_snprintf(text, sizeof(text), "%s: ", pszPlayerName);
 	}
 
-	j = sizeof( text ) - 2 - strlen( text );  // -2 for /n and null terminator
-	if ( ( int ) strlen( p ) > j )
-		p[ j ] = 0;
+	// Only do normal text concatenation for console messages
+	if (!bIsPlayerWithCustomFormatting)
+	{
+		j = sizeof(text) - 2 - strlen(text);  // -2 for /n and null terminator
+		if ((int)strlen(p) > j)
+			p[j] = 0;
 
-	Q_strncat( text, p, sizeof( text ), COPY_ALL_CHARACTERS );
-	Q_strncat( text, "\n", sizeof( text ), COPY_ALL_CHARACTERS );
+		Q_strncat(text, p, sizeof(text), COPY_ALL_CHARACTERS);
+		Q_strncat(text, "\n", sizeof(text), COPY_ALL_CHARACTERS);
+	}
 
 	// loop through all players
 	// Start with the first player.
@@ -336,121 +545,112 @@ void Host_Say( edict_t *pEdict, const CCommand &args, bool teamonly )
 	// so check it, or it will infinite loop
 
 	client = NULL;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
-		client = ToBaseMultiplayerPlayer( UTIL_PlayerByIndex( i ) );
-		if ( !client || !client->edict() )
+		client = ToBaseMultiplayerPlayer(UTIL_PlayerByIndex(i));
+		if (!client || !client->edict())
 			continue;
 
-		if ( client->edict() == pEdict )
+		if (client->edict() == pEdict)
 			continue;
 
-		if ( !(client->IsNetClient()) )	// Not a client ? (should never be true)
+		if (!(client->IsNetClient()))	// Not a client ? (should never be true)
 			continue;
 
 		// Handle team-only chat when mp_teamplay is disabled
-		if ( teamonly )
+		if (teamonly)
 		{
-			if ( g_pGameRules->IsTeamplay() )
+			if (g_pGameRules->IsTeamplay())
 			{
 				// Standard teamplay: Check if the target player is a teammate
-				if ( g_pGameRules->PlayerCanHearChat( client, pPlayer ) != GR_TEAMMATE )
+				if (g_pGameRules->PlayerCanHearChat(client, pPlayer) != GR_TEAMMATE)
 					continue;
 			}
 			else
 			{
 				// Deathmatch mode (mp_teamplay = 0)
-				if ( pPlayer )
+				if (pPlayer)
 				{
-					CTeam *senderTeam = pPlayer->GetTeam();
-					CTeam *receiverTeam = client->GetTeam();
+					CTeam* senderTeam = pPlayer->GetTeam();
+					CTeam* receiverTeam = client->GetTeam();
 
 					// Allow communication only if both players are on the same team
-					if ( senderTeam != receiverTeam )
+					if (senderTeam != receiverTeam)
 						continue;
 
 					// Prevent team chat from being visible to players without a team
-					if ( !senderTeam || !receiverTeam )
+					if (!senderTeam || !receiverTeam)
 						continue;
 				}
 			}
 		}
 
-		if ( pPlayer && !client->CanHearAndReadChatFrom( pPlayer ) )
+		if (pPlayer && !client->CanHearAndReadChatFrom(pPlayer))
 			continue;
 
-		if ( pPlayer && GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayer( pPlayer->entindex(), i ) )
+		if (pPlayer && GetVoiceGameMgr() && GetVoiceGameMgr()->IsPlayerIgnoringPlayer(pPlayer->entindex(), i))
 			continue;
 
 		// Send the message to the client
-		CSingleUserRecipientFilter user( client );
+		CSingleUserRecipientFilter user(client);
 		user.MakeReliable();
 
-		if ( pszFormat )
-		{
-			UTIL_SayText2Filter( user, pPlayer, true, pszFormat, pszPlayerName, p, pszLocation );
-		}
-		else
-		{
-			UTIL_SayTextFilter( user, text, pPlayer, true );
-		}
+		// Always use our custom text formatting for consistency
+		UTIL_SayTextFilter(user, text, pPlayer, true);
 	}
 
-	if ( pPlayer )
+	if (pPlayer)
 	{
 		// print to the sending client
-		CSingleUserRecipientFilter user( pPlayer );
+		CSingleUserRecipientFilter user(pPlayer);
 		user.MakeReliable();
 
-		if ( pszFormat )
-		{
-			UTIL_SayText2Filter( user, pPlayer, true, pszFormat, pszPlayerName, p, pszLocation );
-		}
-		else
-		{
-			UTIL_SayTextFilter( user, text, pPlayer, true );
-		}
+		// Always use our custom text formatting for consistency
+		UTIL_SayTextFilter(user, text, pPlayer, true);
 	}
 
 	// echo to server console
 	// Adrian: Only do this if we're running a dedicated server since we already print to console on the client.
-	if ( engine->IsDedicatedServer() )
-		Msg( "%s", text );
+	if (engine->IsDedicatedServer())
+	{
+		char cleanText[256];
+		StripColorCodes(text, cleanText, sizeof(cleanText));
+		Msg("%s", cleanText);
+	}
 
-	Assert( p );
+	Assert(p);
 
 	int userid = 0;
-	const char *networkID = "Console";
-	const char *playerName = "Console";
-	const char *playerTeam = "Console";
-	if ( pPlayer )
+	const char* networkID = "Console";
+	const char* playerName = "Console";
+	const char* playerTeam = "Console";
+	if (pPlayer)
 	{
 		userid = pPlayer->GetUserID();
 		networkID = pPlayer->GetNetworkIDString();
 		playerName = pPlayer->GetPlayerName();
-		CTeam *team = pPlayer->GetTeam();
-		if ( team )
+		CTeam* team = pPlayer->GetTeam();
+		if (team)
 		{
 			playerTeam = team->GetName();
 		}
 	}
 
-	if ( teamonly )
-		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" say_team \"%s\"\n", playerName, userid, networkID, playerTeam, p );
+	if (teamonly)
+		UTIL_LogPrintf("\"%s<%i><%s><%s>\" say_team \"%s\"\n", playerName, userid, networkID, playerTeam, p);
 	else
-		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" say \"%s\"\n", playerName, userid, networkID, playerTeam, p );
+		UTIL_LogPrintf("\"%s<%i><%s><%s>\" say \"%s\"\n", playerName, userid, networkID, playerTeam, p);
 
-	IGameEvent *event = gameeventmanager->CreateEvent( "player_say", true );
+	IGameEvent* event = gameeventmanager->CreateEvent("player_say", true);
 
-	if ( event )
+	if (event)
 	{
-		event->SetInt( "userid", userid );
-		event->SetString( "text", p );
-		event->SetInt( "priority", 1 );	// HLTV event priority, not transmitted
-		gameeventmanager->FireEvent( event, true );
+		event->SetInt("userid", userid);
+		event->SetString("text", p);
+		event->SetInt("priority", 1);	// HLTV event priority, not transmitted
+		gameeventmanager->FireEvent(event, true);
 	}
 }
-
 
 void ClientPrecache( void )
 {
