@@ -19,6 +19,7 @@ public:
 	DECLARE_CLASS(CTripmineGrenade, CBaseGrenade);
 
 	CTripmineGrenade();
+	virtual ~CTripmineGrenade();
 	void Spawn(void);
 	void Precache(void);
 	void PowerUp();

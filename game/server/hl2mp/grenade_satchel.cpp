@@ -15,6 +15,9 @@
 #include "grenade_satchel.h"
 #include "basegrenade_shared.h"
 
+#include "ammodef.h"
+
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -329,13 +332,25 @@ void CSatchelCharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE
 		return;
 	}
 
-	// Dar apenas 1 munição
-	pPlayer->GiveAmmo(1, "slam", false);
 	EmitSound("Player.PickupWeapon");
 
+	// LÓGICA CORRIGIDA AQUI
 	if (!pPlayer->Weapon_OwnsThisType("weapon_slam"))
 	{
+		// Primeiro, dá a arma para o jogador
 		pPlayer->GiveNamedItem("weapon_slam");
+
+		// Depois, DEFINE a munição como 1 para evitar que ele ganhe a munição padrão
+		int iAmmoIndex = GetAmmoDef()->Index("slam");
+		if (iAmmoIndex != -1)
+		{
+			pPlayer->SetAmmoCount(1, iAmmoIndex);
+		}
+	}
+	else
+	{
+		// Se o jogador já tem a arma, apenas adiciona 1 de munição
+		pPlayer->GiveAmmo(1, "slam", false);
 	}
 
 	// Mensagem de HUD aparece somente se sv_slam_steal_announce for 1
@@ -347,14 +362,18 @@ void CSatchelCharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE
 }
 int CSatchelCharge::OnTakeDamage(const CTakeDamageInfo& info)
 {
-	// Se recebeu dano suficiente, explodir
+	// Primeiro, processar o dano normalmente
+	int result = BaseClass::OnTakeDamage(info);
+
+	// Se morreu com o dano, explodir
 	if (m_iHealth <= 0)
 	{
 		ExplosionCreate(GetAbsOrigin() + Vector(0, 0, 16), GetAbsAngles(), GetThrower(),
-			sv_satchel_damage.GetFloat(), sk_satchel_radius.GetFloat(),  // <- era GetInt() e faltava vírgula
+			sv_satchel_damage.GetFloat(), sv_satchel_radius.GetFloat(),
 			SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 		UTIL_Remove(this);
-		return 0;  // <- adicionar return
+		return 0;
 	}
-	return BaseClass::OnTakeDamage(info);
+
+	return result;
 }

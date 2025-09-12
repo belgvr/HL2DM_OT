@@ -21,20 +21,21 @@
 extern ConVar sv_footsteps;
 extern ConVar footsteps;
 ConVar sv_footsteps_permaterial("sv_footsteps_permaterial", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "0 = old single sound footsteps, 1 = per-material footsteps");
+ConVar sv_footsteps_bhop_sound("sv_footsteps_bhop_sound", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Control footstep sounds while crouched - includes walking, jumping, landing, and bunny hopping (0=silent, 1=normal sounds)");
 
-const char *g_ppszPlayerSoundPrefixNames[PLAYER_SOUNDS_MAX] =
+const char* g_ppszPlayerSoundPrefixNames[PLAYER_SOUNDS_MAX] =
 {
 	"NPC_Citizen",
 	"NPC_CombineS",
 	"NPC_MetroPolice",
 };
 
-const char *CHL2MP_Player::GetPlayerModelSoundPrefix( void )
+const char* CHL2MP_Player::GetPlayerModelSoundPrefix(void)
 {
 	return g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType];
 }
 
-void CHL2MP_Player::PrecacheFootStepSounds( void )
+void CHL2MP_Player::PrecacheFootStepSounds(void)
 {
 	//int iFootstepSounds = ARRAYSIZE( g_ppszPlayerSoundPrefixNames );
 	//int i;
@@ -57,11 +58,11 @@ void CHL2MP_Player::PrecacheFootStepSounds( void )
 // the weapon, and the status of the target. Use this information to determine
 // how accurately to shoot at the target.
 //-----------------------------------------------------------------------------
-Vector CHL2MP_Player::GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget )
+Vector CHL2MP_Player::GetAttackSpread(CBaseCombatWeapon* pWeapon, CBaseEntity* pTarget)
 {
-	if ( pWeapon )
-		return pWeapon->GetBulletSpread( WEAPON_PROFICIENCY_PERFECT );
-	
+	if (pWeapon)
+		return pWeapon->GetBulletSpread(WEAPON_PROFICIENCY_PERFECT);
+
 	return VECTOR_CONE_15DEGREES;
 }
 
@@ -81,10 +82,20 @@ void CHL2MP_Player::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, fl
 		return;
 #endif
 
-	// Check if we should use per-material or old system
+	// BLOQUEAR QUALQUER SOM SE AGACHADO (incluindo landing/impact)
+	if ((GetFlags() & FL_DUCKING) && !sv_footsteps_bhop_sound.GetBool())
+		return;
+
+	// INTERCEPTAR BHOP - agachado E no ar (independente de velocidade)
+	bool isDucking = (GetFlags() & FL_DUCKING) != 0;
+	bool isInAir = (GetFlags() & FL_ONGROUND) == 0;
+
+	if (isDucking && isInAir && !sv_footsteps_bhop_sound.GetBool())
+		return; // Bloquear QUALQUER som durante bhop agachado
+
+	// Se chegou aqui, usar sistema normal
 	if (sv_footsteps_permaterial.GetBool())
 	{
-		// Use new per-material system
 		BaseClass::PlayStepSound(vecOrigin, psurface, fvol, force);
 	}
 	else
@@ -94,7 +105,6 @@ void CHL2MP_Player::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, fl
 			return;
 
 		m_Local.m_nStepside = !m_Local.m_nStepside;
-
 		char szStepSound[128];
 		if (m_Local.m_nStepside)
 		{
@@ -139,14 +149,14 @@ void CHL2MP_Player::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, fl
 // Below this amount, don't play a turning animation/perform IK
 #define MIN_TURN_ANGLE_REQUIRING_TURN_ANIMATION		15.0f
 
-static ConVar tf2_feetyawrunscale( "tf2_feetyawrunscale", "2", FCVAR_REPLICATED, "Multiplier on tf2_feetyawrate to allow turning faster when running." );
+static ConVar tf2_feetyawrunscale("tf2_feetyawrunscale", "2", FCVAR_REPLICATED, "Multiplier on tf2_feetyawrate to allow turning faster when running.");
 extern ConVar sv_backspeed;
 extern ConVar mp_feetyawrate;
 extern ConVar mp_facefronttime;
 extern ConVar mp_ik;
 
-CPlayerAnimState::CPlayerAnimState( CHL2MP_Player *outer )
-	: m_pOuter( outer )
+CPlayerAnimState::CPlayerAnimState(CHL2MP_Player* outer)
+	: m_pOuter(outer)
 {
 	m_flGaitYaw = 0.0f;
 	m_flGoalFeetYaw = 0.0f;
@@ -163,7 +173,7 @@ CPlayerAnimState::CPlayerAnimState( CHL2MP_Player *outer )
 void CPlayerAnimState::Update()
 {
 	m_angRender = GetOuter()->GetLocalAngles();
-	m_angRender[ PITCH ] = m_angRender[ ROLL ] = 0.0f;
+	m_angRender[PITCH] = m_angRender[ROLL] = 0.0f;
 
 	ComputePoseParam_BodyYaw();
 	ComputePoseParam_BodyPitch(GetOuter()->GetModelPtr());
@@ -184,27 +194,27 @@ void CPlayerAnimState::ComputePlaybackRate()
 {
 	// Determine ideal playback rate
 	Vector vel;
-	GetOuterAbsVelocity( vel );
+	GetOuterAbsVelocity(vel);
 
 	float speed = vel.Length2D();
 
-	bool isMoving = ( speed > 0.5f ) ? true : false;
+	bool isMoving = (speed > 0.5f) ? true : false;
 
-	float maxspeed = GetOuter()->GetSequenceGroundSpeed( GetOuter()->GetSequence() );
-	
-	if ( isMoving && ( maxspeed > 0.0f ) )
+	float maxspeed = GetOuter()->GetSequenceGroundSpeed(GetOuter()->GetSequence());
+
+	if (isMoving && (maxspeed > 0.0f))
 	{
 		float flFactor = 1.0f;
 
 		// Note this gets set back to 1.0 if sequence changes due to ResetSequenceInfo below
-		GetOuter()->SetPlaybackRate( ( speed * flFactor ) / maxspeed );
+		GetOuter()->SetPlaybackRate((speed * flFactor) / maxspeed);
 
 		// BUG BUG:
 		// This stuff really should be m_flPlaybackRate = speed / m_flGroundSpeed
 	}
 	else
 	{
-		GetOuter()->SetPlaybackRate( 1.0f );
+		GetOuter()->SetPlaybackRate(1.0f);
 	}
 }
 
@@ -212,7 +222,7 @@ void CPlayerAnimState::ComputePlaybackRate()
 // Purpose: 
 // Output : CBasePlayer
 //-----------------------------------------------------------------------------
-CHL2MP_Player *CPlayerAnimState::GetOuter()
+CHL2MP_Player* CPlayerAnimState::GetOuter()
 {
 	return m_pOuter;
 }
@@ -221,11 +231,11 @@ CHL2MP_Player *CPlayerAnimState::GetOuter()
 // Purpose: 
 // Input  : dt - 
 //-----------------------------------------------------------------------------
-void CPlayerAnimState::EstimateYaw( void )
+void CPlayerAnimState::EstimateYaw(void)
 {
 	float dt = gpGlobals->frametime;
 
-	if ( !dt )
+	if (!dt)
 	{
 		return;
 	}
@@ -233,11 +243,11 @@ void CPlayerAnimState::EstimateYaw( void )
 	Vector est_velocity;
 	QAngle	angles;
 
-	GetOuterAbsVelocity( est_velocity );
+	GetOuterAbsVelocity(est_velocity);
 
 	angles = GetOuter()->GetLocalAngles();
 
-	if ( est_velocity[1] == 0 && est_velocity[0] == 0 )
+	if (est_velocity[1] == 0 && est_velocity[0] == 0)
 	{
 		float flYawDiff = angles[YAW] - m_flGaitYaw;
 		flYawDiff = flYawDiff - (int)(flYawDiff / 360) * 360;
@@ -269,24 +279,24 @@ void CPlayerAnimState::EstimateYaw( void )
 // Purpose: Override for backpeddling
 // Input  : dt - 
 //-----------------------------------------------------------------------------
-void CPlayerAnimState::ComputePoseParam_BodyYaw( void )
+void CPlayerAnimState::ComputePoseParam_BodyYaw(void)
 {
-	int iYaw = GetOuter()->LookupPoseParameter( "move_yaw" );
-	if ( iYaw < 0 )
+	int iYaw = GetOuter()->LookupPoseParameter("move_yaw");
+	if (iYaw < 0)
 		return;
 
 	// view direction relative to movement
-	float flYaw;	 
+	float flYaw;
 
 	EstimateYaw();
 
 	QAngle	angles = GetOuter()->GetLocalAngles();
-	float ang = angles[ YAW ];
-	if ( ang > 180.0f )
+	float ang = angles[YAW];
+	if (ang > 180.0f)
 	{
 		ang -= 360.0f;
 	}
-	else if ( ang < -180.0f )
+	else if (ang < -180.0f)
 	{
 		ang += 360.0f;
 	}
@@ -305,36 +315,36 @@ void CPlayerAnimState::ComputePoseParam_BodyYaw( void )
 	{
 		flYaw = flYaw - 360;
 	}
-	
-	GetOuter()->SetPoseParameter( iYaw, flYaw );
+
+	GetOuter()->SetPoseParameter(iYaw, flYaw);
 
 #ifndef CLIENT_DLL
-		//Adrian: Make the model's angle match the legs so the hitboxes match on both sides.
-		GetOuter()->SetLocalAngles( QAngle( GetOuter()->GetAnimEyeAngles().x, m_flCurrentFeetYaw, 0 ) );
+	//Adrian: Make the model's angle match the legs so the hitboxes match on both sides.
+	GetOuter()->SetLocalAngles(QAngle(GetOuter()->GetAnimEyeAngles().x, m_flCurrentFeetYaw, 0));
 #endif
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CPlayerAnimState::ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr )
+void CPlayerAnimState::ComputePoseParam_BodyPitch(CStudioHdr* pStudioHdr)
 {
 	// Get pitch from v_angle
-	float flPitch = GetOuter()->GetLocalAngles()[ PITCH ];
+	float flPitch = GetOuter()->GetLocalAngles()[PITCH];
 
-	if ( flPitch > 180.0f )
+	if (flPitch > 180.0f)
 	{
 		flPitch -= 360.0f;
 	}
-	flPitch = clamp( flPitch, -90, 90 );
+	flPitch = clamp(flPitch, -90, 90);
 
 	QAngle absangles = GetOuter()->GetAbsAngles();
 	absangles.x = 0.0f;
 	m_angRender = absangles;
-	m_angRender[ PITCH ] = m_angRender[ ROLL ] = 0.0f;
+	m_angRender[PITCH] = m_angRender[ROLL] = 0.0f;
 
 	// See if we have a blender for pitch
-	GetOuter()->SetPoseParameter( pStudioHdr, "aim_pitch", flPitch );
+	GetOuter()->SetPoseParameter(pStudioHdr, "aim_pitch", flPitch);
 }
 
 //-----------------------------------------------------------------------------
@@ -345,32 +355,32 @@ void CPlayerAnimState::ComputePoseParam_BodyPitch( CStudioHdr *pStudioHdr )
 //			current - 
 // Output : int
 //-----------------------------------------------------------------------------
-int CPlayerAnimState::ConvergeAngles( float goal,float maxrate, float dt, float& current )
+int CPlayerAnimState::ConvergeAngles(float goal, float maxrate, float dt, float& current)
 {
 	int direction = TURN_NONE;
 
 	float anglediff = goal - current;
-	float anglediffabs = fabs( anglediff );
+	float anglediffabs = fabs(anglediff);
 
-	anglediff = AngleNormalize( anglediff );
+	anglediff = AngleNormalize(anglediff);
 
 	float scale = 1.0f;
-	if ( anglediffabs <= FADE_TURN_DEGREES )
+	if (anglediffabs <= FADE_TURN_DEGREES)
 	{
 		scale = anglediffabs / FADE_TURN_DEGREES;
 		// Always do at least a bit of the turn ( 1% )
-		scale = clamp( scale, 0.01f, 1.0f );
+		scale = clamp(scale, 0.01f, 1.0f);
 	}
 
 	float maxmove = maxrate * dt * scale;
 
-	if ( fabs( anglediff ) < maxmove )
+	if (fabs(anglediff) < maxmove)
 	{
 		current = goal;
 	}
 	else
 	{
-		if ( anglediff > 0 )
+		if (anglediff > 0)
 		{
 			current += maxmove;
 			direction = TURN_LEFT;
@@ -382,21 +392,21 @@ int CPlayerAnimState::ConvergeAngles( float goal,float maxrate, float dt, float&
 		}
 	}
 
-	current = AngleNormalize( current );
+	current = AngleNormalize(current);
 
 	return direction;
 }
 
-void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
+void CPlayerAnimState::ComputePoseParam_BodyLookYaw(void)
 {
 	QAngle absangles = GetOuter()->GetAbsAngles();
-	absangles.y = AngleNormalize( absangles.y );
+	absangles.y = AngleNormalize(absangles.y);
 	m_angRender = absangles;
-	m_angRender[ PITCH ] = m_angRender[ ROLL ] = 0.0f;
+	m_angRender[PITCH] = m_angRender[ROLL] = 0.0f;
 
 	// See if we even have a blender for pitch
-	int upper_body_yaw = GetOuter()->LookupPoseParameter( "aim_yaw" );
-	if ( upper_body_yaw < 0 )
+	int upper_body_yaw = GetOuter()->LookupPoseParameter("aim_yaw");
+	if (upper_body_yaw < 0)
 	{
 		return;
 	}
@@ -407,51 +417,51 @@ void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 	float turnrate = 360.0f;
 
 	Vector vel;
-	
-	GetOuterAbsVelocity( vel );
 
-	bool isMoving = ( vel.Length() > 1.0f ) ? true : false;
+	GetOuterAbsVelocity(vel);
 
-	if ( !isMoving )
+	bool isMoving = (vel.Length() > 1.0f) ? true : false;
+
+	if (!isMoving)
 	{
 		// Just stopped moving, try and clamp feet
-		if ( m_flLastTurnTime <= 0.0f )
+		if (m_flLastTurnTime <= 0.0f)
 		{
-			m_flLastTurnTime	= gpGlobals->curtime;
-			m_flLastYaw			= GetOuter()->GetAnimEyeAngles().y;
+			m_flLastTurnTime = gpGlobals->curtime;
+			m_flLastYaw = GetOuter()->GetAnimEyeAngles().y;
 			// Snap feet to be perfectly aligned with torso/eyes
-			m_flGoalFeetYaw		= GetOuter()->GetAnimEyeAngles().y;
-			m_flCurrentFeetYaw	= m_flGoalFeetYaw;
-			m_nTurningInPlace	= TURN_NONE;
+			m_flGoalFeetYaw = GetOuter()->GetAnimEyeAngles().y;
+			m_flCurrentFeetYaw = m_flGoalFeetYaw;
+			m_nTurningInPlace = TURN_NONE;
 		}
 
 		// If rotating in place, update stasis timer
-		if ( m_flLastYaw != GetOuter()->GetAnimEyeAngles().y )
+		if (m_flLastYaw != GetOuter()->GetAnimEyeAngles().y)
 		{
-			m_flLastTurnTime	= gpGlobals->curtime;
-			m_flLastYaw			= GetOuter()->GetAnimEyeAngles().y;
+			m_flLastTurnTime = gpGlobals->curtime;
+			m_flLastYaw = GetOuter()->GetAnimEyeAngles().y;
 		}
 
-		if ( m_flGoalFeetYaw != m_flCurrentFeetYaw )
+		if (m_flGoalFeetYaw != m_flCurrentFeetYaw)
 		{
-			m_flLastTurnTime	= gpGlobals->curtime;
+			m_flLastTurnTime = gpGlobals->curtime;
 		}
 
-		turning = ConvergeAngles( m_flGoalFeetYaw, turnrate, gpGlobals->frametime, m_flCurrentFeetYaw );
+		turning = ConvergeAngles(m_flGoalFeetYaw, turnrate, gpGlobals->frametime, m_flCurrentFeetYaw);
 
 		QAngle eyeAngles = GetOuter()->GetAnimEyeAngles();
 		QAngle vAngle = GetOuter()->GetLocalAngles();
 
 		// See how far off current feetyaw is from true yaw
 		float yawdelta = GetOuter()->GetAnimEyeAngles().y - m_flCurrentFeetYaw;
-		yawdelta = AngleNormalize( yawdelta );
+		yawdelta = AngleNormalize(yawdelta);
 
 		bool rotated_too_far = false;
 
-		float yawmagnitude = fabs( yawdelta );
+		float yawmagnitude = fabs(yawdelta);
 
 		// If too far, then need to turn in place
-		if ( yawmagnitude > 45 )
+		if (yawmagnitude > 45)
 		{
 			rotated_too_far = true;
 		}
@@ -459,28 +469,28 @@ void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 		// Standing still for a while, rotate feet around to face forward
 		// Or rotated too far
 		// FIXME:  Play an in place turning animation
-		if ( rotated_too_far || 
-			( gpGlobals->curtime > m_flLastTurnTime + mp_facefronttime.GetFloat() ) )
+		if (rotated_too_far ||
+			(gpGlobals->curtime > m_flLastTurnTime + mp_facefronttime.GetFloat()))
 		{
-			m_flGoalFeetYaw		= GetOuter()->GetAnimEyeAngles().y;
-			m_flLastTurnTime	= gpGlobals->curtime;
+			m_flGoalFeetYaw = GetOuter()->GetAnimEyeAngles().y;
+			m_flLastTurnTime = gpGlobals->curtime;
 
-		/*	float yd = m_flCurrentFeetYaw - m_flGoalFeetYaw;
-			if ( yd > 0 )
-			{
-				m_nTurningInPlace = TURN_RIGHT;
-			}
-			else if ( yd < 0 )
-			{
-				m_nTurningInPlace = TURN_LEFT;
-			}
-			else
-			{
-				m_nTurningInPlace = TURN_NONE;
-			}
+			/*	float yd = m_flCurrentFeetYaw - m_flGoalFeetYaw;
+				if ( yd > 0 )
+				{
+					m_nTurningInPlace = TURN_RIGHT;
+				}
+				else if ( yd < 0 )
+				{
+					m_nTurningInPlace = TURN_LEFT;
+				}
+				else
+				{
+					m_nTurningInPlace = TURN_NONE;
+				}
 
-			turning = ConvergeAngles( m_flGoalFeetYaw, turnrate, gpGlobals->frametime, m_flCurrentFeetYaw );
-			yawdelta = GetOuter()->GetAnimEyeAngles().y - m_flCurrentFeetYaw;*/
+				turning = ConvergeAngles( m_flGoalFeetYaw, turnrate, gpGlobals->frametime, m_flCurrentFeetYaw );
+				yawdelta = GetOuter()->GetAnimEyeAngles().y - m_flCurrentFeetYaw;*/
 
 		}
 
@@ -498,15 +508,15 @@ void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 	}
 
 
-	if ( turning == TURN_NONE )
+	if (turning == TURN_NONE)
 	{
 		m_nTurningInPlace = turning;
 	}
 
-	if ( m_nTurningInPlace != TURN_NONE )
+	if (m_nTurningInPlace != TURN_NONE)
 	{
 		// If we're close to finishing the turn, then turn off the turning animation
-		if ( fabs( m_flCurrentFeetYaw - m_flGoalFeetYaw ) < MIN_TURN_ANGLE_REQUIRING_TURN_ANIMATION )
+		if (fabs(m_flCurrentFeetYaw - m_flGoalFeetYaw) < MIN_TURN_ANGLE_REQUIRING_TURN_ANIMATION)
 		{
 			m_nTurningInPlace = TURN_NONE;
 		}
@@ -516,9 +526,9 @@ void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 	absangles = GetOuter()->GetAbsAngles();
 	absangles.y = m_flCurrentFeetYaw;
 	m_angRender = absangles;
-	m_angRender[ PITCH ] = m_angRender[ ROLL ] = 0.0f;
+	m_angRender[PITCH] = m_angRender[ROLL] = 0.0f;
 
-	GetOuter()->SetPoseParameter( upper_body_yaw, clamp( m_flCurrentTorsoYaw, -60.0f, 60.0f ) );
+	GetOuter()->SetPoseParameter(upper_body_yaw, clamp(m_flCurrentTorsoYaw, -60.0f, 60.0f));
 
 	/*
 	// FIXME: Adrian, what is this?
@@ -533,36 +543,36 @@ void CPlayerAnimState::ComputePoseParam_BodyLookYaw( void )
 }
 
 
- 
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : activity - 
 // Output : Activity
 //-----------------------------------------------------------------------------
-Activity CPlayerAnimState::BodyYawTranslateActivity( Activity activity )
+Activity CPlayerAnimState::BodyYawTranslateActivity(Activity activity)
 {
 	// Not even standing still, sigh
-	if ( activity != ACT_IDLE )
+	if (activity != ACT_IDLE)
 		return activity;
 
 	// Not turning
-	switch ( m_nTurningInPlace )
+	switch (m_nTurningInPlace)
 	{
 	default:
 	case TURN_NONE:
 		return activity;
-	/*
-	case TURN_RIGHT:
-		return ACT_TURNRIGHT45;
-	case TURN_LEFT:
-		return ACT_TURNLEFT45;
-	*/
+		/*
+		case TURN_RIGHT:
+			return ACT_TURNRIGHT45;
+		case TURN_LEFT:
+			return ACT_TURNLEFT45;
+		*/
 	case TURN_RIGHT:
 	case TURN_LEFT:
 		return mp_ik.GetBool() ? ACT_TURN : activity;
 	}
 
-	Assert( 0 );
+	Assert(0);
 	return activity;
 }
 
@@ -572,10 +582,10 @@ const QAngle& CPlayerAnimState::GetRenderAngles()
 }
 
 
-void CPlayerAnimState::GetOuterAbsVelocity( Vector& vel )
+void CPlayerAnimState::GetOuterAbsVelocity(Vector& vel)
 {
 #if defined( CLIENT_DLL )
-	GetOuter()->EstimateAbsVelocity( vel );
+	GetOuter()->EstimateAbsVelocity(vel);
 #else
 	vel = GetOuter()->GetAbsVelocity();
 #endif

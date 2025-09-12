@@ -1196,12 +1196,20 @@ bool CWeapon_SLAM::Deploy(void)
 
 bool CWeapon_SLAM::HasAnyAmmo(void)
 {
-	if (AnyUndetonatedCharges() || m_iClip2 > 0)
-		return true;
-	else
+	CBaseCombatCharacter* pOwner = GetOwner();
+	if (!pOwner)
 		return false;
 
-	return BaseClass::HasAnyAmmo();
+	// Verificar se tem charges no mundo OU munição no inventário
+	if (AnyUndetonatedCharges())
+		return true;
+
+	// Verificar munição no inventário do player
+	if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) > 0)
+		return true;
+
+	// Se não tem nada, retornar false
+	return false;
 }
 
 //-----------------------------------------------------------------------------

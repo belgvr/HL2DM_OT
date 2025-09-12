@@ -1778,13 +1778,12 @@ CAmmoDef* GetAmmoDef()
 		def.AddAmmoType("357", DMG_BULLET, TRACER_LINE_AND_WHIZ, 0, 0, 12, BULLET_IMPULSE(800, 5000), 0);
 		def.AddAmmoType("XBowBolt", DMG_BULLET, TRACER_LINE, 0, 0, 10, BULLET_IMPULSE(800, 8000), 0);
 		//def.AddAmmoType("Buckshot", DMG_BULLET | DMG_BUCKSHOT, TRACER_LINE, 0, 0, 30, BULLET_IMPULSE(400, 1200), 0);
-		def.AddAmmoType("Buckshot", DMG_BULLET, DMG_BUCKSHOT, TRACER_LINE_AND_WHIZ, 0, 0, 30, BULLET_IMPULSE(400, 1200), 0);
+		def.AddAmmoType("Buckshot", DMG_BULLET | DMG_BUCKSHOT, TRACER_LINE_AND_WHIZ, 0, 0, 30, BULLET_IMPULSE(400, 1200), 0);
 		def.AddAmmoType("RPG_Round", DMG_BURN, TRACER_NONE, 0, 0, 3, 0, 0);
 		def.AddAmmoType("SMG1_Grenade", DMG_BURN, TRACER_NONE, 0, 0, 3, 0, 0);
 		def.AddAmmoType("Grenade", DMG_BURN, TRACER_NONE, 0, 0, 5, 0, 0);
 		def.AddAmmoType("slam", DMG_BURN, TRACER_NONE, 0, 0, 5, 0, 0);
 	}
-
 	return &def;
 }
 
@@ -2235,6 +2234,9 @@ void CHL2MPRules::RecalculateTeamCounts()
 void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft)
 {
 	if (!sv_damage_display.GetBool() || !pAttacker || !pVictim)
+		return;
+
+	if (damageDealt <= 0)
 		return;
 
 	// Check friendly fire settings

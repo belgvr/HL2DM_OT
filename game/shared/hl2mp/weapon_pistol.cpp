@@ -16,8 +16,34 @@
 
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 
-#define	PISTOL_FASTEST_REFIRE_TIME		0.1f
-#define	PISTOL_FASTEST_DRY_REFIRE_TIME	0.2f
+//- V V V - CONVARS - V V V -
+ConVar sv_pistol_refire_time("sv_pistol_refire_time", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum time between pistol shots.");
+ConVar sv_pistol_dry_refire_time("sv_pistol_dry_refire_time", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum time between empty pistol clicks.");
+
+ConVar sv_pistol_spread_min("sv_pistol_spread_min", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum bullet spread cone in degrees (perfect accuracy).");
+ConVar sv_pistol_spread_max("sv_pistol_spread_max", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum bullet spread cone in degrees (full penalty).");
+
+ConVar sv_pistol_viewkick_pitch_min("sv_pistol_viewkick_pitch_min", "0.25", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum vertical view kick (pitch).");
+ConVar sv_pistol_viewkick_pitch_max("sv_pistol_viewkick_pitch_max", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical view kick (pitch).");
+ConVar sv_pistol_viewkick_yaw("sv_pistol_viewkick_yaw", "0.6", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Magnitude of random horizontal view kick (yaw).");
+ConVar sv_pistol_viewkick_roll("sv_pistol_viewkick_roll", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Magnitude of random view roll. (Default: 0)");
+
+ConVar sv_pistol_acc_penalty_initial("sv_pistol_acc_penalty_initial", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial accuracy penalty. Set to 0 for perfect accuracy on first shot.");
+
+ConVar sv_pistol_zoom_enable(
+    "sv_pistol_zoom_enable",
+    "1",
+    FCVAR_GAMEDLL | FCVAR_NOTIFY,
+    "Enable zoom functionality for pistol (0=disabled, 1=enabled)"
+);
+
+ConVar sv_pistol_zoom_level(
+    "sv_pistol_zoom_level",
+    "30",
+    FCVAR_GAMEDLL | FCVAR_NOTIFY,
+    "FOV level when zoomed with pistol (lower = more zoom)"
+);
+//- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 #define	PISTOL_ACCURACY_SHOT_PENALTY_TIME		0.2f	// Applied amount of time each shot adds to the time we must recover from
 #define	PISTOL_ACCURACY_MAXIMUM_PENALTY_TIME	1.5f	// Maximum penalty to deal out
@@ -26,12 +52,6 @@
 #define CWeaponPistol C_WeaponPistol
 #endif
 
-// ==================================================================================================
-// CVARS APENAS PARA O ZOOM
-// ==================================================================================================
-ConVar sv_pistol_zoom_enable("sv_pistol_zoom_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable zoom for pistol (0=disabled, 1=enabled)");
-ConVar sv_pistol_zoom_level("sv_pistol_zoom_level", "45", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Zoom FOV for pistol (default: 45)");
-
 //-----------------------------------------------------------------------------
 // CWeaponPistol
 //-----------------------------------------------------------------------------
@@ -39,72 +59,85 @@ ConVar sv_pistol_zoom_level("sv_pistol_zoom_level", "45", FCVAR_GAMEDLL | FCVAR_
 class CWeaponPistol : public CBaseHL2MPCombatWeapon
 {
 public:
-	DECLARE_CLASS(CWeaponPistol, CBaseHL2MPCombatWeapon);
+    DECLARE_CLASS(CWeaponPistol, CBaseHL2MPCombatWeapon);
 
-	CWeaponPistol(void);
+    CWeaponPistol(void);
 
-	DECLARE_NETWORKCLASS();
-	DECLARE_PREDICTABLE();
+    DECLARE_NETWORKCLASS();
+    DECLARE_PREDICTABLE();
 
-	void	Precache(void);
-	void	ItemPostFrame(void);
-	void	ItemPreFrame(void);
-	void	ItemBusyFrame(void);
-	void	PrimaryAttack(void);
-	void	AddViewKick(void);
-	void	DryFire(void);
-	void	UpdatePenaltyTime(void);
-	Activity	GetPrimaryAttackActivity(void);
-	virtual bool Reload(void);
-	virtual bool Holster(CBaseCombatWeapon* pSwitchingTo);  // ADICIONADO
+    void	Precache(void);
+    void	ItemPostFrame(void);
+    void	ItemPreFrame(void);
+    void	ItemBusyFrame(void);
+    void	PrimaryAttack(void);
+    void	SecondaryAttack(void);
+    void	AddViewKick(void);
+    void	DryFire(void);
+    bool	Holster(CBaseCombatWeapon* pSwitchingTo = NULL);
+    void	Drop(const Vector& vecVelocity);
 
-	virtual const Vector& GetBulletSpread(void)
-	{
-		static Vector cone;
+    void	UpdatePenaltyTime(void);
 
-		float ramp = RemapValClamped(m_flAccuracyPenalty,
-			0.0f,
-			PISTOL_ACCURACY_MAXIMUM_PENALTY_TIME,
-			0.0f,
-			1.0f);
+    Activity	GetPrimaryAttackActivity(void);
 
-		// We lerp from very accurate to inaccurate over time
-		VectorLerp(VECTOR_CONE_1DEGREES, VECTOR_CONE_6DEGREES, ramp, cone);
+    virtual bool Reload(void);
 
-		return cone;
-	}
+    virtual const Vector& GetBulletSpread(void)
+    {
+        static Vector cone;
 
-	virtual int	GetMinBurst()
-	{
-		return 1;
-	}
+        // Calculate spread vectors from ConVar degrees
+        float min_spread = tan(DEG2RAD(sv_pistol_spread_min.GetFloat() / 2.0f));
+        Vector minCone(min_spread, min_spread, min_spread);
 
-	virtual int	GetMaxBurst()
-	{
-		return 3;
-	}
+        float max_spread = tan(DEG2RAD(sv_pistol_spread_max.GetFloat() / 2.0f));
+        Vector maxCone(max_spread, max_spread, max_spread);
 
-	virtual float GetFireRate(void)
-	{
-		return 0.5f;
-	}
+        float ramp = RemapValClamped(m_flAccuracyPenalty,
+            0.0f,
+            PISTOL_ACCURACY_MAXIMUM_PENALTY_TIME,
+            0.0f,
+            1.0f);
+
+        // We lerp from very accurate to inaccurate over time
+        VectorLerp(minCone, maxCone, ramp, cone);
+
+        return cone;
+    }
+
+    virtual int	GetMinBurst()
+    {
+        return 1;
+    }
+
+    virtual int	GetMaxBurst()
+    {
+        return 3;
+    }
+
+    virtual float GetFireRate(void)
+    {
+        return 0.5f;
+    }
 
 #ifndef CLIENT_DLL
-	DECLARE_ACTTABLE();
+    DECLARE_ACTTABLE();
 #endif
 
 private:
-	CNetworkVar(float, m_flSoonestPrimaryAttack);
-	CNetworkVar(float, m_flLastAttackTime);
-	CNetworkVar(float, m_flAccuracyPenalty);
-	CNetworkVar(int, m_nNumShotsFired);
+    void	ToggleZoom(void);
 
-	// VARIÁVEIS PARA O ZOOM
-	bool m_bZoomed;
-	bool m_bLastAttack2State;
+    CNetworkVar(float, m_flSoonestPrimaryAttack);
+    CNetworkVar(float, m_flLastAttackTime);
+    CNetworkVar(float, m_flAccuracyPenalty);
+    CNetworkVar(int, m_nNumShotsFired);
+
+    bool	m_bInZoom;
+    bool	m_bSecondaryPressed;
 
 private:
-	CWeaponPistol(const CWeaponPistol&);
+    CWeaponPistol(const CWeaponPistol&);
 };
 
 IMPLEMENT_NETWORKCLASS_ALIASED(WeaponPistol, DT_WeaponPistol)
@@ -138,17 +171,19 @@ PRECACHE_WEAPON_REGISTER(weapon_pistol);
 #ifndef CLIENT_DLL
 acttable_t CWeaponPistol::m_acttable[] =
 {
-	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_PISTOL,					false },
-	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_PISTOL,					false },
-	{ ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH_PISTOL,			false },
-	{ ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH_PISTOL,			false },
-	{ ACT_HL2MP_GESTURE_RANGE_ATTACK,	ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL,	false },
-	{ ACT_HL2MP_GESTURE_RELOAD,			ACT_HL2MP_GESTURE_RELOAD_PISTOL,		false },
-	{ ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_PISTOL,					false },
-	{ ACT_RANGE_ATTACK1,				ACT_RANGE_ATTACK_PISTOL,				false },
+   { ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_PISTOL,					false },
+   { ACT_HL2MP_RUN,					ACT_HL2MP_RUN_PISTOL,					false },
+   { ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH_PISTOL,			false },
+   { ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH_PISTOL,			false },
+   { ACT_HL2MP_GESTURE_RANGE_ATTACK,	ACT_HL2MP_GESTURE_RANGE_ATTACK_PISTOL,	false },
+   { ACT_HL2MP_GESTURE_RELOAD,			ACT_HL2MP_GESTURE_RELOAD_PISTOL,		false },
+   { ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_PISTOL,					false },
+   { ACT_RANGE_ATTACK1,				ACT_RANGE_ATTACK_PISTOL,				false },
 };
 
+
 IMPLEMENT_ACTTABLE(CWeaponPistol);
+
 #endif
 
 //-----------------------------------------------------------------------------
@@ -156,19 +191,17 @@ IMPLEMENT_ACTTABLE(CWeaponPistol);
 //-----------------------------------------------------------------------------
 CWeaponPistol::CWeaponPistol(void)
 {
-	m_flSoonestPrimaryAttack = gpGlobals->curtime;
-	m_flAccuracyPenalty = 0.0f;
+    m_flSoonestPrimaryAttack = gpGlobals->curtime;
+    m_flAccuracyPenalty = sv_pistol_acc_penalty_initial.GetFloat();
 
-	m_fMinRange1 = 24;
-	m_fMaxRange1 = 1500;
-	m_fMinRange2 = 24;
-	m_fMaxRange2 = 200;
+    m_fMinRange1 = 24;
+    m_fMaxRange1 = 1500;
+    m_fMinRange2 = 24;
+    m_fMaxRange2 = 200;
 
-	m_bFiresUnderwater = true;
-
-	// INICIALIZAR VARIÁVEIS DO ZOOM
-	m_bZoomed = false;
-	m_bLastAttack2State = false;
+    m_bFiresUnderwater = true;
+    m_bInZoom = false;
+    m_bSecondaryPressed = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -176,53 +209,107 @@ CWeaponPistol::CWeaponPistol(void)
 //-----------------------------------------------------------------------------
 void CWeaponPistol::Precache(void)
 {
-	BaseClass::Precache();
+    BaseClass::Precache();
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
 void CWeaponPistol::DryFire(void)
 {
-	WeaponSound(EMPTY);
-	SendWeaponAnim(ACT_VM_DRYFIRE);
+    WeaponSound(EMPTY);
+    SendWeaponAnim(ACT_VM_DRYFIRE);
 
-	m_flSoonestPrimaryAttack = gpGlobals->curtime + PISTOL_FASTEST_DRY_REFIRE_TIME;
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+    m_flSoonestPrimaryAttack = gpGlobals->curtime + sv_pistol_dry_refire_time.GetFloat();
+    m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: ORIGINAL - SEM MODIFICAÇÕES
+// Purpose:
 //-----------------------------------------------------------------------------
 void CWeaponPistol::PrimaryAttack(void)
 {
-	if ((gpGlobals->curtime - m_flLastAttackTime) > 0.5f)
-	{
-		m_nNumShotsFired = 0;
-	}
-	else
-	{
-		m_nNumShotsFired++;
-	}
+    if ((gpGlobals->curtime - m_flLastAttackTime) > 0.5f)
+    {
+        m_nNumShotsFired = 0;
+    }
+    else
+    {
+        m_nNumShotsFired++;
+    }
 
-	m_flLastAttackTime = gpGlobals->curtime;
-	m_flSoonestPrimaryAttack = gpGlobals->curtime + PISTOL_FASTEST_REFIRE_TIME;
+    m_flLastAttackTime = gpGlobals->curtime;
+    m_flSoonestPrimaryAttack = gpGlobals->curtime + sv_pistol_refire_time.GetFloat();
 
-	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+    CBasePlayer* pOwner = ToBasePlayer(GetOwner());
 
-	if (pOwner)
-	{
-		// Each time the player fires the pistol, reset the view punch. This prevents
-		// the aim from 'drifting off' when the player fires very quickly. This may
-		// not be the ideal way to achieve this, but it's cheap and it works, which is
-		// great for a feature we're evaluating. (sjb)
-		pOwner->ViewPunchReset();
-	}
+    if (pOwner)
+    {
+        // Each time the player fires the pistol, reset the view punch. This prevents
+        // the aim from 'drifting off' when the player fires very quickly. This may
+        // not be the ideal way to achieve this, but it's cheap and it works, which is
+        // great for a feature we're evaluating. (sjb)
+        pOwner->ViewPunchReset();
+    }
 
-	BaseClass::PrimaryAttack();
+    BaseClass::PrimaryAttack();
 
-	// Add an accuracy penalty which can move past our maximum penalty time if we're really spastic
-	m_flAccuracyPenalty += PISTOL_ACCURACY_SHOT_PENALTY_TIME;
+    // Add an accuracy penalty which can move past our maximum penalty time if we're really spastic
+    m_flAccuracyPenalty += PISTOL_ACCURACY_SHOT_PENALTY_TIME;
+
+    if (m_iClip1 <= 0 && m_bInZoom)
+    {
+#ifndef CLIENT_DLL
+        pOwner->SetFOV(this, 0, 0.1f);
+#endif
+        m_bInZoom = false;
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Ataque secundario
+//-----------------------------------------------------------------------------
+void CWeaponPistol::SecondaryAttack(void)
+{
+    if (!sv_pistol_zoom_enable.GetBool())
+        return;
+
+    if (!m_bSecondaryPressed)
+    {
+        ToggleZoom();
+        m_bSecondaryPressed = true;
+    }
+
+    m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Toggle zoom
+//-----------------------------------------------------------------------------
+void CWeaponPistol::ToggleZoom(void)
+{
+    CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+    if (!pPlayer)
+        return;
+
+#ifndef CLIENT_DLL
+    if (m_bInZoom)
+    {
+        if (pPlayer->SetFOV(this, 0, 0.2f))
+        {
+            m_bInZoom = false;
+        }
+    }
+    else
+    {
+        if (pPlayer->SetFOV(this, sv_pistol_zoom_level.GetInt(), 0.2f))
+        {
+            m_bInZoom = true;
+        }
+    }
+#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -230,17 +317,17 @@ void CWeaponPistol::PrimaryAttack(void)
 //-----------------------------------------------------------------------------
 void CWeaponPistol::UpdatePenaltyTime(void)
 {
-	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+    CBasePlayer* pOwner = ToBasePlayer(GetOwner());
 
-	if (pOwner == NULL)
-		return;
+    if (pOwner == NULL)
+        return;
 
-	// Check our penalty time decay
-	if (((pOwner->m_nButtons & IN_ATTACK) == false) && (m_flSoonestPrimaryAttack < gpGlobals->curtime))
-	{
-		m_flAccuracyPenalty -= gpGlobals->frametime;
-		m_flAccuracyPenalty = clamp(m_flAccuracyPenalty, 0.0f, PISTOL_ACCURACY_MAXIMUM_PENALTY_TIME);
-	}
+    // Check our penalty time decay
+    if (((pOwner->m_nButtons & IN_ATTACK) == false) && (m_flSoonestPrimaryAttack < gpGlobals->curtime))
+    {
+        m_flAccuracyPenalty -= gpGlobals->frametime;
+        m_flAccuracyPenalty = clamp(m_flAccuracyPenalty, 0.0f, PISTOL_ACCURACY_MAXIMUM_PENALTY_TIME);
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -248,9 +335,9 @@ void CWeaponPistol::UpdatePenaltyTime(void)
 //-----------------------------------------------------------------------------
 void CWeaponPistol::ItemPreFrame(void)
 {
-	UpdatePenaltyTime();
+    UpdatePenaltyTime();
 
-	BaseClass::ItemPreFrame();
+    BaseClass::ItemPreFrame();
 }
 
 //-----------------------------------------------------------------------------
@@ -258,76 +345,55 @@ void CWeaponPistol::ItemPreFrame(void)
 //-----------------------------------------------------------------------------
 void CWeaponPistol::ItemBusyFrame(void)
 {
-	UpdatePenaltyTime();
+    UpdatePenaltyTime();
 
-	BaseClass::ItemBusyFrame();
+    BaseClass::ItemBusyFrame();
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: MODIFICADO APENAS PARA ADICIONAR O SISTEMA DE ZOOM
+// Purpose: Allows firing as fast as button is pressed
 //-----------------------------------------------------------------------------
 void CWeaponPistol::ItemPostFrame(void)
 {
-	BaseClass::ItemPostFrame();
+    BaseClass::ItemPostFrame();
 
-	if (m_bInReload)
-		return;
+    if (m_bInReload)
+        return;
 
-	CBasePlayer* pOwner = ToBasePlayer(GetOwner());
+    CBasePlayer* pOwner = ToBasePlayer(GetOwner());
 
-	if (pOwner == NULL)
-		return;
+    if (pOwner == NULL)
+        return;
 
-	// SISTEMA DE ZOOM COM BOTÃO DIREITO
-	bool bAttack2 = (pOwner->m_nButtons & IN_ATTACK2) != 0;
-	if (sv_pistol_zoom_enable.GetBool())
-	{
-		// Detecção de borda - só ativa/desativa quando pressiona (não quando segura)
-		if (bAttack2 && !m_bLastAttack2State)
-		{
-			if (!m_bZoomed)
-			{
-				// Ativar zoom
-				int zoomFOV = sv_pistol_zoom_level.GetInt();
-				pOwner->SetFOV(this, zoomFOV, 0.2f);
-				m_bZoomed = true;
-			}
-			else
-			{
-				// Desativar zoom
-				pOwner->SetFOV(this, 0, 0.2f);
-				m_bZoomed = false;
-			}
-		}
-		m_bLastAttack2State = bAttack2;
-	}
-	else
-	{
-		// Se zoom está desabilitado mas estava ativo, desativa
-		if (m_bZoomed)
-		{
-			pOwner->SetFOV(this, 0, 0.2f);
-			m_bZoomed = false;
-		}
+    if (!(pOwner->m_nButtons & IN_ATTACK2))
+    {
+        m_bSecondaryPressed = false;
+    }
 
-		// CÓDIGO ORIGINAL DO BOTÃO DIREITO (quando zoom desabilitado)
-		if (pOwner->m_nButtons & IN_ATTACK2)
-		{
-			m_flLastAttackTime = gpGlobals->curtime + PISTOL_FASTEST_REFIRE_TIME;
-			m_flSoonestPrimaryAttack = gpGlobals->curtime + PISTOL_FASTEST_REFIRE_TIME;
-			m_flNextPrimaryAttack = gpGlobals->curtime + PISTOL_FASTEST_REFIRE_TIME;
-		}
-	}
+    if (m_bInZoom && (m_bInReload || (m_iClip1 <= 0 && pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)))
+    {
+#ifndef CLIENT_DLL
+        pOwner->SetFOV(this, 0, 0.1f);
+#endif
+        m_bInZoom = false;
+    }
 
-	//Allow a refire as fast as the player can click
-	if (((pOwner->m_nButtons & IN_ATTACK) == false) && (m_flSoonestPrimaryAttack < gpGlobals->curtime))
-	{
-		m_flNextPrimaryAttack = gpGlobals->curtime - 0.1f;
-	}
-	else if ((pOwner->m_nButtons & IN_ATTACK) && (m_flNextPrimaryAttack < gpGlobals->curtime) && (m_iClip1 <= 0))
-	{
-		DryFire();
-	}
+    if (pOwner->m_nButtons & IN_ATTACK2)
+    {
+        m_flLastAttackTime = gpGlobals->curtime + sv_pistol_refire_time.GetFloat();
+        m_flSoonestPrimaryAttack = gpGlobals->curtime + sv_pistol_refire_time.GetFloat();
+        m_flNextPrimaryAttack = gpGlobals->curtime + sv_pistol_refire_time.GetFloat();
+    }
+
+    //Allow a refire as fast as the player can click
+    if (((pOwner->m_nButtons & IN_ATTACK) == false) && (m_flSoonestPrimaryAttack < gpGlobals->curtime))
+    {
+        m_flNextPrimaryAttack = gpGlobals->curtime - 0.1f;
+    }
+    else if ((pOwner->m_nButtons & IN_ATTACK) && (m_flNextPrimaryAttack < gpGlobals->curtime) && (m_iClip1 <= 0))
+    {
+        DryFire();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -336,74 +402,102 @@ void CWeaponPistol::ItemPostFrame(void)
 //-----------------------------------------------------------------------------
 Activity CWeaponPistol::GetPrimaryAttackActivity(void)
 {
-	if (m_nNumShotsFired < 1)
-		return ACT_VM_PRIMARYATTACK;
+    if (m_nNumShotsFired < 1)
+        return ACT_VM_PRIMARYATTACK;
 
-	if (m_nNumShotsFired < 2)
-		return ACT_VM_RECOIL1;
+    if (m_nNumShotsFired < 2)
+        return ACT_VM_RECOIL1;
 
-	if (m_nNumShotsFired < 3)
-		return ACT_VM_RECOIL2;
+    if (m_nNumShotsFired < 3)
+        return ACT_VM_RECOIL2;
 
-	return ACT_VM_RECOIL3;
+    return ACT_VM_RECOIL3;
 }
 
 //-----------------------------------------------------------------------------
-// MODIFICADO PARA RESETAR ZOOM NO RELOAD
 //-----------------------------------------------------------------------------
 bool CWeaponPistol::Reload(void)
 {
-	bool fRet = DefaultReload(GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD);
-	if (fRet)
-	{
-		WeaponSound(RELOAD);
-		m_flAccuracyPenalty = 0.0f;
+    if (m_bInZoom)
+    {
+        CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+        if (pPlayer)
+        {
+#ifndef CLIENT_DLL
+            pPlayer->SetFOV(this, 0, 0.1f);
+#endif
+            m_bInZoom = false;
+        }
+    }
 
-		// RESETAR ZOOM NO RELOAD
-		if (m_bZoomed)
-		{
-			CBasePlayer* pOwner = ToBasePlayer(GetOwner());
-			if (pOwner)
-			{
-				pOwner->SetFOV(this, 0, 0.2f);
-				m_bZoomed = false;
-			}
-		}
-	}
-	return fRet;
+    bool fRet = DefaultReload(GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD);
+    if (fRet)
+    {
+        WeaponSound(RELOAD);
+        m_flAccuracyPenalty = sv_pistol_acc_penalty_initial.GetFloat();
+    }
+    return fRet;
 }
 
 //-----------------------------------------------------------------------------
-// Purpose: ORIGINAL - SEM MODIFICAÇÕES
-//-----------------------------------------------------------------------------
-void CWeaponPistol::AddViewKick(void)
-{
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-
-	if (pPlayer == NULL)
-		return;
-
-	QAngle	viewPunch;
-
-	viewPunch.x = SharedRandomFloat("pistolpax", 0.25f, 0.5f);
-	viewPunch.y = SharedRandomFloat("pistolpay", -.6f, .6f);
-	viewPunch.z = 0.0f;
-
-	//Add it to the view punch
-	pPlayer->ViewPunch(viewPunch);
-}
-
-//-----------------------------------------------------------------------------
-// ADICIONADO - RESETAR ZOOM AO TROCAR DE ARMA
+// Purpose: Holster
 //-----------------------------------------------------------------------------
 bool CWeaponPistol::Holster(CBaseCombatWeapon* pSwitchingTo)
 {
-	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
-	if (pPlayer && m_bZoomed)
-	{
-		pPlayer->SetFOV(this, 0, 0.2f);
-		m_bZoomed = false;
-	}
-	m_bLastAttack2State = false;
-	return BaseClass::Holster(pSwitchingTo);
+    if (m_bInZoom)
+    {
+        CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+        if (pPlayer)
+        {
+#ifndef CLIENT_DLL
+            pPlayer->SetFOV(this, 0, 0.2f);
+#endif
+            m_bInZoom = false;
+        }
+    }
+
+    return BaseClass::Holster(pSwitchingTo);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Drop
+//-----------------------------------------------------------------------------
+void CWeaponPistol::Drop(const Vector& vecVelocity)
+{
+    if (m_bInZoom)
+    {
+        CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+        if (pPlayer)
+        {
+#ifndef CLIENT_DLL
+            pPlayer->SetFOV(this, 0, 0.2f);
+#endif
+            m_bInZoom = false;
+        }
+    }
+
+    BaseClass::Drop(vecVelocity);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CWeaponPistol::AddViewKick(void)
+{
+    CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+    if (pPlayer == NULL)
+        return;
+
+    QAngle	viewPunch;
+
+    float flYaw = sv_pistol_viewkick_yaw.GetFloat();
+    float flRoll = sv_pistol_viewkick_roll.GetFloat();
+
+    viewPunch.x = SharedRandomFloat("pistolpax", sv_pistol_viewkick_pitch_min.GetFloat(), sv_pistol_viewkick_pitch_max.GetFloat());
+    viewPunch.y = SharedRandomFloat("pistolpay", -flYaw, flYaw);
+    viewPunch.z = SharedRandomFloat("pistolpaz", -flRoll, flRoll);
+
+    //Add it to the view punch
+    pPlayer->ViewPunch(viewPunch);
 }

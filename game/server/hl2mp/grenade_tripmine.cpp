@@ -14,6 +14,9 @@
 #include "explode.h"
 #include "hl2mp_gamerules.h"
 
+#include "ammodef.h"
+
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -73,6 +76,14 @@ CTripmineGrenade::CTripmineGrenade()
 	m_vecEnd.Init();
 	m_posOwner.Init();
 	m_angleOwner.Init();
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: Destructor to clean up the beam
+//-----------------------------------------------------------------------------
+CTripmineGrenade::~CTripmineGrenade()
+{
+	KillBeam();
 }
 
 void CTripmineGrenade::Spawn(void)
@@ -408,12 +419,25 @@ void CTripmineGrenade::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TY
 		return;
 	}
 
-	pPlayer->GiveAmmo(1, "slam", false);
 	EmitSound("Player.PickupWeapon");
 
+	// LÓGICA CORRIGIDA AQUI
 	if (!pPlayer->Weapon_OwnsThisType("weapon_slam"))
 	{
+		// Primeiro, dá a arma para o jogador
 		pPlayer->GiveNamedItem("weapon_slam");
+
+		// Depois, DEFINE a munição como 1 para evitar que ele ganhe a munição padrão
+		int iAmmoIndex = GetAmmoDef()->Index("slam");
+		if (iAmmoIndex != -1)
+		{
+			pPlayer->SetAmmoCount(1, iAmmoIndex);
+		}
+	}
+	else
+	{
+		// Se o jogador já tem a arma, apenas adiciona 1 de munição
+		pPlayer->GiveAmmo(1, "slam", false);
 	}
 
 	// Mensagem de HUD aparece somente se sv_slam_steal_announce for 1

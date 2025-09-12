@@ -9,11 +9,11 @@
 #include "in_buttons.h"
 
 #ifdef CLIENT_DLL
-	#include "c_hl2mp_player.h"
+#include "c_hl2mp_player.h"
 #else
-	#include "grenade_ar2.h"
-	#include "hl2mp_player.h"
-	#include "basegrenade_shared.h"
+#include "grenade_ar2.h"
+#include "hl2mp_player.h"
+#include "basegrenade_shared.h"
 #endif
 
 #include "weapon_hl2mpbase.h"
@@ -26,40 +26,59 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define SMG1_GRENADE_DAMAGE 100.0f
-#define SMG1_GRENADE_RADIUS 250.0f
+//- V V V - CONVARS - V V V -
+ConVar sv_smg1_damage_grenade("sv_smg1_damage_grenade", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage of the SMG1's secondary grenade.");
+ConVar sv_smg1_radius_grenade("sv_smg1_radius_grenade", "250", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Radius of the SMG1's secondary grenade damage.");
+ConVar sv_smg1_firerate("sv_smg1_firerate", "0.075", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fire rate of the SMG1 (13.3hz default).");
+ConVar sv_smg1_spread("sv_smg1_spread", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Bullet spread cone for the SMG1 in degrees.");
+ConVar sv_smg1_min_burst("sv_smg1_min_burst", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum burst size for SMG1 NPCs.");
+ConVar sv_smg1_max_burst("sv_smg1_max_burst", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum burst size for SMG1 NPCs.");
+ConVar sv_smg1_npc_max_range("sv_smg1_npc_max_range", "1400", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum range for NPCs using the SMG1.");
+ConVar sv_smg1_grenade_throw_velocity("sv_smg1_grenade_throw_velocity", "1000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial velocity of the thrown grenade.");
+
+// View Kick CVars
+ConVar sv_smg1_kick_dampen("sv_smg1_kick_dampen", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dampening factor for view kick.");
+ConVar sv_smg1_kick_max_vertical("sv_smg1_kick_max_vertical", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum vertical kick in degrees.");
+ConVar sv_smg1_kick_slide_limit("sv_smg1_kick_slide_limit", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slide limit for view kick in seconds.");
+
+// Secondary Attack Timing CVars
+ConVar sv_smg1_grenade_next_primary_delay("sv_smg1_grenade_next_primary_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before primary fire is available after grenade launch.");
+ConVar sv_smg1_grenade_next_secondary_delay("sv_smg1_grenade_next_secondary_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before another grenade can be launched.");
+//- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 class CWeaponSMG1 : public CHL2MPMachineGun
 {
 public:
-	DECLARE_CLASS( CWeaponSMG1, CHL2MPMachineGun );
+	DECLARE_CLASS(CWeaponSMG1, CHL2MPMachineGun);
 
 	CWeaponSMG1();
 
-	DECLARE_NETWORKCLASS(); 
+	DECLARE_NETWORKCLASS();
 	DECLARE_PREDICTABLE();
 
-	
-	void	Precache( void );
-	void	AddViewKick( void );
-	void	SecondaryAttack( void );
 
-	int		GetMinBurst() { return 2; }
-	int		GetMaxBurst() { return 5; }
+	void	Precache(void);
+	void	AddViewKick(void);
+	void	SecondaryAttack(void);
 
-	virtual void Equip( CBaseCombatCharacter *pOwner );
-	bool	Reload( void );
+	int		GetMinBurst() { return sv_smg1_min_burst.GetInt(); }
+	int		GetMaxBurst() { return sv_smg1_max_burst.GetInt(); }
 
-	float	GetFireRate( void ) { return 0.075f; }	// 13.3hz
-	Activity	GetPrimaryAttackActivity( void );
+	virtual void Equip(CBaseCombatCharacter* pOwner);
+	bool	Reload(void);
 
-	virtual const Vector& GetBulletSpread( void )
+	float	GetFireRate(void) { return sv_smg1_firerate.GetFloat(); }
+	Activity	GetPrimaryAttackActivity(void);
+
+	virtual const Vector& GetBulletSpread(void)
 	{
-		static const Vector cone = VECTOR_CONE_5DEGREES;
+		static Vector cone;
+		float spread = tan(DEG2RAD(sv_smg1_spread.GetFloat() / 2.0f));
+		cone.Init(spread, spread, spread);
 		return cone;
 	}
 
-	const WeaponProficiencyInfo_t *GetProficiencyValues();
+	const WeaponProficiencyInfo_t* GetProficiencyValues();
 
 #ifndef CLIENT_DLL
 	DECLARE_ACTTABLE();
@@ -69,24 +88,24 @@ protected:
 
 	Vector	m_vecTossVelocity;
 	float	m_flNextGrenadeCheck;
-	
+
 private:
-	CWeaponSMG1( const CWeaponSMG1 & );
+	CWeaponSMG1(const CWeaponSMG1&);
 };
 
-IMPLEMENT_NETWORKCLASS_ALIASED( WeaponSMG1, DT_WeaponSMG1 )
+IMPLEMENT_NETWORKCLASS_ALIASED(WeaponSMG1, DT_WeaponSMG1)
 
-BEGIN_NETWORK_TABLE( CWeaponSMG1, DT_WeaponSMG1 )
+BEGIN_NETWORK_TABLE(CWeaponSMG1, DT_WeaponSMG1)
 END_NETWORK_TABLE()
 
-BEGIN_PREDICTION_DATA( CWeaponSMG1 )
+BEGIN_PREDICTION_DATA(CWeaponSMG1)
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_smg1, CWeaponSMG1 );
+LINK_ENTITY_TO_CLASS(weapon_smg1, CWeaponSMG1);
 PRECACHE_WEAPON_REGISTER(weapon_smg1);
 
 #ifndef CLIENT_DLL
-acttable_t	CWeaponSMG1::m_acttable[] = 
+acttable_t	CWeaponSMG1::m_acttable[] =
 {
 	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_SMG1,					false },
 	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_SMG1,						false },
@@ -102,16 +121,16 @@ IMPLEMENT_ACTTABLE(CWeaponSMG1);
 #endif
 
 //=========================================================
-CWeaponSMG1::CWeaponSMG1( )
+CWeaponSMG1::CWeaponSMG1()
 {
-	m_fMinRange1		= 0;// No minimum range. 
-	m_fMaxRange1		= 1400;
+	m_fMinRange1 = 0;// No minimum range. 
+	m_fMaxRange1 = sv_smg1_npc_max_range.GetFloat();
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponSMG1::Precache( void )
+void CWeaponSMG1::Precache(void)
 {
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther("grenade_ar2");
@@ -123,26 +142,26 @@ void CWeaponSMG1::Precache( void )
 //-----------------------------------------------------------------------------
 // Purpose: Give this weapon longer range when wielded by an ally NPC.
 //-----------------------------------------------------------------------------
-void CWeaponSMG1::Equip( CBaseCombatCharacter *pOwner )
+void CWeaponSMG1::Equip(CBaseCombatCharacter* pOwner)
 {
-	m_fMaxRange1 = 1400;
+	m_fMaxRange1 = sv_smg1_npc_max_range.GetFloat();
 
-	BaseClass::Equip( pOwner );
+	BaseClass::Equip(pOwner);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : Activity
 //-----------------------------------------------------------------------------
-Activity CWeaponSMG1::GetPrimaryAttackActivity( void )
+Activity CWeaponSMG1::GetPrimaryAttackActivity(void)
 {
-	if ( m_nShotsFired < 2 )
+	if (m_nShotsFired < 2)
 		return ACT_VM_PRIMARYATTACK;
 
-	if ( m_nShotsFired < 3 )
+	if (m_nShotsFired < 3)
 		return ACT_VM_RECOIL1;
-	
-	if ( m_nShotsFired < 4 )
+
+	if (m_nShotsFired < 4)
 		return ACT_VM_RECOIL2;
 
 	return ACT_VM_RECOIL3;
@@ -150,20 +169,20 @@ Activity CWeaponSMG1::GetPrimaryAttackActivity( void )
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-bool CWeaponSMG1::Reload( void )
+bool CWeaponSMG1::Reload(void)
 {
 	bool fRet;
 	float fCacheTime = m_flNextSecondaryAttack;
 
-	fRet = DefaultReload( GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD );
-	if ( fRet )
+	fRet = DefaultReload(GetMaxClip1(), GetMaxClip2(), ACT_VM_RELOAD);
+	if (fRet)
 	{
 		// Undo whatever the reload process has done to our secondary
 		// attack timer. We allow you to interrupt reloading to fire
 		// a grenade.
 		m_flNextSecondaryAttack = GetOwner()->m_flNextAttack = fCacheTime;
 
-		WeaponSound( RELOAD );
+		WeaponSound(RELOAD);
 	}
 
 	return fRet;
@@ -172,96 +191,92 @@ bool CWeaponSMG1::Reload( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponSMG1::AddViewKick( void )
+void CWeaponSMG1::AddViewKick(void)
 {
-	#define	EASY_DAMPEN			0.5f
-	#define	MAX_VERTICAL_KICK	1.0f	//Degrees
-	#define	SLIDE_LIMIT			2.0f	//Seconds
-	
 	//Get the view kick
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
 
-	if ( pPlayer == NULL )
+	if (pPlayer == NULL)
 		return;
 
-	DoMachineGunKick( pPlayer, EASY_DAMPEN, MAX_VERTICAL_KICK, m_fFireDuration, SLIDE_LIMIT );
+	DoMachineGunKick(pPlayer, sv_smg1_kick_dampen.GetFloat(), sv_smg1_kick_max_vertical.GetFloat(), m_fFireDuration, sv_smg1_kick_slide_limit.GetFloat());
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponSMG1::SecondaryAttack( void )
+void CWeaponSMG1::SecondaryAttack(void)
 {
 	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
-	
-	if ( pPlayer == NULL )
+	CBasePlayer* pPlayer = ToBasePlayer(GetOwner());
+
+	if (pPlayer == NULL)
 		return;
 
 	//Must have ammo
-	if ( ( pPlayer->GetAmmoCount( m_iSecondaryAmmoType ) <= 0 ) || ( pPlayer->GetWaterLevel() == 3 ) )
+	if ((pPlayer->GetAmmoCount(m_iSecondaryAmmoType) <= 0) || (pPlayer->GetWaterLevel() == 3))
 	{
-		SendWeaponAnim( ACT_VM_DRYFIRE );
-		BaseClass::WeaponSound( EMPTY );
+		SendWeaponAnim(ACT_VM_DRYFIRE);
+		BaseClass::WeaponSound(EMPTY);
 		m_flNextEmptySoundTime = m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
 		return;
 	}
 
-	if( m_bInReload )
+	if (m_bInReload)
 		m_bInReload = false;
 
 	// MUST call sound before removing a round from the clip of a CMachineGun
-	BaseClass::WeaponSound( WPN_DOUBLE );
+	BaseClass::WeaponSound(WPN_DOUBLE);
 
 	Vector vecSrc = pPlayer->Weapon_ShootPosition();
 	Vector	vecThrow;
 	// Don't autoaim on grenade tosses
-	AngleVectors( pPlayer->EyeAngles() + pPlayer->GetPunchAngle(), &vecThrow );
-	VectorScale( vecThrow, 1000.0f, vecThrow );
-	
+	AngleVectors(pPlayer->EyeAngles() + pPlayer->GetPunchAngle(), &vecThrow);
+	VectorScale(vecThrow, sv_smg1_grenade_throw_velocity.GetFloat(), vecThrow);
+
 #ifndef CLIENT_DLL
 	//Create the grenade
-	CGrenadeAR2 *pGrenade = (CGrenadeAR2*)Create( "grenade_ar2", vecSrc, vec3_angle, pPlayer );
-	pGrenade->SetAbsVelocity( vecThrow );
+	CGrenadeAR2* pGrenade = (CGrenadeAR2*)Create("grenade_ar2", vecSrc, vec3_angle, pPlayer);
+	pGrenade->SetAbsVelocity(vecThrow);
 
-	pGrenade->SetLocalAngularVelocity( RandomAngle( -400, 400 ) );
-	pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE ); 
-	pGrenade->SetThrower( GetOwner() );
-	pGrenade->SetDamage( SMG1_GRENADE_DAMAGE );
-	pGrenade->SetDamageRadius( SMG1_GRENADE_RADIUS );
+	pGrenade->SetLocalAngularVelocity(RandomAngle(-400, 400));
+	pGrenade->SetMoveType(MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE);
+	pGrenade->SetThrower(GetOwner());
+	pGrenade->SetDamage(sv_smg1_damage_grenade.GetFloat());
+	pGrenade->SetDamageRadius(sv_smg1_radius_grenade.GetFloat());
 #endif
 
-	SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+	SendWeaponAnim(ACT_VM_SECONDARYATTACK);
 
 	// player "shoot" animation
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 	// Decrease ammo
-	pPlayer->RemoveAmmo( 1, m_iSecondaryAmmoType );
+	pPlayer->RemoveAmmo(1, m_iSecondaryAmmoType);
 
 	// Can shoot again immediately
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.5f;
+	m_flNextPrimaryAttack = gpGlobals->curtime + sv_smg1_grenade_next_primary_delay.GetFloat();
 
 	// Can blow up after a short delay (so have time to release mouse button)
-	m_flNextSecondaryAttack = gpGlobals->curtime + 1.0f;
+	m_flNextSecondaryAttack = gpGlobals->curtime + sv_smg1_grenade_next_secondary_delay.GetFloat();
 
 	// misyl: Stop dryfire taking over if we have 1 ammo left.
-	m_flNextEmptySoundTime = gpGlobals->curtime + 1.0f;
+	m_flNextEmptySoundTime = gpGlobals->curtime + sv_smg1_grenade_next_secondary_delay.GetFloat();
 }
 
 //-----------------------------------------------------------------------------
-const WeaponProficiencyInfo_t *CWeaponSMG1::GetProficiencyValues()
+const WeaponProficiencyInfo_t* CWeaponSMG1::GetProficiencyValues()
 {
 	static WeaponProficiencyInfo_t proficiencyTable[] =
 	{
 		{ 7.0,		0.75	},
 		{ 5.00,		0.75	},
-		{ 10.0/3.0, 0.75	},
-		{ 5.0/3.0,	0.75	},
+		{ 10.0 / 3.0, 0.75	},
+		{ 5.0 / 3.0,	0.75	},
 		{ 1.00,		1.0		},
 	};
 
-	COMPILE_TIME_ASSERT( ARRAYSIZE(proficiencyTable) == WEAPON_PROFICIENCY_PERFECT + 1);
+	COMPILE_TIME_ASSERT(ARRAYSIZE(proficiencyTable) == WEAPON_PROFICIENCY_PERFECT + 1);
 
 	return proficiencyTable;
 }
