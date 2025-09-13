@@ -1,15 +1,15 @@
-^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SHARED\BASE_GCMESSAGES.PROTO
+^C:\HL2DM_OT\SRC\GAME\SHARED\BASE_GCMESSAGES.PROTO
 if not exist ..\..\game\client\generated_proto_mod_tf mkdir ..\..\game\client\generated_proto_mod_tf
-..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\base_gcmessages.proto
-^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SHARED\ECON\ECON_GCMESSAGES.PROTO
+..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=C:\HL2DM_OT\src\game\shared\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf C:\HL2DM_OT\src\game\shared\base_gcmessages.proto
+^C:\HL2DM_OT\SRC\GAME\SHARED\ECON\ECON_GCMESSAGES.PROTO
 if not exist ..\..\game\client\generated_proto_mod_tf mkdir ..\..\game\client\generated_proto_mod_tf
-..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\econ\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\econ\econ_gcmessages.proto
-^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GCSDK\STEAMMESSAGES.PROTO
+..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=C:\HL2DM_OT\src\game\shared\econ\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf C:\HL2DM_OT\src\game\shared\econ\econ_gcmessages.proto
+^C:\HL2DM_OT\SRC\GCSDK\STEAMMESSAGES.PROTO
 if not exist ..\..\game\client\generated_proto_mod_tf mkdir ..\..\game\client\generated_proto_mod_tf
-..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=D:\speedvoltage\hl2mp-essential-fixes-latest\src\gcsdk\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf D:\speedvoltage\hl2mp-essential-fixes-latest\src\gcsdk\steammessages.proto
-^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SHARED\TF\TF_GCMESSAGES.PROTO
+..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=C:\HL2DM_OT\src\gcsdk\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf C:\HL2DM_OT\src\gcsdk\steammessages.proto
+^C:\HL2DM_OT\SRC\GAME\SHARED\TF\TF_GCMESSAGES.PROTO
 if not exist ..\..\game\client\generated_proto_mod_tf mkdir ..\..\game\client\generated_proto_mod_tf
-..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\tf\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\tf\tf_gcmessages.proto
-^D:\SPEEDVOLTAGE\HL2MP-ESSENTIAL-FIXES-LATEST\SRC\GAME\SHARED\TF\TF_PROTO_DEF_MESSAGES.PROTO
+..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=C:\HL2DM_OT\src\game\shared\tf\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf C:\HL2DM_OT\src\game\shared\tf\tf_gcmessages.proto
+^C:\HL2DM_OT\SRC\GAME\SHARED\TF\TF_PROTO_DEF_MESSAGES.PROTO
 if not exist ..\..\game\client\generated_proto_mod_tf mkdir ..\..\game\client\generated_proto_mod_tf
-..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\tf\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf D:\speedvoltage\hl2mp-essential-fixes-latest\src\game\shared\tf\tf_proto_def_messages.proto
+..\..\thirdparty\protobuf-2.6.1\bin\win64\2015\staticcrt\release\protoc.exe --proto_path=..\..\thirdparty\protobuf-2.6.1\src --proto_path=C:\HL2DM_OT\src\game\shared\tf\ --proto_path=..\..\gcsdk --proto_path=..\..\game\shared  --cpp_out=..\..\game\client\generated_proto_mod_tf C:\HL2DM_OT\src\game\shared\tf\tf_proto_def_messages.proto

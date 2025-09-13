@@ -36,6 +36,7 @@
 #define BOLT_SKIN_GLOW		1
 
 
+
 #ifndef CLIENT_DLL
 
 extern ConVar sk_plr_dmg_crossbow;
@@ -51,7 +52,8 @@ class CCrossbowBolt : public CBaseCombatCharacter
 	DECLARE_CLASS( CCrossbowBolt, CBaseCombatCharacter );
 
 public:
-	CCrossbowBolt() { };
+	//CCrossbowBolt() { };
+	CCrossbowBolt() { m_bHasBounced = false; }; // MODIFICADO: Adicione o inicializador aqui
 	~CCrossbowBolt();
 
 	Class_T Classify( void ) { return CLASS_NONE; }
@@ -73,6 +75,8 @@ protected:
 	//CHandle<CSpriteTrail>	m_pGlowTrail;
 	
 	int		m_iDamage;
+
+	bool	m_bHasBounced; //HasBounced
 
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
@@ -182,6 +186,8 @@ void CCrossbowBolt::Spawn( void )
 
 	// Make us glow until we've hit the wall
 	m_nSkin = BOLT_SKIN_GLOW;
+	//life counter
+	m_iHealth = 0;
 }
 
 
@@ -230,6 +236,12 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 
 		SetLocalAngles( reflectAngles );
 		SetAbsVelocity( vReflection * speed * 0.75f );
+
+		//Mark Crossbow_bolt as bounced (ricochet)
+		m_bHasBounced = true;
+		//counter add
+		m_iHealth++;
+
 
 		// Shoot some sparks
 		if ( UTIL_PointContents( GetAbsOrigin() ) != CONTENTS_WATER )
@@ -303,6 +315,8 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
 			CalculateMeleeDamageForce( &dmgInfo, vecNormalizedVel, tr.endpos, 0.7f );
 			dmgInfo.SetDamagePosition( tr.endpos );
+			// set bounce damage type
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 			pOther->DispatchTraceAttack( dmgInfo, vecNormalizedVel, &tr );
 		}
 		else
@@ -310,6 +324,8 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 			CTakeDamageInfo	dmgInfo( this, GetOwnerEntity(), m_iDamage, DMG_BULLET | DMG_NEVERGIB );
 			CalculateMeleeDamageForce( &dmgInfo, vecNormalizedVel, tr.endpos, 0.7f );
 			dmgInfo.SetDamagePosition( tr.endpos );
+			// set bounce damage type
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 			pOther->DispatchTraceAttack( dmgInfo, vecNormalizedVel, &tr );
 		}
 
@@ -381,6 +397,11 @@ void CCrossbowBolt::BoltTouch( CBaseEntity *pOther )
 				SetLocalAngles( reflectAngles );
 
 				SetAbsVelocity( vReflection * speed * 0.75f );
+
+				//Mark Crossbow_bolt as bounced (ricochet)
+				m_bHasBounced = true; 
+				//counter add
+				m_iHealth++;
 
 				// Start to sink faster
 				SetGravity( 1.0f );

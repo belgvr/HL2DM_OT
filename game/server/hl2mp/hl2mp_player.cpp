@@ -87,6 +87,9 @@ ConVar sv_hitsounds_pitch_base_kill_head("sv_hitsounds_pitch_base_kill_head", "1
 // END SECTION FOR HITSOUNDS
 
 
+extern ConVar sv_killerinfo_airkill_enable;
+extern ConVar sv_killerinfo_bouncekill_enable;
+
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
 void DropPrimedFragGrenade(CHL2MP_Player* pPlayer, CBaseCombatWeapon* pGrenade);
@@ -2163,26 +2166,44 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 {
-	// Lógica de morte original
+	// ====================================================================================
+	// DETECÇÃO DE AIRKILL (VERSÃO FINAL E SIMPLIFICADA)
+	// ====================================================================================
+	bool bWasAirKill = false;
+	if (sv_killerinfo_airkill_enable.GetBool())
+	{
+		// A lógica agora é simples: um Airkill acontece se UMA das duas condições for verdadeira.
+
+		// Condição 1: A vítima tem velocidade vertical alta? (Pega rocket jumps e quedas rápidas)
+		Vector velocity = this->GetAbsVelocity();
+		float verticalSpeed = fabs(velocity.z);
+		if (verticalSpeed > sv_killerinfo_airkill_velocity_threshold.GetFloat())
+		{
+			bWasAirKill = true;
+		}
+		// Condição 2: Se não, a vítima está a uma altura mínima do chão? (Pega pulos normais e jogadores planando)
+		else
+		{
+			trace_t height_tr;
+			Vector vecStart = this->GetAbsOrigin();
+			Vector vecEnd = vecStart - Vector(0, 0, sv_killerinfo_airkill_height_threshold.GetFloat());
+			UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &height_tr);
+
+			// Se o trace longo (cuja distância é controlada pela ConVar) não bateu em nada, é Airkill.
+			if (height_tr.fraction > 0.99f)
+			{
+				bWasAirKill = true;
+			}
+		}
+	}
+
+	// Lógica de morte original (continua a partir daqui)
 	LadderRespawnFix();
 	CTakeDamageInfo subinfo = info;
 	subinfo.SetDamageForce(m_vecTotalBulletForce);
 	SetNumAnimOverlays(0);
 	CreateRagdollEntity();
 	DetonateTripmines();
-
-	// Detectar se estava no ar ANTES de morrer
-	bool onGroundFlags = (GetFlags() & FL_ONGROUND) != 0;
-	bool hasGroundEntity = (GetGroundEntity() != nullptr);
-	bool preDeathInAir = (!onGroundFlags && !hasGroundEntity);
-
-	// opcional: velocidade vertical
-	if (!preDeathInAir)
-	{
-		float vz = GetAbsVelocity().z;
-		if (fabs(vz) > 60.0f)
-			preDeathInAir = true;
-	}
 
 	BaseClass::Event_Killed(subinfo);
 
@@ -2219,20 +2240,25 @@ void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 	CHL2MP_Player* pKiller = dynamic_cast<CHL2MP_Player*>(info.GetAttacker());
 	if (pKiller && pKiller != this && pKiller->IsPlayer())
 	{
-		// Obter nome da arma
-		const char* weaponName = "unknown";
-		CBaseCombatWeapon* pWeapon = pKiller->GetActiveWeapon();
-		if (pWeapon)
+		const char* weaponName = "world";
+		CBaseEntity* pInflictor = info.GetInflictor();
+		if (pInflictor)
 		{
-			weaponName = pWeapon->GetName();
+			weaponName = pInflictor->GetClassname();
 			if (Q_strnicmp(weaponName, "weapon_", 7) == 0)
-				weaponName += 7; // Remove prefixo "weapon_"
+				weaponName += 7;
+			else if (FClassnameIs(pInflictor, "crossbow_bolt"))
+				weaponName = "crossbow";
 		}
 
-		// Obter hitgroup
 		int hitGroup = this->m_iLastHitGroup;
 
-		// Chamar killer info passando o estado de airkill detectado antes
-		HL2MPRules()->DisplayKillerInfo(this, pKiller, weaponName, hitGroup, preDeathInAir);
+		bool bWasBounceKill = (sv_killerinfo_bouncekill_enable.GetBool() && HL2MPRules()->WasBounceKill(info));
+
+		// <<< ADICIONADO: Pega o número de ricochetes da flecha >>>
+		int iBounceCount = HL2MPRules()->GetBounceCount(info);
+
+		// <<< MODIFICADO: Passa o iBounceCount como o último parâmetro >>>
+		HL2MPRules()->DisplayKillerInfo(this, pKiller, weaponName, hitGroup, bWasAirKill, bWasBounceKill, iBounceCount);
 	}
 }

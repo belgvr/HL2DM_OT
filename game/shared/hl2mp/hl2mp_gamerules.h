@@ -140,10 +140,15 @@ public:
 	void ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft);
 
 	// NEW: Killer Info System   
-	void DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill);
+	void DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount); // MODIFICADO
+
+	bool WasBounceKill(const CTakeDamageInfo& info); // Bounce Kill detection
+	int GetBounceCount(const CTakeDamageInfo& info);
+
 	bool ShouldShowKillerInfo(CHL2MP_Player* pPlayer);
 	void SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* message);
-	bool WasAirKill(CHL2MP_Player* pVictim);
+	//bool WasAirKill(CHL2MP_Player* pVictim);
+	bool WasAirKill(CHL2MP_Player* pVictim, const CTakeDamageInfo& info);
 
 
 #endif
@@ -231,6 +236,11 @@ extern bool g_votehasended;
 extern int g_votetime;
 extern int g_timetortv;
 extern bool g_rtvbooted;
+
+extern ConVar sv_killerinfo_airkill_velocity_threshold; 
+extern ConVar sv_killerinfo_airkill_height_threshold;
+extern ConVar sv_killerinfo_bouncekill_enable;
+extern ConVar sv_killerinfo_bounce_counter; 
 
 // Map voting utility
 extern void StartMapVote();

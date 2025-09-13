@@ -101,12 +101,15 @@ ConVar sv_killerinfo_show_health("sv_killerinfo_show_health", "1", FCVAR_GAMEDLL
 ConVar sv_killerinfo_show_armor("sv_killerinfo_show_armor", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining armor");
 ConVar sv_killerinfo_show_distance("sv_killerinfo_show_distance", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show distance to killer");
 ConVar sv_killerinfo_distance_unit("sv_killerinfo_distance_unit", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Distance unit: 0=meters, 1=feet");
-ConVar sv_killerinfo_airkill_velocity_threshold("sv_killerinfo_airkill_velocity_threshold", "200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for airkill detection (units/sec)");
-ConVar sv_killerinfo_airkill_height_threshold("sv_killerinfo_airkill_height_threshold", "48", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for airkill detection (units)");
-ConVar sv_killerinfo_airkill_trace_fraction("sv_killerinfo_airkill_trace_fraction", "0.9", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trace fraction threshold for airkill detection (0.0-1.0)");
-ConVar sv_killerinfo_airkill_ground_override("sv_killerinfo_airkill_ground_override", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Override airkill if player is touching ground (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_airkill_velocity_threshold("sv_killerinfo_airkill_velocity_threshold", "500", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for airkill detection (units/sec)");
+ConVar sv_killerinfo_airkill_height_threshold("sv_killerinfo_airkill_height_threshold", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for airkill detection (units)");
+//ConVar sv_killerinfo_airkill_trace_fraction("sv_killerinfo_airkill_trace_fraction", "0.9", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trace fraction threshold for airkill detection (0.0-1.0)");
+//ConVar sv_killerinfo_airkill_ground_override("sv_killerinfo_airkill_ground_override", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Override airkill if player is touching ground (0=disabled, 1=enabled)");
 ConVar sv_killerinfo_airkill_enable("sv_killerinfo_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable airkill detection entirely (0=disabled, 1=enabled) (has some bugs yet, sometimes it can show airkill even when the victim is on the ground, use at your own risk)");
 ConVar sv_killerinfo_headshot_enable("sv_killerinfo_headshot_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable headshot detection display (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_bouncekill_enable("sv_killerinfo_bouncekill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable bounce kill detection display (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_bounce_counter("sv_killerinfo_bounce_counter", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Display the bounce count on ricochet kills (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_bounce_counter_min("sv_killerinfo_bounce_counter_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum number of bounces to show the bounce count");
 
 extern ConVar mp_chattime;
 extern ConVar sv_rtv_mintime;
@@ -2350,16 +2353,20 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 	}
 }
 
+bool CHL2MPRules::WasBounceKill(const CTakeDamageInfo& info)
+{
+	return (info.GetDamageType() & DMG_BOUNCE_KILL);
+}
 
-void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill)
+void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount)
 {
 	if (!pVictim || !pKiller || !sv_killerinfo_enable.GetBool())
 		return;
 
+	// <<< ESTA PARTE ESTAVA FALTANDO
 	int killerHealth = pKiller->GetHealth();
 	int killerArmor = pKiller->ArmorValue();
 
-	// Calcular distância
 	Vector killerPos = pKiller->GetAbsOrigin();
 	Vector victimPos = pVictim->GetAbsOrigin();
 	float distance = killerPos.DistTo(victimPos);
@@ -2380,27 +2387,23 @@ void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKill
 	char message[256];
 	char weaponDisplay[64] = "";
 	char distanceDisplay[32] = "";
+	char armorDisplay[32] = "";
 
-	// Arma
 	if (sv_killerinfo_show_weapon.GetBool() && weaponName)
 	{
 		Q_snprintf(weaponDisplay, sizeof(weaponDisplay), CHAT_WHITE " With" CHAT_COMBINE " %s", weaponName);
 	}
 
-	// Distância
 	if (sv_killerinfo_show_distance.GetBool())
 	{
 		Q_snprintf(distanceDisplay, sizeof(distanceDisplay), CHAT_WHITE " | Dist: " CHAT_DM "%.1f%s", displayDistance, unitStr);
 	}
 
-	// Armadura
-	char armorDisplay[32] = "";
 	if (sv_killerinfo_show_armor.GetBool() && killerArmor > 0)
 	{
 		Q_snprintf(armorDisplay, sizeof(armorDisplay), CHAT_WHITE " | AP:" CHAT_COMBINE " %d", killerArmor);
 	}
 
-	// HP colorido
 	const char* hpColor;
 	if (killerHealth >= sv_damage_display_hp_high_min.GetInt())
 		hpColor = CHAT_FULLGREEN;
@@ -2410,20 +2413,35 @@ void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKill
 		hpColor = CHAT_FULLRED;
 	else
 		hpColor = CHAT_FULLRED;
+	// <<< FIM DA PARTE QUE FALTAVA
 
-	bool wasHeadshot = (hitGroup == HITGROUP_HEAD) && sv_killerinfo_headshot_enable.GetBool();
-
+	// --- Bloco de Kills Especiais ---
 	char specialDisplay[128] = "";
-	if (wasHeadshot)
+
+	if (wasAirKill)
 	{
-		Q_strncat(specialDisplay, " " CHAT_PETROL "*HEADSHOT*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+		Q_strncat(specialDisplay, " " CHAT_DEEPPINK "[AIRKILL]", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
 	}
-	if (wasAirKill && sv_killerinfo_airkill_enable.GetBool())
+	if ((hitGroup == HITGROUP_HEAD) && sv_killerinfo_headshot_enable.GetBool())
 	{
-		Q_strncat(specialDisplay, " " CHAT_DEEPPINK "*AIRKILL*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+		Q_strncat(specialDisplay, " " CHAT_PETROL "[HEADSHOT]", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
 	}
 
-	// Mensagem final
+	if (wasBounceKill && sv_killerinfo_bouncekill_enable.GetBool())
+	{
+		char bounceText[64];
+		if (sv_killerinfo_bounce_counter.GetBool() && bounceCount >= sv_killerinfo_bounce_counter_min.GetInt())
+		{
+			Q_snprintf(bounceText, sizeof(bounceText), " " CHAT_DEEPORANGE "[BOUNCE KILL " CHAT_FULLYELLOW "x%d" CHAT_DEEPORANGE "]", bounceCount);
+		}
+		else
+		{
+			Q_snprintf(bounceText, sizeof(bounceText), " " CHAT_DEEPORANGE "[BOUNCE KILL]");
+		}
+		Q_strncat(specialDisplay, bounceText, sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+	}
+
+	// --- Montagem da Mensagem Final ---
 	Q_snprintf(message, sizeof(message),
 		CHAT_FULLRED "> " CHAT_WHITE "Killed by: " CHAT_FULLRED "%s%s \n" CHAT_FULLRED "> " CHAT_WHITE "[HP: %s%d" CHAT_WHITE "%s%s" CHAT_WHITE "]%s",
 		pKiller->GetPlayerName(), weaponDisplay, hpColor, killerHealth, distanceDisplay, armorDisplay, specialDisplay);
@@ -2443,36 +2461,58 @@ void CHL2MPRules::SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* m
 		ClientPrint(pVictim, HUD_PRINTTALK, message);
 }
 
-bool CHL2MPRules::WasAirKill(CHL2MP_Player* pVictim)
+//bool CHL2MPRules::WasAirKill(CHL2MP_Player* pVictim, const CTakeDamageInfo& info)
+//{
+//	if (!pVictim)
+//		return false;
+//
+//	// PASSO 2: O VETO DO CHÃO
+//	trace_t ground_tr;
+//	Vector vecStart = pVictim->GetAbsOrigin();
+//	Vector vecEnd = vecStart - Vector(0, 0, 16);
+//
+//	UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &ground_tr);
+//
+//	if (ground_tr.fraction < 1.0f)
+//	{
+//		// Log para depuração ATIVADO
+//		Msg("WasAirKill VETO: Jogador considerado no chao. Fracao do trace: %.2f\n", ground_tr.fraction);
+//		return false;
+//	}
+//
+//	// PASSO 3: CONFIRMAÇÃO DO AIRKILL
+//	Vector velocity = pVictim->GetAbsVelocity();
+//	float verticalSpeed = fabs(velocity.z);
+//	if (verticalSpeed > sv_killerinfo_airkill_velocity_threshold.GetFloat())
+//	{
+//		// Log para depuração ATIVADO
+//		Msg("WasAirKill SUCESSO: Velocidade vertical (%.2f) maior que o limite (%.2f)\n", verticalSpeed, sv_killerinfo_airkill_velocity_threshold.GetFloat());
+//		return true;
+//	}
+//
+//	trace_t height_tr;
+//	float heightThreshold = sv_killerinfo_airkill_height_threshold.GetFloat();
+//	vecEnd = vecStart - Vector(0, 0, heightThreshold);
+//
+//	UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &height_tr);
+//
+//	if (height_tr.fraction > 0.99f)
+//	{
+//		// Log para depuração ATIVADO
+//		Msg("WasAirKill SUCESSO: Altura maior que o limite (%.2f)\n", heightThreshold);
+//		return true;
+//	}
+//
+//	Msg("WasAirKill FALHA: Nao passou em nenhuma condicao de confirmacao.\n");
+//	return false;
+//}
+
+int CHL2MPRules::GetBounceCount(const CTakeDamageInfo& info)
 {
-	if (!pVictim)
-		return false;
-
-	// Se airkill detection estiver desabilitado, nunca é airkill
-	if (!sv_killerinfo_airkill_enable.GetBool())
-		return false;
-
-	// Override: se está tocando o chão, NUNCA é airkill
-	if (sv_killerinfo_airkill_ground_override.GetBool())
+	CBaseEntity* pInflictor = info.GetInflictor();
+	if (pInflictor && FClassnameIs(pInflictor, "crossbow_bolt"))
 	{
-		if (pVictim->GetFlags() & FL_ONGROUND)
-			return false;
+		return pInflictor->GetHealth();
 	}
-
-	Vector velocity = pVictim->GetAbsVelocity();
-	float verticalSpeed = fabs(velocity.z);
-
-	// Verificar velocidade vertical configurável
-	if (verticalSpeed > sv_killerinfo_airkill_velocity_threshold.GetFloat())
-		return true;
-
-	// Trace configurável
-	float heightThreshold = sv_killerinfo_airkill_height_threshold.GetFloat();
-	Vector start = pVictim->GetAbsOrigin();
-	Vector end = start - Vector(0, 0, heightThreshold);
-
-	trace_t tr;
-	UTIL_TraceLine(start, end, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &tr);
-
-	return (tr.fraction > sv_killerinfo_airkill_trace_fraction.GetFloat());
+	return 0;
 }

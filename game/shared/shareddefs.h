@@ -620,6 +620,10 @@ enum PLAYER_ANIM
 #define DMG_DIRECT			(1<<28)
 #define DMG_BUCKSHOT		(1<<29)		// not quite a bullet. Little, rounder, different.
 
+//Crossbow Bounce detection:
+#define DMG_BOUNCE_KILL			(1<<30)		// Dano causado por um projétil que ricocheteou
+
+
 // NOTE: DO NOT ADD ANY MORE CUSTOM DMG_ TYPES. MODS USE THE DMG_LASTGENERICFLAG BELOW, AND
 //		 IF YOU ADD NEW DMG_ TYPES, THEIR TYPES WILL BE HOSED. WE NEED A BETTER SOLUTION.
 
