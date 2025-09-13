@@ -105,7 +105,7 @@ ConVar sv_killerinfo_airkill_velocity_threshold("sv_killerinfo_airkill_velocity_
 ConVar sv_killerinfo_airkill_height_threshold("sv_killerinfo_airkill_height_threshold", "48", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for airkill detection (units)");
 ConVar sv_killerinfo_airkill_trace_fraction("sv_killerinfo_airkill_trace_fraction", "0.9", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trace fraction threshold for airkill detection (0.0-1.0)");
 ConVar sv_killerinfo_airkill_ground_override("sv_killerinfo_airkill_ground_override", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Override airkill if player is touching ground (0=disabled, 1=enabled)");
-ConVar sv_killerinfo_airkill_enable("sv_killerinfo_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable airkill detection entirely (0=disabled, 1=enabled)");
+ConVar sv_killerinfo_airkill_enable("sv_killerinfo_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable airkill detection entirely (0=disabled, 1=enabled) (has some bugs yet, sometimes it can show airkill even when the victim is on the ground, use at your own risk)");
 ConVar sv_killerinfo_headshot_enable("sv_killerinfo_headshot_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable headshot detection display (0=disabled, 1=enabled)");
 
 extern ConVar mp_chattime;
@@ -2418,7 +2418,7 @@ void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKill
 	{
 		Q_strncat(specialDisplay, " " CHAT_PETROL "*HEADSHOT*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
 	}
-	if (wasAirKill)
+	if (wasAirKill && sv_killerinfo_airkill_enable.GetBool())
 	{
 		Q_strncat(specialDisplay, " " CHAT_DEEPPINK "*AIRKILL*", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
 	}

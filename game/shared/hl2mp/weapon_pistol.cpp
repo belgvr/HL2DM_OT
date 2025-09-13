@@ -30,19 +30,9 @@ ConVar sv_pistol_viewkick_roll("sv_pistol_viewkick_roll", "0.0", FCVAR_GAMEDLL |
 
 ConVar sv_pistol_acc_penalty_initial("sv_pistol_acc_penalty_initial", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Initial accuracy penalty. Set to 0 for perfect accuracy on first shot.");
 
-ConVar sv_pistol_zoom_enable(
-    "sv_pistol_zoom_enable",
-    "1",
-    FCVAR_GAMEDLL | FCVAR_NOTIFY,
-    "Enable zoom functionality for pistol (0=disabled, 1=enabled)"
-);
-
-ConVar sv_pistol_zoom_level(
-    "sv_pistol_zoom_level",
-    "30",
-    FCVAR_GAMEDLL | FCVAR_NOTIFY,
-    "FOV level when zoomed with pistol (lower = more zoom)"
-);
+ConVar sv_pistol_zoom_enable("sv_pistol_zoom_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable zoom functionality for pistol (0=disabled, 1=enabled)");
+ConVar sv_pistol_zoom_level("sv_pistol_zoom_level", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "FOV level when zoomed with pistol (lower = more zoom)");
+ConVar sv_pistol_autofire_rate("sv_pistol_autofire_rate", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If > 0, the pistol will auto-fire at this rate (in seconds) when the attack button is held. 0 = disabled.");
 //- ^ ^ ^ - CONVARS - ^ ^ ^ -
 
 #define	PISTOL_ACCURACY_SHOT_PENALTY_TIME		0.2f	// Applied amount of time each shot adds to the time we must recover from
@@ -118,7 +108,7 @@ public:
 
     virtual float GetFireRate(void)
     {
-        return 0.5f;
+        return sv_pistol_autofire_rate.GetFloat();
     }
 
 #ifndef CLIENT_DLL
