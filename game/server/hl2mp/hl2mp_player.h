@@ -84,6 +84,9 @@ public:
 	// NEW: Damage feedback system
 	void OnDamageDealt(CBasePlayer* pVictim, const CTakeDamageInfo& info);
 
+	void HandleFOVCommand(const char* command);
+	void ApplyFOVChange();
+
 	void SendFOVCommand(int fov);
 
 	int FlashlightIsOn(void);

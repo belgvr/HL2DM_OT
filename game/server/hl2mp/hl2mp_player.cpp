@@ -25,6 +25,8 @@
 #include "NextBot.h"
 #include "hl2mp/weapon_physcannon.h"
 
+#include "shareddefs.h"
+
 #include "convar.h"
 #include "gameinterface.h"
 #include "tier1/utlbuffer.h"
@@ -48,43 +50,39 @@ ConVar hl2mp_spawn_frag_fallback_radius("hl2mp_spawn_frag_fallback_radius", "48"
 
 // SECTION FOR HITSOUNDS
 ConVar sv_hitsounds_enabled("sv_hitsounds_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable all custom hit and kill sounds.");
-
 // CORRIGIDO: Adicionado 'true, fMin, true, fMax' para definir os limites corretamente.
 ConVar sv_hitsounds_volume("sv_hitsounds_volume", "0.7", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume for all custom hit and kill sounds.", true, 0.0f, true, 1.0f);
-
 ConVar sv_hitsounds_hit_body_enabled("sv_hitsounds_hit_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable body hit sounds.");
 ConVar sv_hitsounds_hit_head_enabled("sv_hitsounds_hit_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot hit sounds.");
 ConVar sv_hitsounds_kill_body_enabled("sv_hitsounds_kill_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable normal kill sounds.");
 ConVar sv_hitsounds_kill_head_enabled("sv_hitsounds_kill_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot kill sounds.");
-
 ConVar sv_hitsounds_pitch_enabled("sv_hitsounds_pitch_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable incremental pitch for consecutive hits.");
-
 // CORRIGIDO: Adicionado 'true, fMin, true, fMax' para definir os limites corretamente.
 ConVar sv_hitsounds_pitch_increment("sv_hitsounds_pitch_increment", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Pitch increase per consecutive hit (100 is normal).", true, 0, true, 50);
 ConVar sv_hitsounds_pitch_max("sv_hitsounds_pitch_max", "180", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum pitch value (100 is normal).", true, 100, true, 255);
-
 ConVar sv_hitsounds_pitch_reset_time("sv_hitsounds_pitch_reset_time", "0.6", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds before consecutive hit pitch resets.");
 ConVar sv_hitsounds_ff("sv_hitsounds_ff", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Play hit sounds on friendly fire? 0=No, 1=Yes");
-
 // Cvars de arquivos de som
 ConVar sv_hitsounds_body_sound("sv_hitsounds_body_sound", "buttons/button10.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body hits.");
 ConVar sv_hitsounds_head_sound("sv_hitsounds_head_sound", "buttons/button16.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot hits.");
 ConVar sv_hitsounds_kill_body_sound("sv_hitsounds_kill_body_sound", "buttons/button9.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body kills.");
 ConVar sv_hitsounds_kill_head_sound("sv_hitsounds_kill_head_sound", "npc/sniper/sniper1.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot kills.");
-
 // Volume por som (multiplicador 0.0–1.0)
 ConVar sv_hitsounds_body_volume("sv_hitsounds_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body hit sound.", true, 0.0f, true, 1.0f);
 ConVar sv_hitsounds_head_volume("sv_hitsounds_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot hit sound.", true, 0.0f, true, 1.0f);
 ConVar sv_hitsounds_kill_body_volume("sv_hitsounds_kill_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body kill sound.", true, 0.0f, true, 1.0f);
 ConVar sv_hitsounds_kill_head_volume("sv_hitsounds_kill_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot kill sound.", true, 0.0f, true, 1.0f);
-
 // Pitch base por som (100 = normal)
 ConVar sv_hitsounds_pitch_base_hit_body("sv_hitsounds_pitch_base_hit_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body hit.", true, 1, true, 255);
 ConVar sv_hitsounds_pitch_base_hit_head("sv_hitsounds_pitch_base_hit_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot hit.", true, 1, true, 255);
 ConVar sv_hitsounds_pitch_base_kill_body("sv_hitsounds_pitch_base_kill_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body kill.", true, 1, true, 255);
 ConVar sv_hitsounds_pitch_base_kill_head("sv_hitsounds_pitch_base_kill_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot kill.", true, 1, true, 255);
-
 // END SECTION FOR HITSOUNDS
+
+// FOV System CVars
+ConVar sv_fov_min("sv_fov_min", "75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum FOV value players can set.", true, 60.0f, true, 90.0f);
+ConVar sv_fov_max("sv_fov_max", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum FOV value players can set.", true, 90.0f, true, 170.0f);
+ConVar sv_fov_default("sv_fov_default", "90", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default FOV value for new players.", true, 60.0f, true, 170.0f);
 
 
 extern ConVar sv_killerinfo_airkill_enable;
@@ -1872,8 +1870,15 @@ void CHL2MP_Player::SetReady(bool bReady)
 void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 {
 	CHL2MP_Admin::CheckChatText(p, bufsize);
-	//Look for escape sequences and replace
 
+	// Check for FOV command
+	// Check for FOV command
+	if (Q_strnicmp(p, "!fov", 4) == 0)
+	{
+		HandleFOVCommand(p);
+	}
+
+	//Look for escape sequences and replace
 	char* buf = new char[bufsize];
 	int pos = 0;
 
@@ -1889,11 +1894,9 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 
 	// copy buf back into p
 	Q_strncpy(p, buf, bufsize);
-
 	delete[] buf;
 
 	const char* pReadyCheck = p;
-
 	HL2MPRules()->CheckChatForReadySignal(this, pReadyCheck);
 }
 
@@ -2261,4 +2264,93 @@ void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 		// <<< MODIFICADO: Passa o iBounceCount como o último parâmetro >>>
 		HL2MPRules()->DisplayKillerInfo(this, pKiller, weaponName, hitGroup, bWasAirKill, bWasBounceKill, iBounceCount);
 	}
+}
+
+void CHL2MP_Player::HandleFOVCommand(const char* command)
+{
+	// Skip "!fov"
+	const char* args = command + 4;
+
+	// Skip whitespace
+	while (*args == ' ' || *args == '\t') args++;
+
+	// If no arguments, show current FOV
+	if (*args == '\0')
+	{
+		int currentFOV = GetNewFOV();
+
+		CSingleUserRecipientFilter filter(this);
+		filter.MakeReliable();
+
+		char message[128];
+		Q_snprintf(message, sizeof(message),
+			CHAT_FULLWHITE "Your current FOV is " CHAT_RED "%d", currentFOV);
+
+		UTIL_SayText2Filter(filter, this, true, message, "", "", "", "");
+		return;
+	}
+
+	// Try to parse the FOV value
+	char* endPtr;
+	int newFOV = strtol(args, &endPtr, 10);
+
+	// Get min/max from CVars
+	int minFOV = sv_fov_min.GetInt();
+	int maxFOV = sv_fov_max.GetInt();
+
+	// Check if parsing failed (non-numeric input)
+	if (endPtr == args || (*endPtr != '\0' && *endPtr != ' ' && *endPtr != '\t'))
+	{
+		// Invalid input - not a number
+		CSingleUserRecipientFilter filter(this);
+		filter.MakeReliable();
+
+		char message[256];
+		Q_snprintf(message, sizeof(message),
+			CHAT_FULLWHITE "Please use a number from " CHAT_RED "%d" CHAT_FULLWHITE " to " CHAT_RED "%d",
+			minFOV, maxFOV);
+
+		UTIL_SayText2Filter(filter, this, true, message, "", "", "", "");
+		return;
+	}
+
+	// Check if FOV is within valid range
+	if (newFOV < minFOV || newFOV > maxFOV)
+	{
+		CSingleUserRecipientFilter filter(this);
+		filter.MakeReliable();
+
+		char message[256];
+		Q_snprintf(message, sizeof(message),
+			CHAT_FULLWHITE "Please use a number from " CHAT_RED "%d" CHAT_FULLWHITE " to " CHAT_RED "%d",
+			minFOV, maxFOV);
+
+		UTIL_SayText2Filter(filter, this, true, message, "", "", "", "");
+		return;
+	}
+
+	// Set the new FOV
+	SetNewFOV(newFOV);
+	SavePlayerSettings(); // Save immediately
+
+	// Send confirmation message
+	CSingleUserRecipientFilter filter(this);
+	filter.MakeReliable();
+
+	char message[128];
+	Q_snprintf(message, sizeof(message),
+		CHAT_FULLWHITE "Your FOV has been set to " CHAT_RED "%d", newFOV);
+
+	UTIL_SayText2Filter(filter, this, true, message, "", "", "", "");
+
+	// Apply the FOV change immediately
+	ApplyFOVChange();
+}
+
+void CHL2MP_Player::ApplyFOVChange()
+{
+	// Send the FOV to the client
+	char fovCommand[32];
+	Q_snprintf(fovCommand, sizeof(fovCommand), "fov %d\n", GetNewFOV());
+	engine->ClientCommand(edict(), fovCommand);
 }
