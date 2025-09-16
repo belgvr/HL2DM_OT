@@ -221,89 +221,33 @@ const char* GetColorConstant(const char* colorName)
 
 void LoadCustomColors()
 {
-	// Clear existing colors
 	g_CustomColors.Purge();
 
-	FileHandle_t file = filesystem->Open("cfg/colors/colors.txt", "r", "MOD");
-	if (!file)
+	KeyValues* kvRoot = new KeyValues("colors");
+	if (!kvRoot->LoadFromFile(filesystem, "cfg/colors/colors.txt", "GAME"))
 	{
-		Msg("Warning: Could not load cfg/colors/colors.txt\n");
+		Msg("Warning: Could not load cfg/colors/colors.txt using KeyValues.\n");
+		kvRoot->deleteThis();
 		return;
 	}
 
-	const int bufferSize = 256;
-	char buffer[bufferSize];
-	int lineNumber = 0;
-
-	while (filesystem->ReadLine(buffer, bufferSize, file))
+	// Percorrer todas as chaves no nível raiz.
+	// O seu arquivo começa com a chave "colors", então a leitura deve ser direta.
+	KeyValues* pColorKey = kvRoot->GetFirstSubKey();
+	while (pColorKey)
 	{
-		lineNumber++;
+		const char* colorName = pColorKey->GetName();
+		const char* hexCode = pColorKey->GetString();
 
-		// Remove trailing whitespace
-		int len = strlen(buffer);
-		while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r' || buffer[len - 1] == ' ' || buffer[len - 1] == '\t'))
+		if (colorName && hexCode)
 		{
-			buffer[len - 1] = '\0';
-			len--;
+			g_CustomColors.Insert(colorName, hexCode);
+			DevMsg("Loaded color: %s = %s\n", colorName, hexCode);
 		}
-
-		// Skip empty lines and comments
-		if (len == 0 || buffer[0] == '/' || buffer[0] == '#')
-			continue;
-
-		// Find the comma separator
-		const char* commaPtr = strchr(buffer, ',');
-		if (!commaPtr)
-		{
-			Msg("Warning: Invalid color format on line %d in colors.txt\n", lineNumber);
-			continue;
-		}
-
-		// Extract color name and hex code
-		int commaPos = commaPtr - buffer;
-		char colorNameBuffer[64];
-		char hexCodeBuffer[16];
-
-		// Copy the color name (everything before comma)
-		Q_strncpy(colorNameBuffer, buffer, commaPos + 1);
-		colorNameBuffer[commaPos] = '\0';
-
-		// Copy the hex code (everything after comma)
-		Q_strcpy(hexCodeBuffer, commaPtr + 1);
-
-		// Trim whitespace from color name
-		char* namePtr = colorNameBuffer;
-		while (*namePtr == ' ' || *namePtr == '\t') namePtr++;
-		char* nameEnd = namePtr + strlen(namePtr) - 1;
-		while (nameEnd > namePtr && (*nameEnd == ' ' || *nameEnd == '\t'))
-		{
-			*nameEnd = '\0';
-			nameEnd--;
-		}
-
-		// Trim whitespace from hex code
-		char* hexPtr = hexCodeBuffer;
-		while (*hexPtr == ' ' || *hexPtr == '\t') hexPtr++;
-		char* hexEnd = hexPtr + strlen(hexPtr) - 1;
-		while (hexEnd > hexPtr && (*hexEnd == ' ' || *hexEnd == '\t'))
-		{
-			*hexEnd = '\0';
-			hexEnd--;
-		}
-
-		// Store the color
-		char lowerName[64];
-		Q_strncpy(lowerName, namePtr, sizeof(lowerName));
-		Q_strlower(lowerName);
-
-		// Store the color
-		CUtlString finalColorName(lowerName);
-		CUtlString finalHexCode(hexPtr);
-		g_CustomColors.Insert(finalColorName.Get(), finalHexCode);
-		DevMsg("Loaded color: %s = %s\n", namePtr, hexPtr);
+		pColorKey = pColorKey->GetNextKey();
 	}
 
-	filesystem->Close(file);
+	kvRoot->deleteThis();
 	Msg("Loaded %d custom colors from colors.txt\n", g_CustomColors.Count());
 }
 
@@ -1270,7 +1214,7 @@ static void PrintAdminHelp(CBasePlayer* pPlayer)
 			}
 		}
 	}
-}
+	}
 
 extern int GetBuildNumber();
 //-----------------------------------------------------------------------------

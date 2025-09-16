@@ -26,6 +26,11 @@ static ConVar	sk_suitcharger( "sk_suitcharger","0" );
 static ConVar	sk_suitcharger_citadel( "sk_suitcharger_citadel","0" );
 static ConVar	sk_suitcharger_citadel_maxarmor( "sk_suitcharger_citadel_maxarmor","0" );
 
+// NOVAS CVARS DE VELOCIDADE
+ConVar sv_suitcharger_speed("sv_suitcharger_speed", "1", FCVAR_GAMEDLL, "Amount of suit given per tick by the normal suit charger.");
+ConVar sv_citadelcharger_speed("sv_citadelcharger_speed", "2", FCVAR_GAMEDLL, "Amount of suit given per tick by the Citadel suit charger.");
+ConVar sv_citadelcharger_health_speed("sv_citadelcharger_health_speed", "5", FCVAR_GAMEDLL, "Amount of HEALTH given per tick by the Citadel suit charger.");
+
 #define SF_CITADEL_RECHARGER	0x2000
 #define SF_KLEINER_RECHARGER	0x4000 // Gives only 25 health
 
@@ -587,56 +592,56 @@ void CNewRecharge::InputSetCharge( inputdata_t &inputdata )
 	StudioFrameAdvance();
 }
 
-void CNewRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{ 
+void CNewRecharge::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
 	// if it's not a player, ignore
-	if ( !pActivator || !pActivator->IsPlayer() )
+	if (!pActivator || !pActivator->IsPlayer())
 		return;
 
-	CBasePlayer *pPlayer = static_cast<CBasePlayer *>(pActivator);
+	CBasePlayer* pPlayer = static_cast<CBasePlayer*>(pActivator);
 
 	// Reset to a state of continuous use.
 	m_iCaps = FCAP_CONTINUOUS_USE;
 
-	if ( m_iOn )
+	if (m_iOn)
 	{
 		float flCharges = CHARGES_PER_SECOND;
 		float flCalls = CALLS_PER_SECOND;
 
-		if ( HasSpawnFlags( SF_CITADEL_RECHARGER ) )
-			 flCharges = CITADEL_CHARGES_PER_SECOND;
+		if (HasSpawnFlags(SF_CITADEL_RECHARGER))
+			flCharges = CITADEL_CHARGES_PER_SECOND;
 
-		m_flJuice -= flCharges / flCalls;		
+		m_flJuice -= flCharges / flCalls;
 		StudioFrameAdvance();
 	}
 
 	// Only usable if you have the HEV suit on
-	if ( !pPlayer->IsSuitEquipped() )
+	if (!pPlayer->IsSuitEquipped())
 	{
 		if (m_flSoundTime <= gpGlobals->curtime)
 		{
 			m_flSoundTime = gpGlobals->curtime + 0.62;
-			EmitSound( "SuitRecharge.Deny" );
+			EmitSound("SuitRecharge.Deny");
 		}
 		return;
 	}
 
 	// if there is no juice left, turn it off
-	if ( m_iJuice <= 0 )
+	if (m_iJuice <= 0)
 	{
 		// Start our deny animation over again
-		ResetSequence( LookupSequence( "emptyclick" ) );
-		
+		ResetSequence(LookupSequence("emptyclick"));
+
 		m_nState = 1;
-		
+
 		// Shut off
 		Off();
-		
+
 		// Play a deny sound
-		if ( m_flSoundTime <= gpGlobals->curtime )
+		if (m_flSoundTime <= gpGlobals->curtime)
 		{
 			m_flSoundTime = gpGlobals->curtime + 0.62;
-			EmitSound( "SuitRecharge.Deny" );
+			EmitSound("SuitRecharge.Deny");
 		}
 
 		return;
@@ -644,75 +649,78 @@ void CNewRecharge::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 
 	// Get our maximum armor value
 	int nMaxArmor = 100;
-	if ( HasSpawnFlags(	SF_CITADEL_RECHARGER ) )
+	if (HasSpawnFlags(SF_CITADEL_RECHARGER))
 	{
 		nMaxArmor = sk_suitcharger_citadel_maxarmor.GetInt();
 	}
-	
-	int nIncrementArmor = 1;
+
+	int nIncrementArmor; // <-- MUDANÇA: Declarado sem valor inicial.
 
 	// The citadel charger gives more per charge and also gives health
-	if ( HasSpawnFlags(	SF_CITADEL_RECHARGER ) )
+	if (HasSpawnFlags(SF_CITADEL_RECHARGER))
 	{
-		nIncrementArmor = 10;
-		
-#ifdef HL2MP
-		nIncrementArmor = 2;
-#endif
+		nIncrementArmor = sv_citadelcharger_speed.GetInt(); // <-- MUDANÇA: Usa a ConVar da Citadel.
 
 		// Also give health for the citadel version.
-		if ( pActivator->GetHealth() < pActivator->GetMaxHealth() && m_flNextCharge < gpGlobals->curtime )
+		if (pActivator->GetHealth() < pActivator->GetMaxHealth() && m_flNextCharge < gpGlobals->curtime)
 		{
-			pActivator->TakeHealth( 5, DMG_GENERIC );
+			pActivator->TakeHealth(sv_citadelcharger_health_speed.GetInt(), DMG_GENERIC); // <-- MUDANÇA: Usa a ConVar de vida da Citadel.
 		}
 	}
+	else // <-- MUDANÇA: Adicionado um "else" para o carregador normal.
+	{
+		nIncrementArmor = sv_suitcharger_speed.GetInt(); // <-- MUDANÇA: Usa a ConVar do carregador normal.
+	}
+
 
 	// If we're over our limit, debounce our keys
-	if ( pPlayer->ArmorValue() >= nMaxArmor)
+	if (pPlayer->ArmorValue() >= nMaxArmor)
 	{
 		// Citadel charger must also be at max health
-		if ( !HasSpawnFlags(SF_CITADEL_RECHARGER) || ( HasSpawnFlags( SF_CITADEL_RECHARGER ) && pActivator->GetHealth() >= pActivator->GetMaxHealth() ) )
+		if (!HasSpawnFlags(SF_CITADEL_RECHARGER) || (HasSpawnFlags(SF_CITADEL_RECHARGER) && pActivator->GetHealth() >= pActivator->GetMaxHealth()))
 		{
 			// Make the user re-use me to get started drawing health.
 			pPlayer->m_afButtonPressed &= ~IN_USE;
 			m_iCaps = FCAP_IMPULSE_USE;
-			
-			EmitSound( "SuitRecharge.Deny" );
+
+			EmitSound("SuitRecharge.Deny");
 			return;
 		}
 	}
 
 	// This is bumped out if used within the time period
-	SetNextThink( gpGlobals->curtime + CHARGE_RATE );
-	SetThink( &CNewRecharge::Off );
+	SetNextThink(gpGlobals->curtime + CHARGE_RATE);
+	SetThink(&CNewRecharge::Off);
 
 	// Time to recharge yet?
-	if ( m_flNextCharge >= gpGlobals->curtime )
+	if (m_flNextCharge >= gpGlobals->curtime)
 		return;
-	
+
 	// Play the on sound or the looping charging sound
-	if ( !m_iOn )
+	if (!m_iOn)
 	{
 		m_iOn++;
-		EmitSound( "SuitRecharge.Start" );
+		EmitSound("SuitRecharge.Start");
 		m_flSoundTime = 0.56 + gpGlobals->curtime;
 
-		m_OnPlayerUse.FireOutput( pActivator, this );
+		//m_OnPlayerUse.Output(pActivator, this);
+		m_OnPlayerUse.FireOutput(pActivator, this);
+
 	}
 
 	if ((m_iOn == 1) && (m_flSoundTime <= gpGlobals->curtime))
 	{
 		m_iOn++;
-		CPASAttenuationFilter filter( this, "SuitRecharge.ChargingLoop" );
+		CPASAttenuationFilter filter(this, "SuitRecharge.ChargingLoop");
 		filter.MakeReliable();
-		EmitSound( filter, entindex(), "SuitRecharge.ChargingLoop" );
+		EmitSound(filter, entindex(), "SuitRecharge.ChargingLoop");
 	}
 
 	// Give armor if we need it
-	if ( pPlayer->ArmorValue() < nMaxArmor )
+	if (pPlayer->ArmorValue() < nMaxArmor)
 	{
-		UpdateJuice( m_iJuice - nIncrementArmor );
-		pPlayer->IncrementArmorValue( nIncrementArmor, nMaxArmor );
+		UpdateJuice(m_iJuice - nIncrementArmor);
+		pPlayer->IncrementArmorValue(nIncrementArmor, nMaxArmor);
 	}
 
 	// Send the output.

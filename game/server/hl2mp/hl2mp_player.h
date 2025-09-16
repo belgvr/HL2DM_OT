@@ -43,6 +43,9 @@ public:
 	CHL2MP_Player();
 	~CHL2MP_Player(void);
 
+	char m_szPlayerAddress[32];
+	const char* GetPlayerIPAddress(void) const { return m_szPlayerAddress; }
+
 	static CHL2MP_Player* CreatePlayer(const char* className, edict_t* ed)
 	{
 		CHL2MP_Player::s_PlayerEdict = ed;
@@ -57,6 +60,7 @@ public:
 	virtual void Spawn(void);
 	virtual void PostThink(void);
 	virtual void PreThink(void);
+
 	virtual void PlayerDeathThink(void);
 	virtual void SetAnimation(PLAYER_ANIM playerAnim);
 	virtual bool HandleCommand_JoinTeam(int team);
@@ -271,4 +275,4 @@ void DropPrimedFragGrenade(CHL2MP_Player* pPlayer, CBaseCombatWeapon* pGrenade);
 
 #endif
 
-#endif //HL2MP_PLAYER_H
+#endif //HL2MP_PLAYER_H 

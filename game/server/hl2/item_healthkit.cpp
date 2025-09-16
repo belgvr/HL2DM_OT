@@ -20,6 +20,9 @@ ConVar	sk_healthkit( "sk_healthkit","0" );
 ConVar	sk_healthvial( "sk_healthvial","0" );		
 ConVar	sk_healthcharger( "sk_healthcharger","0" );		
 
+// NOVA CVAR DE VELOCIDADE
+ConVar sv_healthcharger_speed("sv_healthcharger_speed", "1", FCVAR_GAMEDLL, "Amount of health given per tick by the health charger.");
+
 //-----------------------------------------------------------------------------
 // Small health kit. Heals the player when picked up.
 //-----------------------------------------------------------------------------
@@ -336,9 +339,10 @@ void CWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 	}
 
 	// charge the player
-	if ( pActivator->TakeHealth( 1, DMG_GENERIC ) )
+	int chargeAmount = sv_healthcharger_speed.GetInt();
+	if (pActivator->TakeHealth(chargeAmount, DMG_GENERIC))
 	{
-		m_iJuice--;
+		m_iJuice -= chargeAmount;
 	}
 
 	// Send the output.
@@ -526,21 +530,21 @@ void CNewWallHealth::StudioFrameAdvance( void )
 //			useType - 
 //			value - 
 //-----------------------------------------------------------------------------
-void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{ 
+void CNewWallHealth::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
 	// Make sure that we have a caller
 	if (!pActivator)
 		return;
 
 	// if it's not a player, ignore
-	if ( !pActivator->IsPlayer() )
+	if (!pActivator->IsPlayer())
 		return;
-	CBasePlayer *pPlayer = dynamic_cast<CBasePlayer *>(pActivator);
+	CBasePlayer* pPlayer = dynamic_cast<CBasePlayer*>(pActivator);
 
 	// Reset to a state of continuous use.
 	m_iCaps = FCAP_CONTINUOUS_USE;
 
-	if ( m_iOn )
+	if (m_iOn)
 	{
 		float flCharges = CHARGES_PER_SECOND;
 		float flCalls = CALLS_PER_SECOND;
@@ -552,8 +556,8 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	// if there is no juice left, turn it off
 	if (m_iJuice <= 0)
 	{
-		ResetSequence( LookupSequence( "emptyclick" ) );
-		m_nState = 1;			
+		ResetSequence(LookupSequence("emptyclick"));
+		m_nState = 1;
 		Off();
 	}
 
@@ -565,27 +569,27 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		if (m_flSoundTime <= gpGlobals->curtime)
 		{
 			m_flSoundTime = gpGlobals->curtime + 0.62;
-			EmitSound( "WallHealth.Deny" );
+			EmitSound("WallHealth.Deny");
 		}
 		return;
 	}
 
-	if( pActivator->GetHealth() >= pActivator->GetMaxHealth() )
+	if (pActivator->GetHealth() >= pActivator->GetMaxHealth())
 	{
-		if( pPlayer )
+		if (pPlayer)
 		{
 			pPlayer->m_afButtonPressed &= ~IN_USE;
 		}
 
 		// Make the user re-use me to get started drawing health.
 		m_iCaps = FCAP_IMPULSE_USE;
-		
-		EmitSound( "WallHealth.Deny" );
+
+		EmitSound("WallHealth.Deny");
 		return;
 	}
 
-	SetNextThink( gpGlobals->curtime + CHARGE_RATE );
-	SetThink( &CNewWallHealth::Off );
+	SetNextThink(gpGlobals->curtime + CHARGE_RATE);
+	SetThink(&CNewWallHealth::Off);
 
 	// Time to recharge yet?
 
@@ -596,24 +600,33 @@ void CNewWallHealth::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	if (!m_iOn)
 	{
 		m_iOn++;
-		EmitSound( "WallHealth.Start" );
+		EmitSound("WallHealth.Start");
 		m_flSoundTime = 0.56 + gpGlobals->curtime;
 
-		m_OnPlayerUse.FireOutput( pActivator, this );
+		m_OnPlayerUse.FireOutput(pActivator, this);
 	}
 	if ((m_iOn == 1) && (m_flSoundTime <= gpGlobals->curtime))
 	{
 		m_iOn++;
-		CPASAttenuationFilter filter( this, "WallHealth.LoopingContinueCharge" );
+		CPASAttenuationFilter filter(this, "WallHealth.LoopingContinueCharge");
 		filter.MakeReliable();
-		EmitSound( filter, entindex(), "WallHealth.LoopingContinueCharge" );
+		EmitSound(filter, entindex(), "WallHealth.LoopingContinueCharge");
 	}
 
-	// charge the player
-	if ( pActivator->TakeHealth( 1, DMG_GENERIC ) )
+	// ==================================================================
+	// A LÓGICA CORRETA PARA USAR A CONVAR
+	// ==================================================================
+	int healthPerTick = sv_healthcharger_speed.GetInt(); // Pega o valor da ConVar
+	if (healthPerTick < 1)
 	{
-		m_iJuice--;
+		healthPerTick = 1; // Garante que seja no mínimo 1
 	}
+
+	if (pActivator->TakeHealth(healthPerTick, DMG_GENERIC))
+	{
+		m_iJuice -= healthPerTick;
+	}
+	// ==================================================================
 
 	// Send the output.
 	float flRemaining = m_iJuice / sk_healthcharger.GetFloat();
