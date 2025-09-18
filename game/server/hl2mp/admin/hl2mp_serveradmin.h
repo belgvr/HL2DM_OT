@@ -24,8 +24,8 @@ struct AdminChatFormat
     const char* tagColor;
     const char* nameColor;
     const char* textColor;
-    const char* rebelTeamColor;   
-    const char* combineTeamColor; 
+    const char* rebelTeamColor;    
+    const char* combineTeamColor;  
 };
 
 // Variável global para armazenar os grupos, visível para todos os arquivos
@@ -46,6 +46,7 @@ extern CUtlDict<AdminGroup_t, unsigned short> g_AdminGroups;
 #define ADMIN_PASSWORD       'l' 
 #define ADMIN_RCON           'm' 
 #define ADMIN_CHEATS         'n' 
+#define ADMIN_WHO            'w' // Nova flag para o comando 'sa who'
 #define ADMIN_ROOT           'z' 
 
 class CHL2MP_Admin
@@ -68,6 +69,7 @@ public:
     bool FindSpecialTargetGroup(const char* targetSpecifier);
     static void CheckChatText(char* p, int bufsize);
     static void LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const char* action, const char* details = "", const char* groupTarget = nullptr);
+
 
     // Funções para verificar grupos especiais
     bool IsAllPlayers() const { return bAll; }
@@ -95,6 +97,9 @@ private:
     bool bBots;
     bool bHumans;
 };
+
+// --- DECLARAÇÃO DE FUNÇÕES NOVAS ---
+static void WhoPlayerCommand(const CCommand& args); // Adicionado aqui para resolver o erro
 
 // Function declarations outside the class
 AdminChatFormat GetPlayerChatFormat(CBasePlayer* pPlayer);

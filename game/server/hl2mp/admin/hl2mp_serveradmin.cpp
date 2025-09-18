@@ -7,6 +7,9 @@
 #include "tier0/icommandline.h"
 #include <time.h>
 #include "fmtstr.h"
+#include "usermessages.h"
+#include "recipientfilter.h"
+
 
 // always comes last
 #include "tier0/memdbgon.h"
@@ -1137,6 +1140,7 @@ static void PrintAdminHelp(CBasePlayer* pPlayer)
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  ungag <name|#userID> -> Ungag a player\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  mute <name|#userID> -> Mute a player\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  unmute <name|#userID> -> Unmute a player\n");
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  who <name|#userID> -> Opens a player's Steam profile in the MOTD\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  bring <name|#userID> -> Teleport a player to where an admin is aiming\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  goto <name|#userID> -> Teleport yourself to a player\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  map <map name> -> Change the map\n");
@@ -1205,6 +1209,10 @@ static void PrintAdminHelp(CBasePlayer* pPlayer)
 				ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  psay <name|#userID> <message> -> Sends a private message to a player\n");
 				ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  chat <message> -> Sends a chat message to connected admins only\n");
 			}
+			if (CHL2MP_Admin::IsPlayerAdmin(pPlayer, "w"))
+			{
+				ClientPrint(pPlayer, HUD_PRINTCONSOLE, "  who <name|#userID> -> Opens a player's Steam profile in the MOTD\n");
+			}
 
 			/*k permissions for voting later*/
 
@@ -1214,7 +1222,7 @@ static void PrintAdminHelp(CBasePlayer* pPlayer)
 			}
 		}
 	}
-	}
+}
 
 extern int GetBuildNumber();
 //-----------------------------------------------------------------------------
@@ -6123,332 +6131,148 @@ static void AdminCommand(const CCommand& args)
 		return;
 	}
 
-	// get the subcommand
-	const char* subCommand = args.Arg(1);
-
-	/****************************************/
-	// COMMAND ISSUED IN THE RCON CONSOLE   //
-	/****************************************/
-	if (UTIL_IsCommandIssuedByServerAdmin())
-	{
-		if (Q_stricmp(subCommand, "say") == 0)
-		{
-			AdminSay(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "csay") == 0)
-		{
-			AdminCSay(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "chat") == 0)
-		{
-			AdminChat(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "psay") == 0)
-		{
-			AdminPSay(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "kick") == 0)
-		{
-			KickPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "ban") == 0)
-		{
-			BanPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "addban") == 0)
-		{
-			AddBanCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "unban") == 0)
-		{
-			UnbanPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "slay") == 0)
-		{
-			SlayPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "slap") == 0)
-		{
-			SlapPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "gag") == 0)
-		{
-			GagPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "ungag") == 0)
-		{
-			UnGagPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "mute") == 0)
-		{
-			MutePlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "unmute") == 0)
-		{
-			UnMutePlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "team") == 0)
-		{
-			TeamPlayerCommand(args);
-			return;
-		}
-		// doesn't make sense since you need to aim and 
-		// you cannot do that from the server console
-		/*else if ( Q_stricmp( subCommand, "bring" ) == 0 )
-		{
-			BringPlayerCommand( args );
-			return;
-		}
-		else if ( Q_stricmp(subCommand, "goto") == 0 )
-		{
-			GotoPlayerCommand( args );
-			return;
-		}*/
-		else if (Q_stricmp(subCommand, "map") == 0)
-		{
-			MapCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "noclip") == 0)
-		{
-			NoClipPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "cvar") == 0)
-		{
-			CVarCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "exec") == 0)
-		{
-			ExecFileCommand(args);
-			return;
-		}
-		// you already have root privileges
-		/*else if ( Q_stricmp( subCommand, "rcon" ) == 0 )
-		{
-			RconCommand( args );
-			return;
-		}*/
-		else if (Q_stricmp(subCommand, "reloadadmins") == 0)
-		{
-			ReloadAdminsCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "help") == 0)
-		{
-			HelpPlayerCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "credits") == 0)
-		{
-			CreditsCommand(args);
-			return;
-		}
-		else if (Q_stricmp(subCommand, "version") == 0)
-		{
-			VersionCommand(args);
-			return;
-		}
-
-		Msg("[Server Admin] Usage: sa <command> [arguments]\n");
-		Msg("===== Root Commands =====\n");
-		Msg("    say <message> -> Sends an admin formatted message to all players in the chat\n");
-		Msg("    csay <message> -> Sends a centered message to all players\n");
-		Msg("    psay <name|#userID> <message> -> Sends a private message to a player\n");
-		Msg("    chat <message> -> Sends a chat message to connected admins only\n");
-		Msg("    kick <name|#userID> [reason] -> Kick a player\n");
-		Msg("    ban <name|#userID> <time> [reason] -> Ban a player\n");
-		Msg("    addban <time> <SteamID3> [reason] -> Add a manual ban to banned_user.cfg\n");
-		Msg("    unban <SteamID3> -> Remove a banned SteamID from banned_user.cfg\n");
-		Msg("    slap <name|#userID> [amount] -> Slap a player with damage if defined\n");
-		Msg("    slay <name|#userID> -> Slay a player\n");
-		Msg("    noclip <name|#userID> -> Toggle noclip mode for a player\n");
-		Msg("    team <name|#userID> <team index> -> Move a player to another team\n");
-		Msg("    gag <name|#userID> -> Gag a player\n");
-		Msg("    ungag <name|#userID> -> Ungag a player\n");
-		Msg("    mute <name|#userID> -> Mute a player\n");
-		Msg("    unmute <name|#userID> -> Unmute a player\n");
-		Msg("    map <map name> -> Change the map\n");
-		Msg("    cvar <cvar name> [new value] -> Modify any cvar's value\n");
-		Msg("    exec <filename> -> Executes a configuration file\n");
-		Msg("    reloadadmins -> Refresh the admin cache\n");
-		Msg("    help -> Provide instructions on how to use the admin interface\n");
-		Msg("    credits -> Display credits\n");
-		Msg("    version -> Display version\n\n");
-		return;
-	}
-
-	/****************************************/
-	// COMMAND ISSUED IN THE PLAYER IN-GAME //
-	/****************************************/
 	CBasePlayer* pPlayer = UTIL_GetCommandClient();
-	if (!pPlayer)
-	{
-		return;
-	}
+	bool isServerConsole = !pPlayer && UTIL_IsCommandIssuedByServerAdmin();
 
-	else if (Q_stricmp(subCommand, "credits") == 0)
-	{
-		CreditsCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "version") == 0)
-	{
-		VersionCommand(args);
-		return;
-	}
-
-	// we need the admin to at least have the "admin" flag
-	if (!CHL2MP_Admin::IsPlayerAdmin(pPlayer, "b"))
-	{
-		UTIL_PrintToClient(pPlayer, CHAT_ADMIN_ERROR "You do not have access to this command.\n");
-		return;
-	}
-
+	// Comandos que não requerem um subcomando ou admin.
 	if (args.ArgC() < 2)
 	{
-		PrintAdminHelp(pPlayer);
+		if (isServerConsole)
+		{
+			Msg("[Server Admin] Usage: sa <command> [arguments]\n");
+			Msg("Type 'sa help' for more information.\n");
+		}
+		else if (pPlayer)
+		{
+			PrintAdminHelp(pPlayer);
+		}
 		return;
 	}
-	else if (Q_stricmp(subCommand, "say") == 0)
+
+	const char* subCommand = args.Arg(1);
+
+	// Verificação de permissões e execução dos comandos
+	if (Q_stricmp(subCommand, "say") == 0)
 	{
 		AdminSay(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "csay") == 0)
 	{
 		AdminCSay(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "psay") == 0)
 	{
 		AdminPSay(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "chat") == 0)
 	{
 		AdminChat(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "kick") == 0)
 	{
 		KickPlayerCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "ban") == 0)
 	{
 		BanPlayerCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "addban") == 0)
 	{
 		AddBanCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "unban") == 0)
 	{
 		UnbanPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "slay") == 0)
-	{
-		SlayPlayerCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "slap") == 0)
 	{
 		SlapPlayerCommand(args);
-		return;
 	}
-	else if (Q_stricmp(subCommand, "gag") == 0)
+	else if (Q_stricmp(subCommand, "slay") == 0)
 	{
-		GagPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "ungag") == 0)
-	{
-		UnGagPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "mute") == 0)
-	{
-		MutePlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "unmute") == 0)
-	{
-		UnMutePlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "team") == 0)
-	{
-		TeamPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "bring") == 0)
-	{
-		BringPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "goto") == 0)
-	{
-		GotoPlayerCommand(args);
-		return;
-	}
-	else if (Q_stricmp(subCommand, "map") == 0)
-	{
-		MapCommand(args);
-		return;
+		SlayPlayerCommand(args);
 	}
 	else if (Q_stricmp(subCommand, "noclip") == 0)
 	{
 		NoClipPlayerCommand(args);
-		return;
+	}
+	else if (Q_stricmp(subCommand, "team") == 0)
+	{
+		TeamPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "gag") == 0)
+	{
+		GagPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "ungag") == 0)
+	{
+		UnGagPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "mute") == 0)
+	{
+		MutePlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "unmute") == 0)
+	{
+		UnMutePlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "who") == 0)
+	{
+		WhoPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "bring") == 0)
+	{
+		BringPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "goto") == 0)
+	{
+		GotoPlayerCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "map") == 0)
+	{
+		MapCommand(args);
 	}
 	else if (Q_stricmp(subCommand, "cvar") == 0)
 	{
 		CVarCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "exec") == 0)
 	{
 		ExecFileCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "rcon") == 0)
 	{
 		RconCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "reloadadmins") == 0)
 	{
 		ReloadAdminsCommand(args);
-		return;
 	}
 	else if (Q_stricmp(subCommand, "help") == 0)
 	{
 		HelpPlayerCommand(args);
-		return;
+	}
+	else if (Q_stricmp(subCommand, "credits") == 0)
+	{
+		CreditsCommand(args);
+	}
+	else if (Q_stricmp(subCommand, "version") == 0)
+	{
+		VersionCommand(args);
 	}
 	else
 	{
-		// admin typed something wrong
-		PrintAdminHelp(pPlayer);
+		// Se o subcomando não foi encontrado, mostre a ajuda
+		if (isServerConsole)
+		{
+			Msg("Unknown command \"%s\"\n", subCommand);
+			Msg("Type 'sa help' for a list of commands.\n");
+		}
+		else if (pPlayer)
+		{
+			UTIL_PrintToClient(pPlayer, UTIL_VarArgs(CHAT_ADMIN_ERROR "Unknown command \"" CHAT_ADMIN_HIGHLIGHT "%s" CHAT_ADMIN_ERROR "\".\n", subCommand));
+			UTIL_PrintToClient(pPlayer, CHAT_ADMIN "Type " CHAT_ADMIN_HIGHLIGHT "sa help" CHAT_ADMIN " for a list of commands.\n");
+		}
 	}
 }
 ConCommand sa("sa", AdminCommand, "Admin menu.", FCVAR_NONE);
@@ -6971,6 +6795,21 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
+		else if (Q_strncmp(p, "!who", 4) == 0 || Q_strncmp(p, "/who", 4) == 0)
+		{
+			const char* args = p + 4;
+			char consoleCmd[256];
+
+			// convert the chat message into a console command
+			Q_snprintf(consoleCmd, sizeof(consoleCmd), "sa who %s", args);
+
+			if (pPlayer)
+			{
+				engine->ClientCommand(pPlayer->edict(), consoleCmd);
+			}
+			return;
+		}
+
 		else if (Q_strncmp(p, "!addban", 7) == 0 || Q_strncmp(p, "/addban", 7) == 0)
 		{
 			const char* args = p + 7;
@@ -7310,19 +7149,23 @@ void CHL2MP_Admin::LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const ch
 	const char* targetSteamID = pTarget ? engine->GetPlayerNetworkIDString(pTarget->edict()) : "";
 
 	CUtlString logEntry;
-	if (pTarget)  // Action with a target player
+	if (pTarget)
 	{
-		if (Q_strlen(details) > 0)
+		const char* steamID = engine->GetPlayerNetworkIDString(pTarget->edict());
+
+		if (steamID && steamID[0] != '\0')
 		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s> %s\n",
-				mapName, dateString, timeString, adminName, adminSteamID,
-				action, targetName, targetSteamID, details);
-		}
-		else
-		{
-			logEntry.Format("[%s] %s @ %s => Admin %s <%s> %s %s <%s>\n",
-				mapName, dateString, timeString, adminName, adminSteamID,
-				action, targetName, targetSteamID);
+			// Explicitly build the command string
+			CUtlString steamURL;
+			steamURL.Format("https://steamcommunity.com/profiles/%s", steamID);
+
+			CUtlString finalCommand;
+			finalCommand.Format("showmotd %s", steamURL.Get());
+
+			// Send the command directly to the client's console
+			engine->ClientCommand(pAdmin->edict(), finalCommand.Get());
+
+			// ... (rest of the logging and print messages)
 		}
 	}
 	else if (groupTarget)  // Action on a group of players
@@ -7348,4 +7191,170 @@ void CHL2MP_Admin::LogAction(CBasePlayer* pAdmin, CBasePlayer* pTarget, const ch
 
 	filesystem->FPrintf(g_AdminLogFile, "%s", logEntry.Get());
 	filesystem->Flush(g_AdminLogFile);
+}
+
+static void WhoPlayerCommand(const CCommand& args)
+{
+	CBasePlayer* pAdmin = UTIL_GetCommandClient();
+	bool isServerConsole = !pAdmin && UTIL_IsCommandIssuedByServerAdmin();
+
+	if (!pAdmin && !isServerConsole)
+	{
+		Msg("Command must be issued by a player or the server console.\n");
+		return;
+	}
+
+	if (pAdmin && !CHL2MP_Admin::IsPlayerAdmin(pAdmin, "w"))
+	{
+		UTIL_PrintToClient(pAdmin, CHAT_ADMIN_ERROR "You do not have permission to use this command.\n");
+		return;
+	}
+
+	// Console não pode abrir MOTD, só players
+	if (isServerConsole)
+	{
+		Msg("This command can only be used by players (cannot open MOTD from console).\n");
+		return;
+	}
+
+	if (args.ArgC() < 3)
+	{
+		UTIL_PrintToClient(pAdmin, CHAT_ADMIN_ERROR "Usage: " CHAT_ADMIN_HIGHLIGHT "sa who <name|#userID>\n");
+		return;
+	}
+
+	const char* targetPlayerInput = args.Arg(2);
+	CBasePlayer* pTarget = nullptr;
+
+	// Busca por UserID (#123)
+	if (targetPlayerInput[0] == '#')
+	{
+		int userID = atoi(&targetPlayerInput[1]);
+		if (userID > 0)
+		{
+			for (int i = 1; i <= gpGlobals->maxClients; i++)
+			{
+				CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
+				if (pLoopPlayer && pLoopPlayer->GetUserID() == userID)
+				{
+					pTarget = pLoopPlayer;
+					break;
+				}
+			}
+		}
+	}
+	// Busca por nome parcial
+	else
+	{
+		CUtlVector<CBasePlayer*> matchingPlayers;
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
+			if (pLoopPlayer && Q_stristr(pLoopPlayer->GetPlayerName(), targetPlayerInput))
+			{
+				matchingPlayers.AddToTail(pLoopPlayer);
+			}
+		}
+
+		if (matchingPlayers.Count() == 1)
+		{
+			pTarget = matchingPlayers[0];
+		}
+		else if (matchingPlayers.Count() > 1)
+		{
+			UTIL_PrintToClient(pAdmin, CHAT_ADMIN_ERROR "Multiple players match that partial name:\n");
+			for (int i = 0; i < matchingPlayers.Count(); i++)
+			{
+				UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN_HIGHLIGHT "  %s " CHAT_ADMIN "(#%d)\n",
+					matchingPlayers[i]->GetPlayerName(), matchingPlayers[i]->GetUserID()));
+			}
+			return;
+		}
+	}
+
+	// Se encontrou o jogador
+	if (pTarget)
+	{
+		const char* steamID = engine->GetPlayerNetworkIDString(pTarget->edict());
+		if (steamID && steamID[0] != '\0')
+		{
+			CUtlString steamURL;
+			uint64 steamID64 = 0;
+
+			// Converte SteamID para SteamID64 se estiver no formato STEAM_X:Y:Z
+			if (Q_strnicmp(steamID, "STEAM_", 6) == 0)
+			{
+				int universe, authType, accountID;
+				if (sscanf(steamID, "STEAM_%d:%d:%d", &universe, &authType, &accountID) == 3)
+				{
+					// Fórmula de conversão: SteamID64 = accountID * 2 + authType + 76561197960265728
+					steamID64 = ((uint64)accountID << 1) + authType + 76561197960265728ULL;
+					steamURL.Format("https://steamcommunity.com/profiles/%llu", steamID64);
+				}
+				else
+				{
+					// Se falhou o parsing, tenta usar o steamID diretamente
+					steamURL.Format("https://steamcommunity.com/profiles/%s", steamID);
+				}
+			}
+			// Se já está no formato SteamID64 ou outro formato
+			else
+			{
+				steamURL.Format("https://steamcommunity.com/profiles/%s", steamID);
+			}
+
+			// Usando o método correto para MOTD no Source SDK 2013
+			KeyValues* kv = new KeyValues("data");
+			kv->SetString("title", UTIL_VarArgs("Steam Profile - %s", pTarget->GetPlayerName()));
+			kv->SetInt("type", 2); // MOTDPANEL_TYPE_URL
+			kv->SetString("msg", steamURL.Get());
+			kv->SetBool("customsvr", true);
+
+			// Filtra para enviar apenas para o admin
+			CSingleUserRecipientFilter filter(pAdmin);
+			filter.MakeReliable();
+
+			// Envia a mensagem VGUIMenu
+			UserMessageBegin(filter, "VGUIMenu");
+			WRITE_STRING("info");  // painel name
+			WRITE_BYTE(1);         // show
+			WRITE_BYTE(4);         // number of key/value pairs
+
+			WRITE_STRING("title");
+			WRITE_STRING(kv->GetString("title"));
+
+			WRITE_STRING("type");
+			WRITE_STRING("2");
+
+			WRITE_STRING("msg");
+			WRITE_STRING(steamURL.Get());
+
+			WRITE_STRING("customsvr");
+			WRITE_STRING("1");
+			MessageEnd();
+
+			// Limpa o KeyValues
+			kv->deleteThis();
+
+			// Mensagem de confirmação
+			UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN "Opening Steam profile for " CHAT_ADMIN_HIGHLIGHT "%s " CHAT_ADMIN "in MOTD window.\n", pTarget->GetPlayerName()));
+
+			// Log da ação
+			CHL2MP_Admin::LogAction(
+				pAdmin,
+				pTarget,
+				"viewed Steam profile of",
+				"via sa who",
+				nullptr
+			);
+		}
+		else
+		{
+			UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN_ERROR "Could not get SteamID for player " CHAT_ADMIN_HIGHLIGHT "%s" CHAT_ADMIN_ERROR ".\n", pTarget->GetPlayerName()));
+		}
+	}
+	else
+	{
+		UTIL_PrintToClient(pAdmin, UTIL_VarArgs(CHAT_ADMIN_ERROR "Player not found: " CHAT_ADMIN_HIGHLIGHT "%s" CHAT_ADMIN_ERROR ".\n", targetPlayerInput));
+	}
 }
