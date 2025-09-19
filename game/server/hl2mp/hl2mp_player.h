@@ -20,6 +20,8 @@ class CHL2MP_Player;
 #include "hl2mp_gamerules.h"
 #include "utldict.h"
 
+#include "spawnweapons_manager.h"
+
 //=============================================================================
 // >> HL2MP_Player
 //=============================================================================
@@ -170,6 +172,7 @@ public:
 	// NEW: Team compensation system
 	void CompensateTeamScoreOnTeamSwitch(bool enabled) { m_bHasCompensatedTeamScore = enabled; }
 	bool IsCompensatingTeamScoreOnTeamSwitch() { return m_bHasCompensatedTeamScore; }
+	void ApplySpawnLoadoutThink();
 
 private:
 

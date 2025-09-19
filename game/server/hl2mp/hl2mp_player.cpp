@@ -38,6 +38,9 @@
 #include "filesystem.h"
 #include "admin/hl2mp_serveradmin.h"
 
+#include "spawnweapons_manager.h"
+
+
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
@@ -601,6 +604,11 @@ void CHL2MP_Player::Spawn(void)
 	SetPlayerUnderwater(false);
 
 	m_bReady = false;
+	if (g_pSpawnWeaponsManager && sv_spawnweapons_enable.GetBool())
+	{
+		// Small delay to ensure player is fully initialized
+		SetContextThink(&CHL2MP_Player::ApplySpawnLoadoutThink, gpGlobals->curtime + 0.1f, "SpawnLoadout");
+	}
 }
 
 bool CHL2MP_Player::ValidatePlayerModel(const char* pModel)
@@ -2169,6 +2177,10 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 {
+	if (g_pSpawnWeaponsManager)
+	{
+		g_pSpawnWeaponsManager->OnPlayerDeath(this);
+	}
 	// ====================================================================================
 	// DETECÇÃO DE AIRKILL (VERSÃO FINAL E SIMPLIFICADA)
 	// ====================================================================================
@@ -2353,4 +2365,12 @@ void CHL2MP_Player::ApplyFOVChange()
 	char fovCommand[32];
 	Q_snprintf(fovCommand, sizeof(fovCommand), "fov %d\n", GetNewFOV());
 	engine->ClientCommand(edict(), fovCommand);
+}
+
+void CHL2MP_Player::ApplySpawnLoadoutThink()
+{
+	if (g_pSpawnWeaponsManager)
+	{
+		g_pSpawnWeaponsManager->ApplyPlayerLoadout(this);
+	}
 }

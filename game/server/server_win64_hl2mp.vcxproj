@@ -428,6 +428,7 @@ exit 1
     <ClInclude Include="..\..\public\studio.h" />
     <ClInclude Include="..\shared\sun_shared.h" />
     <ClInclude Include="..\shared\takedamageinfo.h" />
+    <ClInclude Include="spawnweapons_manager.h" />
     <ClInclude Include="te_effect_dispatch.h" />
     <ClInclude Include="tesla.h" />
     <ClInclude Include="test_stressentities.h" />
@@ -1307,6 +1308,7 @@ exit 1
     <ClCompile Include="..\..\public\SoundParametersInternal.cpp" />
     <ClCompile Include="soundscape.cpp" />
     <ClCompile Include="soundscape_system.cpp" />
+    <ClCompile Include="spawnweapons_manager.cpp" />
     <ClCompile Include="spotlightend.cpp" />
     <ClCompile Include="..\shared\Sprite.cpp" />
     <ClCompile Include="sprite_perfmonitor.cpp" />

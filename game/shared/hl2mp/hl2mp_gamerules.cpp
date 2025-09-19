@@ -38,7 +38,6 @@
 
 #include "shareddefs.h"
 
-
 extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 
 extern bool FindInList(const char** pStrings, const char* pToFind);
@@ -2515,4 +2514,14 @@ int CHL2MPRules::GetBounceCount(const CTakeDamageInfo& info)
 		return pInflictor->GetHealth();
 	}
 	return 0;
+}
+
+void CHL2MPRules::LevelInitPostEntity()
+{
+	BaseClass::LevelInitPostEntity();
+
+	if (g_pSpawnWeaponsManager)
+	{
+		g_pSpawnWeaponsManager->LevelInit();
+	}
 }

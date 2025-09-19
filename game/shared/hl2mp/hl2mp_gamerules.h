@@ -147,7 +147,7 @@ public:
 
 	bool ShouldShowKillerInfo(CHL2MP_Player* pPlayer);
 	void SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* message);
-	//bool WasAirKill(CHL2MP_Player* pVictim);
+	
 	bool WasAirKill(CHL2MP_Player* pVictim, const CTakeDamageInfo& info);
 
 
@@ -190,6 +190,8 @@ public:
 
 	// NEW: Equipment and spectator management
 	void RemoveAllPlayersEquipment();
+
+	virtual void LevelInitPostEntity() override;
 #endif
 
 private:
