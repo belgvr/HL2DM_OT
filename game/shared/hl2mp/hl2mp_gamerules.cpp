@@ -67,47 +67,47 @@ ConVar sv_equalizer_model("sv_equalizer_model", "models/alyx.mdl", 0, "Model for
 ConVar sv_targetid_style("sv_targetid_style", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Target name display style. 0 = Original (name at the bottom), 1 = Custom (HUD at the center of the screen)");
 
 // Damage Display ConVars
-ConVar sv_damage_display("sv_damage_display", "1", FCVAR_NOTIFY, "Enable/disable damage display system. 0 = off, 1 = on");
-ConVar sv_damage_display_area("sv_damage_display_area", "1", FCVAR_NOTIFY, "Area for damage text: 1 = center screen, 2 = hint area, 3 = chat area");
-ConVar sv_damage_display_own("sv_damage_display_own", "0", FCVAR_NOTIFY, "Show your own damage received. 0 = off, 1 = on");
-ConVar sv_damage_display_ff("sv_damage_display_ff", "0", FCVAR_NOTIFY, "Show friendly fire damage. 0 = off, 1 = on");
-ConVar sv_damage_display_kill("sv_damage_display_kill", "1", FCVAR_NOTIFY, "Show KILL message when killing enemy");
-ConVar sv_damage_display_x("sv_damage_display_x", "-1", FCVAR_NOTIFY, "X position for damage info. -1 = center, 0 = left, 1 = right");
-ConVar sv_damage_display_y("sv_damage_display_y", "0.53", FCVAR_NOTIFY, "Y position for damage info. -1 = center, 0 = bottom, 1 = top");
-ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_NOTIFY, "X position for kill/special kill message");
-ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.35", FCVAR_NOTIFY, "Y position for kill/special kill message");
-ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_NOTIFY, "How long damage info displays");
-ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
-ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_NOTIFY, "Fade in time for damage display");
-ConVar sv_damage_display_fadeout_time("sv_damage_display_fadeout_time", "0.15", FCVAR_NOTIFY, "Fade out time for damage display");
+ConVar sv_damage_display("sv_damage_display", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable damage display system. 0 = off, 1 = on");
+ConVar sv_damage_display_area("sv_damage_display_area", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Area for damage text: 1 = center screen, 2 = hint area, 3 = chat area");
+ConVar sv_damage_display_own("sv_damage_display_own", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show your own damage received. 0 = off, 1 = on");
+ConVar sv_damage_display_ff("sv_damage_display_ff", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show friendly fire damage. 0 = off, 1 = on");
+ConVar sv_damage_display_kill("sv_damage_display_kill", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show KILL message when killing enemy");
+ConVar sv_damage_display_x("sv_damage_display_x", "-1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "X position for damage info. -1 = center, 0 = left, 1 = right");
+ConVar sv_damage_display_y("sv_damage_display_y", "0.53", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Y position for damage info. -1 = center, 0 = bottom, 1 = top");
+ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "X position for kill/special kill message");
+ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.35", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Y position for kill/special kill message");
+ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "How long damage info displays");
+ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
+ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade in time for damage display");
+ConVar sv_damage_display_fadeout_time("sv_damage_display_fadeout_time", "0.15", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade out time for damage display");
 
 // Health-based color ConVars
-ConVar sv_damage_display_color_high("sv_damage_display_color_high", "0,255,40", FCVAR_NOTIFY, "RGB color for high HP (75-99). Format: R,G,B");
-ConVar sv_damage_display_color_medium("sv_damage_display_color_medium", "255,200,0", FCVAR_NOTIFY, "RGB color for medium HP (27-74). Format: R,G,B");
-ConVar sv_damage_display_color_low("sv_damage_display_color_low", "255,20,0", FCVAR_NOTIFY, "RGB color for low HP (1-25). Format: R,G,B");
-ConVar sv_damage_display_color_dead("sv_damage_display_color_dead", "0,200,255", FCVAR_NOTIFY, "RGB color for 0 HP. Format: R,G,B");
-ConVar sv_damage_display_color_kill("sv_damage_display_color_kill", "255,20,0", FCVAR_NOTIFY, "RGB color for KILL message. Format: R,G,B");
+ConVar sv_damage_display_color_high("sv_damage_display_color_high", "0,255,40", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for high HP (75-99). Format: R,G,B");
+ConVar sv_damage_display_color_medium("sv_damage_display_color_medium", "255,200,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for medium HP (27-74). Format: R,G,B");
+ConVar sv_damage_display_color_low("sv_damage_display_color_low", "255,20,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for low HP (1-25). Format: R,G,B");
+ConVar sv_damage_display_color_dead("sv_damage_display_color_dead", "0,200,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for 0 HP. Format: R,G,B");
+ConVar sv_damage_display_color_kill("sv_damage_display_color_kill", "255,20,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for KILL message. Format: R,G,B");
 
 // HP thresholds
-ConVar sv_damage_display_hp_high_min("sv_damage_display_hp_high_min", "75", FCVAR_NOTIFY, "Minimum HP for high color");
-ConVar sv_damage_display_hp_medium_min("sv_damage_display_hp_medium_min", "26", FCVAR_NOTIFY, "Minimum HP for medium color");
-ConVar sv_damage_display_hp_low_min("sv_damage_display_hp_low_min", "1", FCVAR_NOTIFY, "Minimum HP for low color");
+ConVar sv_damage_display_hp_high_min("sv_damage_display_hp_high_min", "75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for high color");
+ConVar sv_damage_display_hp_medium_min("sv_damage_display_hp_medium_min", "26", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for medium color");
+ConVar sv_damage_display_hp_low_min("sv_damage_display_hp_low_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for low color");
 
 // ConVars for Special Kill Display
-ConVar sv_damage_display_special_kills("sv_damage_display_special_kills", "1", FCVAR_NOTIFY, "Enable special announcements (Headshot, Airkill, etc.) instead of a generic KILL message.");
-ConVar sv_damage_display_special_kills_additional_time("sv_damage_display_special_kills_additional_time", "0.5", FCVAR_NOTIFY, "Additional time (in seconds) that special kill messages are displayed.");
-ConVar sv_damage_display_combo_style("sv_damage_display_combo_style", "1", FCVAR_NOTIFY, "How to display combination kills. 0 = Single Line (HEADSHOT AIRKILL!), 1 = Stacked.");
-ConVar sv_damage_display_combo_separator("sv_damage_display_combo_separator", " ", FCVAR_NOTIFY, "The character(s) to put between combo messages in single-line style.");
+ConVar sv_damage_display_special_kills("sv_damage_display_special_kills", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable special announcements (Headshot, Airkill, etc.) instead of a generic KILL message.");
+ConVar sv_damage_display_special_kills_additional_time("sv_damage_display_special_kills_additional_time", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Additional time (in seconds) that special kill messages are displayed.");
+ConVar sv_damage_display_combo_style("sv_damage_display_combo_style", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "How to display combination kills. 0 = Single Line (HEADSHOT AIRKILL!), 1 = Stacked.");
+ConVar sv_damage_display_combo_separator("sv_damage_display_combo_separator", " ", FCVAR_GAMEDLL | FCVAR_NOTIFY, "The character(s) to put between combo messages in single-line style.");
 
 // ConVars for Special Kill Colors
-ConVar sv_damage_display_color_headshot("sv_damage_display_color_headshot", "0,255,0", FCVAR_NOTIFY, "RGB color for HEADSHOT message. Format: R,G,B");
-ConVar sv_damage_display_color_airkill("sv_damage_display_color_airkill", "255,105,180", FCVAR_NOTIFY, "RGB color for AIRKILL message. Format: R,G,B");
-ConVar sv_damage_display_color_bouncekill("sv_damage_display_color_bouncekill", "255,80,0", FCVAR_NOTIFY, "RGB color for BOUNCE KILL message. Format: R,G,B");
+ConVar sv_damage_display_color_headshot("sv_damage_display_color_headshot", "0,255,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for HEADSHOT message. Format: R,G,B");
+ConVar sv_damage_display_color_airkill("sv_damage_display_color_airkill", "255,105,180", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for AIRKILL message. Format: R,G,B");
+ConVar sv_damage_display_color_bouncekill("sv_damage_display_color_bouncekill", "255,80,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for BOUNCE KILL message. Format: R,G,B");
 
 // ConVars for Damage Display Special Kills
-ConVar sv_damage_display_airkill_enable("sv_damage_display_airkill_enable", "1", FCVAR_NOTIFY, "Enable AIRKILL message on the damage display HUD.");
-ConVar sv_damage_display_airkill_velocity_threshold("sv_damage_display_airkill_velocity_threshold", "500", FCVAR_NOTIFY, "Vertical velocity threshold for damage display airkill detection (units/sec).");
-ConVar sv_damage_display_airkill_height_threshold("sv_damage_display_airkill_height_threshold", "5", FCVAR_NOTIFY, "Height above ground threshold for damage display airkill detection (units).");
+ConVar sv_damage_display_airkill_enable("sv_damage_display_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable AIRKILL message on the damage display HUD.");
+ConVar sv_damage_display_airkill_velocity_threshold("sv_damage_display_airkill_velocity_threshold", "500", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for damage display airkill detection (units/sec).");
+ConVar sv_damage_display_airkill_height_threshold("sv_damage_display_airkill_height_threshold", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for damage display airkill detection (units).");
 
 
 
