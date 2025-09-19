@@ -128,6 +128,7 @@ ConVar sv_killerinfo_bouncekill_enable("sv_killerinfo_bouncekill_enable", "1", F
 ConVar sv_killerinfo_bounce_counter("sv_killerinfo_bounce_counter", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Display the bounce count on ricochet kills (0=disabled, 1=enabled)");
 ConVar sv_killerinfo_bounce_counter_min("sv_killerinfo_bounce_counter_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum number of bounces to show the bounce count");
 
+
 extern ConVar mp_chattime;
 extern ConVar sv_rtv_mintime;
 extern ConVar sv_rtv_mintime;

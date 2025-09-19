@@ -10,7 +10,7 @@
 // CVars
 ConVar sv_spawnweapons_enable("sv_spawnweapons_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,
     "Enable/Disable the custom spawn loadouts system.");
-ConVar sv_spawn_loadouts_file("sv_spawn_loadouts_file", "cfg/utils/spawn_loadouts.txt", FCVAR_GAMEDLL | FCVAR_NOTIFY,
+ConVar sv_spawn_loadouts_file("sv_spawn_loadouts_file", "cfg/utils/spawn_weapons/spawn_loadouts.txt", FCVAR_GAMEDLL | FCVAR_NOTIFY,
     "Path to the master spawn loadouts configuration file.");
 ConVar sv_spawnweapons_strip_on_spawn("sv_spawnweapons_strip_on_spawn", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,
     "1 = Remove all player weapons before giving the new loadout.");

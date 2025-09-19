@@ -1,0 +1,622 @@
++const ::google::protobuf::Descriptor* CMsgConVarValue_descriptor_ = NULL;
++  CMsgConVarValue_reflection_ = NULL;
++const ::google::protobuf::Descriptor* CMsgReplicateConVars_descriptor_ = NULL;
++  CMsgReplicateConVars_reflection_ = NULL;
++  CMsgConVarValue_descriptor_ = file->message_type(36);
++  static const int CMsgConVarValue_offsets_[2] = {
++    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgConVarValue, name_),
++    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgConVarValue, value_),
++  CMsgConVarValue_reflection_ =
++      CMsgConVarValue_descriptor_,
++      CMsgConVarValue::default_instance_,
++      CMsgConVarValue_offsets_,
++      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgConVarValue, _has_bits_[0]),
++      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgConVarValue, _unknown_fields_),
++      sizeof(CMsgConVarValue));
++  CMsgReplicateConVars_descriptor_ = file->message_type(37);
++  static const int CMsgReplicateConVars_offsets_[1] = {
++    GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgReplicateConVars, convars_),
++  CMsgReplicateConVars_reflection_ =
++      CMsgReplicateConVars_descriptor_,
++      CMsgReplicateConVars::default_instance_,
++      CMsgReplicateConVars_offsets_,
++      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgReplicateConVars, _has_bits_[0]),
++      GOOGLE_PROTOBUF_GENERATED_MESSAGE_FIELD_OFFSET(CMsgReplicateConVars, _unknown_fields_),
++      sizeof(CMsgReplicateConVars));
++    CMsgConVarValue_descriptor_, &CMsgConVarValue::default_instance());
++    CMsgReplicateConVars_descriptor_, &CMsgReplicateConVars::default_instance());
++  delete CMsgConVarValue::default_instance_;
++  delete CMsgConVarValue_reflection_;
++  delete CMsgReplicateConVars::default_instance_;
++  delete CMsgReplicateConVars_reflection_;
++    "entoryRefresh\".\n\017CMsgConVarValue\022\014\n\004name"
++    "nVars\022!\n\007convars\030\001 \003(\0132\020.CMsgConVarValue"
++    "sage\020\241\037\022\035\n\030k_EMsgGCReplicateConVars\020\242\037\022\032"
++    "\n\025k_EMsgGCConVarUpdated\020\243\037\022\034\n\027k_EMsgGCSe"
++  CMsgConVarValue::default_instance_ = new CMsgConVarValue();
++  CMsgReplicateConVars::default_instance_ = new CMsgReplicateConVars();
++  CMsgConVarValue::default_instance_->InitAsDefaultInstance();
++  CMsgReplicateConVars::default_instance_->InitAsDefaultInstance();
++const int CMsgConVarValue::kNameFieldNumber;
++const int CMsgConVarValue::kValueFieldNumber;
++CMsgConVarValue::CMsgConVarValue()
++  // @@protoc_insertion_point(constructor:CMsgConVarValue)
++void CMsgConVarValue::InitAsDefaultInstance() {
++CMsgConVarValue::CMsgConVarValue(const CMsgConVarValue& from)
++  // @@protoc_insertion_point(copy_constructor:CMsgConVarValue)
++void CMsgConVarValue::SharedCtor() {
++CMsgConVarValue::~CMsgConVarValue() {
++  // @@protoc_insertion_point(destructor:CMsgConVarValue)
++void CMsgConVarValue::SharedDtor() {
++void CMsgConVarValue::SetCachedSize(int size) const {
++const ::google::protobuf::Descriptor* CMsgConVarValue::descriptor() {
++  return CMsgConVarValue_descriptor_;
++const CMsgConVarValue& CMsgConVarValue::default_instance() {
++CMsgConVarValue* CMsgConVarValue::default_instance_ = NULL;
++CMsgConVarValue* CMsgConVarValue::New() const {
++  return new CMsgConVarValue;
++void CMsgConVarValue::Clear() {
++bool CMsgConVarValue::MergePartialFromCodedStream(
++  // @@protoc_insertion_point(parse_start:CMsgConVarValue)
++  // @@protoc_insertion_point(parse_success:CMsgConVarValue)
++  // @@protoc_insertion_point(parse_failure:CMsgConVarValue)
++void CMsgConVarValue::SerializeWithCachedSizes(
++  // @@protoc_insertion_point(serialize_start:CMsgConVarValue)
++  // @@protoc_insertion_point(serialize_end:CMsgConVarValue)
++::google::protobuf::uint8* CMsgConVarValue::SerializeWithCachedSizesToArray(
++  // @@protoc_insertion_point(serialize_to_array_start:CMsgConVarValue)
++  // @@protoc_insertion_point(serialize_to_array_end:CMsgConVarValue)
++int CMsgConVarValue::ByteSize() const {
++void CMsgConVarValue::MergeFrom(const ::google::protobuf::Message& from) {
++  const CMsgConVarValue* source =
++    ::google::protobuf::internal::dynamic_cast_if_available<const CMsgConVarValue*>(
++void CMsgConVarValue::MergeFrom(const CMsgConVarValue& from) {
++void CMsgConVarValue::CopyFrom(const ::google::protobuf::Message& from) {
++void CMsgConVarValue::CopyFrom(const CMsgConVarValue& from) {
++bool CMsgConVarValue::IsInitialized() const {
++void CMsgConVarValue::Swap(CMsgConVarValue* other) {
++::google::protobuf::Metadata CMsgConVarValue::GetMetadata() const {
++  metadata.descriptor = CMsgConVarValue_descriptor_;
++  metadata.reflection = CMsgConVarValue_reflection_;
++const int CMsgReplicateConVars::kConvarsFieldNumber;
++CMsgReplicateConVars::CMsgReplicateConVars()
++  // @@protoc_insertion_point(constructor:CMsgReplicateConVars)
++void CMsgReplicateConVars::InitAsDefaultInstance() {
++CMsgReplicateConVars::CMsgReplicateConVars(const CMsgReplicateConVars& from)
++  // @@protoc_insertion_point(copy_constructor:CMsgReplicateConVars)
++void CMsgReplicateConVars::SharedCtor() {
++CMsgReplicateConVars::~CMsgReplicateConVars() {
++  // @@protoc_insertion_point(destructor:CMsgReplicateConVars)
++void CMsgReplicateConVars::SharedDtor() {
++void CMsgReplicateConVars::SetCachedSize(int size) const {
++const ::google::protobuf::Descriptor* CMsgReplicateConVars::descriptor() {
++  return CMsgReplicateConVars_descriptor_;
++const CMsgReplicateConVars& CMsgReplicateConVars::default_instance() {
++CMsgReplicateConVars* CMsgReplicateConVars::default_instance_ = NULL;
++CMsgReplicateConVars* CMsgReplicateConVars::New() const {
++  return new CMsgReplicateConVars;
++void CMsgReplicateConVars::Clear() {
++bool CMsgReplicateConVars::MergePartialFromCodedStream(
++  // @@protoc_insertion_point(parse_start:CMsgReplicateConVars)
++      // repeated .CMsgConVarValue convars = 1;
++  // @@protoc_insertion_point(parse_success:CMsgReplicateConVars)
++  // @@protoc_insertion_point(parse_failure:CMsgReplicateConVars)
++void CMsgReplicateConVars::SerializeWithCachedSizes(
++  // @@protoc_insertion_point(serialize_start:CMsgReplicateConVars)
++  // repeated .CMsgConVarValue convars = 1;
++  // @@protoc_insertion_point(serialize_end:CMsgReplicateConVars)
++::google::protobuf::uint8* CMsgReplicateConVars::SerializeWithCachedSizesToArray(
++  // @@protoc_insertion_point(serialize_to_array_start:CMsgReplicateConVars)
++  // repeated .CMsgConVarValue convars = 1;
++  // @@protoc_insertion_point(serialize_to_array_end:CMsgReplicateConVars)
++int CMsgReplicateConVars::ByteSize() const {
++  // repeated .CMsgConVarValue convars = 1;
++void CMsgReplicateConVars::MergeFrom(const ::google::protobuf::Message& from) {
++  const CMsgReplicateConVars* source =
++    ::google::protobuf::internal::dynamic_cast_if_available<const CMsgReplicateConVars*>(
++void CMsgReplicateConVars::MergeFrom(const CMsgReplicateConVars& from) {
++void CMsgReplicateConVars::CopyFrom(const ::google::protobuf::Message& from) {
++void CMsgReplicateConVars::CopyFrom(const CMsgReplicateConVars& from) {
++bool CMsgReplicateConVars::IsInitialized() const {
++void CMsgReplicateConVars::Swap(CMsgReplicateConVars* other) {
++::google::protobuf::Metadata CMsgReplicateConVars::GetMetadata() const {
++  metadata.descriptor = CMsgReplicateConVars_descriptor_;
++  metadata.reflection = CMsgReplicateConVars_reflection_;
++class CMsgConVarValue;
++class CMsgReplicateConVars;
++  k_EMsgGCReplicateConVars = 4002,
++  k_EMsgGCConVarUpdated = 4003,
++class CMsgConVarValue : public ::google::protobuf::Message {
++  CMsgConVarValue();
++  virtual ~CMsgConVarValue();
++  CMsgConVarValue(const CMsgConVarValue& from);
++  inline CMsgConVarValue& operator=(const CMsgConVarValue& from) {
++  static const CMsgConVarValue& default_instance();
++  void Swap(CMsgConVarValue* other);
++  CMsgConVarValue* New() const;
++  void CopyFrom(const CMsgConVarValue& from);
++  void MergeFrom(const CMsgConVarValue& from);
++  // @@protoc_insertion_point(class_scope:CMsgConVarValue)
++  static CMsgConVarValue* default_instance_;
++class CMsgReplicateConVars : public ::google::protobuf::Message {
++  CMsgReplicateConVars();
++  virtual ~CMsgReplicateConVars();
++  CMsgReplicateConVars(const CMsgReplicateConVars& from);
++  inline CMsgReplicateConVars& operator=(const CMsgReplicateConVars& from) {
++  static const CMsgReplicateConVars& default_instance();
++  void Swap(CMsgReplicateConVars* other);
++  CMsgReplicateConVars* New() const;
++  void CopyFrom(const CMsgReplicateConVars& from);
++  void MergeFrom(const CMsgReplicateConVars& from);
++  // repeated .CMsgConVarValue convars = 1;
++  inline const ::CMsgConVarValue& convars(int index) const;
++  inline ::CMsgConVarValue* mutable_convars(int index);
++  inline ::CMsgConVarValue* add_convars();
++  inline const ::google::protobuf::RepeatedPtrField< ::CMsgConVarValue >&
++  inline ::google::protobuf::RepeatedPtrField< ::CMsgConVarValue >*
++  // @@protoc_insertion_point(class_scope:CMsgReplicateConVars)
++  ::google::protobuf::RepeatedPtrField< ::CMsgConVarValue > convars_;
++  static CMsgReplicateConVars* default_instance_;
++// CMsgConVarValue
++inline bool CMsgConVarValue::has_name() const {
++inline void CMsgConVarValue::set_has_name() {
++inline void CMsgConVarValue::clear_has_name() {
++inline void CMsgConVarValue::clear_name() {
++inline const ::std::string& CMsgConVarValue::name() const {
++  // @@protoc_insertion_point(field_get:CMsgConVarValue.name)
++inline void CMsgConVarValue::set_name(const ::std::string& value) {
++  // @@protoc_insertion_point(field_set:CMsgConVarValue.name)
++inline void CMsgConVarValue::set_name(const char* value) {
++  // @@protoc_insertion_point(field_set_char:CMsgConVarValue.name)
++inline void CMsgConVarValue::set_name(const char* value, size_t size) {
++  // @@protoc_insertion_point(field_set_pointer:CMsgConVarValue.name)
++inline ::std::string* CMsgConVarValue::mutable_name() {
++  // @@protoc_insertion_point(field_mutable:CMsgConVarValue.name)
++inline ::std::string* CMsgConVarValue::release_name() {
++inline void CMsgConVarValue::set_allocated_name(::std::string* name) {
++  // @@protoc_insertion_point(field_set_allocated:CMsgConVarValue.name)
++inline bool CMsgConVarValue::has_value() const {
++inline void CMsgConVarValue::set_has_value() {
++inline void CMsgConVarValue::clear_has_value() {
++inline void CMsgConVarValue::clear_value() {
++inline const ::std::string& CMsgConVarValue::value() const {
++  // @@protoc_insertion_point(field_get:CMsgConVarValue.value)
++inline void CMsgConVarValue::set_value(const ::std::string& value) {
++  // @@protoc_insertion_point(field_set:CMsgConVarValue.value)
++inline void CMsgConVarValue::set_value(const char* value) {
++  // @@protoc_insertion_point(field_set_char:CMsgConVarValue.value)
++inline void CMsgConVarValue::set_value(const char* value, size_t size) {
++  // @@protoc_insertion_point(field_set_pointer:CMsgConVarValue.value)
++inline ::std::string* CMsgConVarValue::mutable_value() {
++  // @@protoc_insertion_point(field_mutable:CMsgConVarValue.value)
++inline ::std::string* CMsgConVarValue::release_value() {
++inline void CMsgConVarValue::set_allocated_value(::std::string* value) {
++  // @@protoc_insertion_point(field_set_allocated:CMsgConVarValue.value)
++// CMsgReplicateConVars
++// repeated .CMsgConVarValue convars = 1;
++inline int CMsgReplicateConVars::convars_size() const {
++inline void CMsgReplicateConVars::clear_convars() {
++inline const ::CMsgConVarValue& CMsgReplicateConVars::convars(int index) const {
++  // @@protoc_insertion_point(field_get:CMsgReplicateConVars.convars)
++inline ::CMsgConVarValue* CMsgReplicateConVars::mutable_convars(int index) {
++  // @@protoc_insertion_point(field_mutable:CMsgReplicateConVars.convars)
++inline ::CMsgConVarValue* CMsgReplicateConVars::add_convars() {
++  // @@protoc_insertion_point(field_add:CMsgReplicateConVars.convars)
++inline const ::google::protobuf::RepeatedPtrField< ::CMsgConVarValue >&
++CMsgReplicateConVars::convars() const {
++  // @@protoc_insertion_point(field_list:CMsgReplicateConVars.convars)
++inline ::google::protobuf::RepeatedPtrField< ::CMsgConVarValue >*
++CMsgReplicateConVars::mutable_convars() {
++  // @@protoc_insertion_point(field_mutable_list:CMsgReplicateConVars.convars)
++extern ConVar sv_stepsize;
++extern ConVar sv_equalizer;
++ConVar sv_equalizer_allow_toggle("sv_equalizer_allow_toggle", "0", FCVAR_NOTIFY, "If non-zero, players can toggle equalizer mode with a chat command");
++ConVar sv_talk_interval("sv_talk_interval", "0.5", FCVAR_NOTIFY, "Minimum time between player chat messages", true, 0.0, true, 10.0);
++ConVar sv_team_combine_prefix("sv_team_combine_prefix", "[COMBINE]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for Combine team players");
++ConVar sv_team_combine_color("sv_team_combine_color", "#0064FF", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for Combine team prefix, refer to /cfg/colors/colors.cfg or use hex colors, example for blue: #0000ff");
++ConVar sv_team_rebel_prefix("sv_team_rebel_prefix", "[REBEL]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for Rebel team players");
++ConVar sv_team_rebel_color("sv_team_rebel_color", "#ff5050", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for Rebel team prefix, refer to /cfg/colors/colors.cfg or use hex colors, example for red: #ff0000");
++ConVar sv_teamchat_prefix("sv_teamchat_prefix", "[TEAM]", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Text prefix for team chat messages");
++ConVar sv_teamchat_color("sv_teamchat_color", "#ffffff", FCVAR_NOTIFY | FCVAR_GAMEDLL, "Color for team chat prefix");
++ConVar fire_extscale( "fire_extscale", "12" );
++ConVar fire_extabsorb( "fire_extabsorb", "5" );
++void mp_teamplay_changed(IConVar* var, const char* pOldValue, float flOldValue)
++	ConVarRef teamplay_ref(var);
++void flashlight_changed( IConVar *pConVar, const char *pOldString, float flOldValue )
++	ConVarRef var( pConVar );
++ConVar	teamplay("mp_teamplay", "0", FCVAR_NOTIFY, "Should teamplay settings be on or off", mp_teamplay_changed);
++//ConVar	falldamage( "mp_falldamage","0", FCVAR_NOTIFY );
++ConVar falldamage("mp_falldamage", "10", FCVAR_NOTIFY, "Fall damage amount. Set to 0 or -1 to disable."); //updated cvar, by ribas
++ConVar	flashlight( "mp_flashlight","1", FCVAR_NOTIFY, 0, flashlight_changed );
++ConVar	sv_propflying( "sv_propflying", "1", FCVAR_NOTIFY );
++ConVar mp_smg1_alt_glass( "mp_smg1_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, SMG1 grenades will punch through glass" );
++ConVar mp_ar2_alt_glass( "mp_ar2_alt_glass", "1", FCVAR_NOTIFY, "If non-zero, AR2 orbs will punch through glass" );
++ConVar sv_hudtargetid( "sv_hudtargetid", "1", FCVAR_NOTIFY, "If enabled, shows a custom HUD target ID in-game" );
++ConVar sv_hudtargetid_channel( "sv_hudtargetid_channel", "1", 0, "Selects which text channel to use for the HUD target ID\nNOTE: If you notice text conflicting, then there is a channel conflict" );
++extern ConVar	sv_propflying;
++extern ConVar	mp_smg1_alt_glass;
++extern ConVar	mp_ar2_alt_glass;
++extern ConVar	sv_hudtargetid;
++extern ConVar sv_hudtargetid_channel;
++ConVar sv_suitcharger_speed("sv_suitcharger_speed", "1", FCVAR_GAMEDLL, "Amount of suit given per tick by the normal suit charger.");
++ConVar sv_citadelcharger_speed("sv_citadelcharger_speed", "2", FCVAR_GAMEDLL, "Amount of suit given per tick by the Citadel suit charger.");
++ConVar sv_citadelcharger_health_speed("sv_citadelcharger_health_speed", "5", FCVAR_GAMEDLL, "Amount of HEALTH given per tick by the Citadel suit charger.");
++		nIncrementArmor = sv_citadelcharger_speed.GetInt(); // <-- MUDANÇA: Usa a ConVar da Citadel.
++			pActivator->TakeHealth(sv_citadelcharger_health_speed.GetInt(), DMG_GENERIC); // <-- MUDANÇA: Usa a ConVar de vida da Citadel.
++		nIncrementArmor = sv_suitcharger_speed.GetInt(); // <-- MUDANÇA: Usa a ConVar do carregador normal.
++extern ConVar mp_teamplay;
++	ConVar* mp_teamplay = cvar->FindVar("mp_teamplay");
++// External ConVar declarations for frag grenade customization
++extern ConVar sk_plr_dmg_fraggrenade;
++extern ConVar sk_npc_dmg_fraggrenade;
++extern ConVar sk_fraggrenade_radius;
++extern ConVar sv_grenade_frag_glow_sprite;
++extern ConVar sv_grenade_frag_trail_sprite;
++extern ConVar sv_grenade_frag_glow_color;
++extern ConVar sv_grenade_frag_trail_color;
++extern ConVar sv_grenade_frag_trail_lifetime;
++extern ConVar sv_grenade_frag_trail_startwidth;
++extern ConVar sv_grenade_frag_trail_endwidth;
++extern ConVar sv_grenade_frag_byteams;
++extern ConVar sv_grenade_frag_rebels_trail_color;
++extern ConVar sv_grenade_frag_rebels_glow_color;
++extern ConVar sv_grenade_frag_combine_trail_color;
++extern ConVar sv_grenade_frag_combine_glow_color;
++ConVar sv_infinite_aux_power( "sv_infinite_aux_power", "0", FCVAR_NOTIFY );
++void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue );
++ConVar sv_sprint_drain_rate( "sv_sprint_drain_rate", STR_SPRINT_DRAIN_RATE, FCVAR_ARCHIVE, "Drain rate of sprint, in energy units per second.", true, 0, false, 0, &callback_sv_sprint );
++void callback_sv_sprint( IConVar *var, const char *pOldValue, float flOldValue )
++	const char *cl_autowepswitch = engine->GetClientConVarValue( engine->IndexOfEdict( this->edict() ), "cl_autowepswitch" ); // if cl_autowepswitch is 0, it will not switch weapon.
++ConVar sv_ammo_crate_exploit_fix("sv_ammo_crate_exploit_fix", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fix ammo crate exploit (0=original behavior, 1=fixed)");
++ConVar sv_healthcharger_speed("sv_healthcharger_speed", "1", FCVAR_GAMEDLL, "Amount of health given per tick by the health charger.");
++	int healthPerTick = sv_healthcharger_speed.GetInt(); // Pega o valor da ConVar
++ConVar sv_combine_ball_punt_ownership_fix("sv_combine_ball_punt_ownership_fix", "1", FCVAR_ARCHIVE, "If enabled, players can take ownership of combine balls held by other players by punting them up with the gravity gun.");
++ConVar sv_rtv_enabled("sv_rtv_enabled", "0", 0);
++ConVar sv_rtv_needed("sv_rtv_needed", "0.60", 0, "Percentage of players needed to start a map vote. Range: 0.00 - 1.00");
++ConVar sv_rtv_mintime("sv_rtv_mintime", "30", 0, "How long to wait until players can start typing RTV (time in seconds)");
++ConVar sv_rtv_minmaprotation("sv_rtv_minmaprotation", "15", 0, "Minimum number of maps before allowing a previously played map in RTV or nominations");
++ConVar sv_rtv_showmapvotes("sv_rtv_showmapvotes", "1", 0, "If non-zero, shows what map a player has voted during RTV");
++ConVar sv_showadminpermissions("sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to");
++	ConVar* pConVar = g_pCVar->FindVar(commandName);
++	if (!pCommand && !pConVar)
++	if (pConVar && args.ArgC() == 3)
++		float currentValue = pConVar->GetFloat();
++	ConVar* pConVar = cvar->FindVar(cvarName);
++	if (!pConVar)
++	bool requiresCheatFlag = pConVar->IsFlagSet(FCVAR_CHEAT);
++		float currentValue = pConVar->GetFloat();
++		pConVar->Revert();
++		if (Q_stricmp(pConVar->GetString(), newValue) == 0)
++		pConVar->SetValue(newValue);
++	float f_currentValue = pConVar->GetFloat();
++	pConVar->SetValue(newValue);
++ConVar hl2mp_bot_path_lookahead_range( "hl2mp_bot_path_lookahead_range", "300" );
++ConVar hl2mp_bot_sniper_aim_error( "hl2mp_bot_sniper_aim_error", "0.01", FCVAR_CHEAT );
++ConVar hl2mp_bot_sniper_aim_steady_rate( "hl2mp_bot_sniper_aim_steady_rate", "10", FCVAR_CHEAT );
++ConVar hl2mp_bot_debug_sniper( "hl2mp_bot_debug_sniper", "0", FCVAR_CHEAT );
++ConVar hl2mp_bot_fire_weapon_min_time( "hl2mp_bot_fire_weapon_min_time", "1", FCVAR_CHEAT );
++ConVar hl2mp_bot_taunt_victim_chance( "hl2mp_bot_taunt_victim_chance", "20" );		// community requested this not be a cheat cvar
++ConVar hl2mp_bot_notice_backstab_chance( "hl2mp_bot_notice_backstab_chance", "25", FCVAR_CHEAT );
++ConVar hl2mp_bot_notice_backstab_min_range( "hl2mp_bot_notice_backstab_min_range", "100", FCVAR_CHEAT );
++ConVar hl2mp_bot_notice_backstab_max_range( "hl2mp_bot_notice_backstab_max_range", "750", FCVAR_CHEAT );
++ConVar hl2mp_bot_ballistic_elevation_rate( "hl2mp_bot_ballistic_elevation_rate", "0.01", FCVAR_CHEAT, "When lobbing grenades at far away targets, this is the degree/range slope to raise our aim" );
++ConVar hl2mp_bot_hitscan_range_limit( "hl2mp_bot_hitscan_range_limit", "1800", FCVAR_CHEAT );
++ConVar hl2mp_bot_always_full_reload( "hl2mp_bot_always_full_reload", "0", FCVAR_CHEAT );
++ConVar hl2mp_bot_fire_weapon_allowed( "hl2mp_bot_fire_weapon_allowed", "1", FCVAR_CHEAT, "If zero, HL2MPBots will not pull the trigger of their weapons (but will act like they did)" );
++ConVar hl2mp_bot_allow_retreat( "hl2mp_bot_allow_retreat", "1", FCVAR_CHEAT, "If zero, bots will not attempt to retreat if they are are in a bad situation." );
++ConVar hl2mp_bot_physcannon_wait_fire_time( "hl2mp_bot_physcannon_wait_fire_time", "1", FCVAR_CHEAT, "Time to wait after picking up a prop to firing." );
++extern ConVar sv_slam_allow_steal;
++extern ConVar sv_slam_steal_announce;
++extern ConVar sv_slam_steal_range;
++ConVar sv_satchel_damage("sv_satchel_damage", "150", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage amount for satchel charge explosions (remote detonation)");
++ConVar sv_satchel_radius("sv_satchel_radius", "250", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Damage radius for satchel charge explosions (remote detonation)");
++extern ConVar sv_slam_allow_steal;
++extern ConVar sv_slam_steal_announce;
++extern ConVar sv_slam_steal_range;
++ConVar    sk_plr_dmg_tripmine("sk_plr_dmg_tripmine", "200");
++ConVar    sk_tripmine_radius("sk_tripmine_radius", "200");
++ConVar sv_displaymotd( "sv_displaymotd", "1", 0, "If enabled, display the MOTD to players after server entry." );
++	UTIL_SendConVarValue( pPlayer->edict(), "sv_wpn_sway_pred_legacy", "1" );
++		const ConVar *hostname = cvar->FindVar( "hostname" );
++ConVar hl2mp_spawn_frag_fallback_radius("hl2mp_spawn_frag_fallback_radius", "48", FCVAR_NONE, "If no spawns are available, kill players with this radius to allow new players to spawn.");
++ConVar sv_hitsounds_enabled("sv_hitsounds_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable all custom hit and kill sounds.");
++ConVar sv_hitsounds_volume("sv_hitsounds_volume", "0.7", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume for all custom hit and kill sounds.", true, 0.0f, true, 1.0f);
++ConVar sv_hitsounds_hit_body_enabled("sv_hitsounds_hit_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable body hit sounds.");
++ConVar sv_hitsounds_hit_head_enabled("sv_hitsounds_hit_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot hit sounds.");
++ConVar sv_hitsounds_kill_body_enabled("sv_hitsounds_kill_body_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable normal kill sounds.");
++ConVar sv_hitsounds_kill_head_enabled("sv_hitsounds_kill_head_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable headshot kill sounds.");
++ConVar sv_hitsounds_pitch_enabled("sv_hitsounds_pitch_enabled", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable incremental pitch for consecutive hits.");
++ConVar sv_hitsounds_pitch_increment("sv_hitsounds_pitch_increment", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Pitch increase per consecutive hit (100 is normal).", true, 0, true, 50);
++ConVar sv_hitsounds_pitch_max("sv_hitsounds_pitch_max", "180", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum pitch value (100 is normal).", true, 100, true, 255);
++ConVar sv_hitsounds_pitch_reset_time("sv_hitsounds_pitch_reset_time", "0.6", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Time in seconds before consecutive hit pitch resets.");
++ConVar sv_hitsounds_ff("sv_hitsounds_ff", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Play hit sounds on friendly fire? 0=No, 1=Yes");
++ConVar sv_hitsounds_body_sound("sv_hitsounds_body_sound", "buttons/button10.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body hits.");
++ConVar sv_hitsounds_head_sound("sv_hitsounds_head_sound", "buttons/button16.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot hits.");
++ConVar sv_hitsounds_kill_body_sound("sv_hitsounds_kill_body_sound", "buttons/button9.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for body kills.");
++ConVar sv_hitsounds_kill_head_sound("sv_hitsounds_kill_head_sound", "npc/sniper/sniper1.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound file for headshot kills.");
++ConVar sv_hitsounds_body_volume("sv_hitsounds_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body hit sound.", true, 0.0f, true, 1.0f);
++ConVar sv_hitsounds_head_volume("sv_hitsounds_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot hit sound.", true, 0.0f, true, 1.0f);
++ConVar sv_hitsounds_kill_body_volume("sv_hitsounds_kill_body_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for body kill sound.", true, 0.0f, true, 1.0f);
++ConVar sv_hitsounds_kill_head_volume("sv_hitsounds_kill_head_volume", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Volume multiplier for headshot kill sound.", true, 0.0f, true, 1.0f);
++ConVar sv_hitsounds_pitch_base_hit_body("sv_hitsounds_pitch_base_hit_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body hit.", true, 1, true, 255);
++ConVar sv_hitsounds_pitch_base_hit_head("sv_hitsounds_pitch_base_hit_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot hit.", true, 1, true, 255);
++ConVar sv_hitsounds_pitch_base_kill_body("sv_hitsounds_pitch_base_kill_body", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for body kill.", true, 1, true, 255);
++ConVar sv_hitsounds_pitch_base_kill_head("sv_hitsounds_pitch_base_kill_head", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base pitch for headshot kill.", true, 1, true, 255);
++ConVar sv_fov_min("sv_fov_min", "75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum FOV value players can set.", true, 60.0f, true, 90.0f);
++ConVar sv_fov_max("sv_fov_max", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum FOV value players can set.", true, 90.0f, true, 170.0f);
++ConVar sv_fov_default("sv_fov_default", "90", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default FOV value for new players.", true, 60.0f, true, 170.0f);
++extern ConVar sv_killerinfo_airkill_enable;
++extern ConVar sv_killerinfo_bouncekill_enable;
++	iModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
++	const char* szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
++				szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
++	szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
++	szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
++		const char* pIdealMode = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_spec_mode");
++			// Se o trace longo (cuja distÃ¢ncia Ã© controlada pela ConVar) nÃ£o bateu em nada, Ã© Airkill.
++// External ConVars used by player system
++extern ConVar hl2mp_spawn_frag_fallback_radius;
++// Hitsounds ConVars - declared externally
++extern ConVar sv_hitsounds_enabled;
++extern ConVar sv_hitsounds_volume;
++extern ConVar sv_hitsounds_hit_body_enabled;
++extern ConVar sv_hitsounds_hit_head_enabled;
++extern ConVar sv_hitsounds_kill_body_enabled;
++extern ConVar sv_hitsounds_kill_head_enabled;
++extern ConVar sv_hitsounds_pitch_enabled;
++extern ConVar sv_hitsounds_pitch_increment;
++extern ConVar sv_hitsounds_pitch_max;
++extern ConVar sv_hitsounds_pitch_reset_time;
++extern ConVar sv_hitsounds_ff;
++// Hitsounds file ConVars
++extern ConVar sv_hitsounds_body_sound;
++extern ConVar sv_hitsounds_head_sound;
++extern ConVar sv_hitsounds_kill_body_sound;
++extern ConVar sv_hitsounds_kill_head_sound;
++extern ConVar sv_hitsounds_body_volume;
++extern ConVar sv_hitsounds_head_volume;
++extern ConVar sv_hitsounds_kill_body_volume;
++extern ConVar sv_hitsounds_kill_head_volume;
++extern ConVar sv_hitsounds_pitch_base_hit_body;
++extern ConVar sv_hitsounds_pitch_base_hit_head;
++extern ConVar sv_hitsounds_pitch_base_kill_body;
++extern ConVar sv_hitsounds_pitch_base_kill_head;
++ConVar sv_ear_ring("sv_ear_ring", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the ear-ringing effect when the player is hit by an explosion (0 = off, 1 = on)");
++ConVar sv_spawnweapons_enable("sv_spawnweapons_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,
++ConVar sv_spawn_loadouts_file("sv_spawn_loadouts_file", "cfg/utils/spawn_loadouts.txt", FCVAR_GAMEDLL | FCVAR_NOTIFY,
++ConVar sv_spawnweapons_strip_on_spawn("sv_spawnweapons_strip_on_spawn", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,
++ConVar sv_spawnweapons_debug("sv_spawnweapons_debug", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY,
++// External ConVar declarations
++extern ConVar sv_spawnweapons_enable;
++extern ConVar sv_spawnweapons_strip_on_spawn;
++extern ConVar sv_spawn_loadouts_file;
++extern ConVar sv_spawnweapons_debug;
++void UTIL_SendConVarValue( edict_t *pEdict, const char *pConVarName, const char *pConVarValue )
++	buffer.WriteString( pConVarName );
++	buffer.WriteString( pConVarValue );
++void		UTIL_SendConVarValue( edict_t *pEdict, const char *pConVarName, const char *pConVarValue );
++extern ConVar footsteps;
++extern ConVar sv_footsteps;
++extern ConVar sv_footsteps_bhop_sound;
++extern ConVar sv_pushaway_max_force;
++extern ConVar sv_pushaway_force;
++extern ConVar sv_turbophysics;
++ConVar mp_usehwmmodels("mp_usehwmmodels", "0", NULL, "Enable the use of the hw morph models. (-1 = never, 1 = always, 0 = based upon GPU)"); // -1 = never, 0 = if hasfastvertextextures, 1 = always
++ConVar sv_debug_player_use("sv_debug_player_use", "0", FCVAR_REPLICATED, "Visualizes +use logic. Green cross=trace success, Red cross=trace too far, Green box=radius success");
++ConVar	sv_suppress_viewpunch("sv_suppress_viewpunch", "0", FCVAR_REPLICATED | FCVAR_CHEAT | FCVAR_DEVELOPMENTONLY);
++static ConVar smoothstairs("smoothstairs", "1", FCVAR_REPLICATED, "Smooth player eye z coordinate when traversing stairs.");
++ConVar sv_hl2mp_weapon_respawn_time("sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
++ConVar sv_hl2mp_item_respawn_time("sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY);
++ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
++// TimeLEft ConVars
++ConVar sv_timeleft_enable("sv_timeleft_enable", "1", 0, "If non-zero,enables time left indication on the HUD.", true, 0.0, true, 1.0);
++ConVar sv_timeleft_teamscore("sv_timeleft_teamscore", "1", 0, "If non-zero,enables team scores on the HUD (left Combine, right Rebels)\nMust be enabled to use \"sv_timeleft_color_override\".", true, 0.0, true, 1.0);
++ConVar sv_timeleft_color("sv_timeleft_color", "255,180,0", 0, "RGB color for timeleft display (format: R,G,B)");
++ConVar sv_timeleft_channel("sv_timeleft_channel", "0", 0, "Alpha/Intensity.", true, 0.0, true, 5.0);
++ConVar sv_timeleft_x("sv_timeleft_x", "-1");
++ConVar sv_timeleft_y("sv_timeleft_y", "0.01");
++// Equalizer ConVars
++ConVar sv_equalizer_combine_color("sv_equalizer_combine_color", "0,100,255", 0, "RGB color for Combine team in equalizer mode (format: R,G,B)");
++ConVar sv_equalizer_rebel_color("sv_equalizer_rebel_color", "255,0,0", 0, "RGB color for Rebel team in equalizer mode (format: R,G,B)");
++ConVar sv_equalizer_color("sv_equalizer_color", "255,80,0", 0, "RGB color for players in equalizer mode when teamplay is disabled (format: R,G,B)");
++// Equalizer Model ConVars  
++ConVar sv_equalizer_model_combine("sv_equalizer_model_combine", "models/combine_super_soldier.mdl", 0, "Model for Combine team in equalizer mode");
++ConVar sv_equalizer_model_rebel("sv_equalizer_model_rebel", "models/kleiner.mdl", 0, "Model for Rebel team in equalizer mode");
++ConVar sv_equalizer_model("sv_equalizer_model", "models/alyx.mdl", 0, "Model for all players when teamplay is disabled in equalizer mode");
++ConVar sv_targetid_style("sv_targetid_style", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Target name display style. 0 = Original (name at the bottom), 1 = Custom (HUD at the center of the screen)");
++// Damage Display ConVars
++ConVar sv_damage_display("sv_damage_display", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable damage display system. 0 = off, 1 = on");
++ConVar sv_damage_display_area("sv_damage_display_area", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Area for damage text: 1 = center screen, 2 = hint area, 3 = chat area");
++ConVar sv_damage_display_own("sv_damage_display_own", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show your own damage received. 0 = off, 1 = on");
++ConVar sv_damage_display_ff("sv_damage_display_ff", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show friendly fire damage. 0 = off, 1 = on");
++ConVar sv_damage_display_kill("sv_damage_display_kill", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show KILL message when killing enemy");
++ConVar sv_damage_display_x("sv_damage_display_x", "-1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "X position for damage info. -1 = center, 0 = left, 1 = right");
++ConVar sv_damage_display_y("sv_damage_display_y", "0.53", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Y position for damage info. -1 = center, 0 = bottom, 1 = top");
++ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "X position for kill/special kill message");
++ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.35", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Y position for kill/special kill message");
++ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "How long damage info displays");
++ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
++ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade in time for damage display");
++ConVar sv_damage_display_fadeout_time("sv_damage_display_fadeout_time", "0.15", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade out time for damage display");
++// Health-based color ConVars
++ConVar sv_damage_display_color_high("sv_damage_display_color_high", "0,255,40", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for high HP (75-99). Format: R,G,B");
++ConVar sv_damage_display_color_medium("sv_damage_display_color_medium", "255,200,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for medium HP (27-74). Format: R,G,B");
++ConVar sv_damage_display_color_low("sv_damage_display_color_low", "255,20,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for low HP (1-25). Format: R,G,B");
++ConVar sv_damage_display_color_dead("sv_damage_display_color_dead", "0,200,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for 0 HP. Format: R,G,B");
++ConVar sv_damage_display_color_kill("sv_damage_display_color_kill", "255,20,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for KILL message. Format: R,G,B");
++ConVar sv_damage_display_hp_high_min("sv_damage_display_hp_high_min", "75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for high color");
++ConVar sv_damage_display_hp_medium_min("sv_damage_display_hp_medium_min", "26", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for medium color");
++ConVar sv_damage_display_hp_low_min("sv_damage_display_hp_low_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum HP for low color");
++// ConVars for Special Kill Display
++ConVar sv_damage_display_special_kills("sv_damage_display_special_kills", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable special announcements (Headshot, Airkill, etc.) instead of a generic KILL message.");
++ConVar sv_damage_display_special_kills_additional_time("sv_damage_display_special_kills_additional_time", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Additional time (in seconds) that special kill messages are displayed.");
++ConVar sv_damage_display_combo_style("sv_damage_display_combo_style", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "How to display combination kills. 0 = Single Line (HEADSHOT AIRKILL!), 1 = Stacked.");
++ConVar sv_damage_display_combo_separator("sv_damage_display_combo_separator", " ", FCVAR_GAMEDLL | FCVAR_NOTIFY, "The character(s) to put between combo messages in single-line style.");
++// ConVars for Special Kill Colors
++ConVar sv_damage_display_color_headshot("sv_damage_display_color_headshot", "0,255,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for HEADSHOT message. Format: R,G,B");
++ConVar sv_damage_display_color_airkill("sv_damage_display_color_airkill", "255,105,180", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for AIRKILL message. Format: R,G,B");
++ConVar sv_damage_display_color_bouncekill("sv_damage_display_color_bouncekill", "255,80,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for BOUNCE KILL message. Format: R,G,B");
++// ConVars for Damage Display Special Kills
++ConVar sv_damage_display_airkill_enable("sv_damage_display_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable AIRKILL message on the damage display HUD.");
++ConVar sv_damage_display_airkill_velocity_threshold("sv_damage_display_airkill_velocity_threshold", "500", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for damage display airkill detection (units/sec).");
++ConVar sv_damage_display_airkill_height_threshold("sv_damage_display_airkill_height_threshold", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for damage display airkill detection (units).");
++//Killer Info ConVars
++ConVar sv_killerinfo_enable("sv_killerinfo_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable killer info display system");
++ConVar sv_killerinfo_show_weapon("sv_killerinfo_show_weapon", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show weapon used to kill");
++ConVar sv_killerinfo_show_health("sv_killerinfo_show_health", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining health");
++ConVar sv_killerinfo_show_armor("sv_killerinfo_show_armor", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining armor");
++ConVar sv_killerinfo_show_distance("sv_killerinfo_show_distance", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show distance to killer");
++ConVar sv_killerinfo_distance_unit("sv_killerinfo_distance_unit", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Distance unit: 0=meters, 1=feet");
++ConVar sv_killerinfo_airkill_velocity_threshold("sv_killerinfo_airkill_velocity_threshold", "500", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical velocity threshold for airkill detection (units/sec)");
++ConVar sv_killerinfo_airkill_height_threshold("sv_killerinfo_airkill_height_threshold", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Height above ground threshold for airkill detection (units)");
++//ConVar sv_killerinfo_airkill_trace_fraction("sv_killerinfo_airkill_trace_fraction", "0.9", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trace fraction threshold for airkill detection (0.0-1.0)");
++//ConVar sv_killerinfo_airkill_ground_override("sv_killerinfo_airkill_ground_override", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Override airkill if player is touching ground (0=disabled, 1=enabled)");
++ConVar sv_killerinfo_airkill_enable("sv_killerinfo_airkill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable airkill detection entirely (0=disabled, 1=enabled) (has some bugs yet, sometimes it can show airkill even when the victim is on the ground, use at your own risk)");
++ConVar sv_killerinfo_headshot_enable("sv_killerinfo_headshot_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable headshot detection display (0=disabled, 1=enabled)");
++ConVar sv_killerinfo_bouncekill_enable("sv_killerinfo_bouncekill_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable bounce kill detection display (0=disabled, 1=enabled)");
++ConVar sv_killerinfo_bounce_counter("sv_killerinfo_bounce_counter", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Display the bounce count on ricochet kills (0=disabled, 1=enabled)");
++ConVar sv_killerinfo_bounce_counter_min("sv_killerinfo_bounce_counter_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum number of bounces to show the bounce count");
++extern ConVar sv_rtv_mintime;
++extern ConVar sv_rtv_mintime;
++extern ConVar sv_rtv_enabled;
++extern ConVar sv_rtv_enabled;
++void sv_equalizer_changed(IConVar* pConVar, const char* pOldString, float flOldValue)
++	if (!((ConVar*)pConVar)->GetBool())  // If equalizer is disabled
++ConVar sv_equalizer("sv_equalizer", "0", 0, "If non-zero, increase player visibility with bright colors", sv_equalizer_changed);
++				const char* cl_updaterate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_updaterate");
++				const char* cl_cmdrate = engine->GetClientConVarValue(pPlayer->entindex(), "cl_cmdrate");
++	const char* szModelName = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_playermodel");
++		UTIL_LogPrintf("\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue(pHL2Player->entindex(), "cl_cmdrate"));
++ConVar cl_autowepswitch(
++		const char* cl_autowepswitch = engine->GetClientConVarValue(engine->IndexOfEdict(pPlayer->edict()), "cl_autowepswitch");
++extern ConVar sv_killerinfo_airkill_velocity_threshold; 
++extern ConVar sv_killerinfo_airkill_height_threshold;
++extern ConVar sv_killerinfo_bouncekill_enable;
++extern ConVar sv_killerinfo_bounce_counter; 
++extern ConVar footsteps;
++ConVar sv_footsteps_permaterial("sv_footsteps_permaterial", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "0 = old single sound footsteps, 1 = per-material footsteps");
++ConVar sv_footsteps_bhop_sound("sv_footsteps_bhop_sound", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Control footstep sounds while crouched - includes walking, jumping, landing, and bunny hopping (0=silent, 1=normal sounds)");
++static ConVar tf2_feetyawrunscale("tf2_feetyawrunscale", "2", FCVAR_REPLICATED, "Multiplier on tf2_feetyawrate to allow turning faster when running.");
++ConVar sv_357_zoom_enable("sv_357_zoom_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable zoom for 357 revolver (0=disabled, 1=enabled)");
++ConVar sv_357_zoom_level("sv_357_zoom_level", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Zoom level for 357 revolver (default: 2.0)");
++ConVar sv_357_recoil_punch_vertical("sv_357_recoil_punch_vertical", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical punch recoil for 357 revolver (default: 8.0)");
++ConVar sv_357_recoil_punch_horizontal("sv_357_recoil_punch_horizontal", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Horizontal punch recoil for 357 revolver (default: 2.0)");
++ConVar sv_357_recoil_view_vertical("sv_357_recoil_view_vertical", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical view angle recoil for 357 revolver (default: 1.0)");
++ConVar sv_357_recoil_view_horizontal("sv_357_recoil_view_horizontal", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Horizontal view angle recoil for 357 revolver (default: 1.0)");
++ConVar sv_357_recoil_enable_viewpunch("sv_357_recoil_enable_viewpunch", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable view punch recoil for 357 revolver (0=disabled, 1=enabled)");
++ConVar sv_357_recoil_enable_viewangle("sv_357_recoil_enable_viewangle", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable view angle recoil for 357 revolver (0=disabled, 1=enabled)");
++ConVar sv_357_firerate_delay("sv_357_firerate_delay", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay between shots for 357 revolver (default: 0.75 seconds)");
++// --- Grenade ConVars Section - Paste this block at the top of your weapon_frag.cpp file ---
++ConVar sv_grenade_timer("sv_grenade_timer", "2.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Detonation time for the grenade in seconds. Default is the classic.");
++ConVar sv_grenade_rethrow_delay("sv_grenade_rethrow_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay before you can throw another grenade. No spamming!");
++ConVar sv_grenade_radius("sv_grenade_radius", "4.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Radius of the grenade itself. Bigger means more boom, but also more 'stuck in a doorway' incidents.");
++ConVar sv_grenade_damage_radius("sv_grenade_damage_radius", "250.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Blast damage radius. Go big or go home.");
++ConVar sv_grenade_throw_upward("sv_grenade_throw_upward", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Upward bias for grenade throws (0.0-1.0). Helps clear small obstacles.");
++ConVar sv_grenade_throw_charge_enable("sv_grenade_throw_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the primary throw.");
++ConVar sv_grenade_lob_charge_enable("sv_grenade_lob_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the secondary throw (lob/roll).");
++ConVar sv_grenade_roll_charge_enable("sv_grenade_roll_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for grenade rolls when ducking.");
++ConVar sv_grenade_charge_time("sv_grenade_charge_time", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max charge-up time for all grenade throws in seconds.");
++// HUD ConVars (NOVAS)
++ConVar sv_grenade_throw_charge_hud("sv_grenade_throw_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for primary throw.");
++ConVar sv_grenade_lob_charge_hud("sv_grenade_lob_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for lob throw.");
++ConVar sv_grenade_roll_charge_hud("sv_grenade_roll_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows HUD charge bar for roll throw.");
++ConVar sv_grenade_throw_velocity("sv_grenade_throw_velocity", "1200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default primary throw velocity (no charge).");
++ConVar sv_grenade_lob_velocity("sv_grenade_lob_velocity", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default secondary throw velocity (no charge).");
++ConVar sv_grenade_roll_velocity("sv_grenade_roll_velocity", "700.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default roll velocity. Spin it to win it.");
++ConVar sv_grenade_throw_velocity_min("sv_grenade_throw_velocity_min", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged primary throw.");
++ConVar sv_grenade_throw_velocity_max("sv_grenade_throw_velocity_max", "1200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged primary throw.");
++ConVar sv_grenade_lob_velocity_min("sv_grenade_lob_velocity_min", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged secondary lob.");
++ConVar sv_grenade_lob_velocity_max("sv_grenade_lob_velocity_max", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged secondary lob.");
++ConVar sv_grenade_roll_velocity_min("sv_grenade_roll_velocity_min", "200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged roll.");
++ConVar sv_grenade_roll_velocity_max("sv_grenade_roll_velocity_max", "700.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged roll.");
++ConVar sv_grenade_forward_offset("sv_grenade_forward_offset", "18.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Forward offset for the throw origin.");
++ConVar sv_grenade_right_offset("sv_grenade_right_offset", "8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Rightward offset for the throw origin.");
++ConVar sv_grenade_lob_down_offset("sv_grenade_lob_down_offset", "-8.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Downward offset for the lob throw. 'Aim for the feet' mode.");
++ConVar sv_grenade_throw_angular_base("sv_grenade_throw_angular_base", "600", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base angular impulse for primary throw.");
++ConVar sv_grenade_throw_angular_random("sv_grenade_throw_angular_random", "1200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Random angular impulse for primary throw. Adds some chaotic spin.");
++ConVar sv_grenade_lob_angular_base("sv_grenade_lob_angular_base", "200", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base angular impulse for lob.");
++ConVar sv_grenade_lob_angular_random("sv_grenade_lob_angular_random", "600", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Random angular impulse for lob.");
++ConVar sv_grenade_roll_angular("sv_grenade_roll_angular", "720", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Angular impulse for rolling grenades. Makes it spin like a fidget spinner.");
++// --- End of Grenade ConVars Section ---
++		// Corrigido: Agora usa a ConVar de velocidade padrão
++		// Corrigido: Agora usa a ConVar de velocidade padrão
++		// Corrigido: Agora usa a ConVar de velocidade padrão
++		// Corrigido: Agora usa a ConVar de atraso
++		// Use a ConVar de velocidade padrão para o arremesso
++	// Use ConVars for angular impulse
++	// Use ConVars for angular impulse
++	vecSrc.z += sv_grenade_radius.GetFloat(); // Use a ConVar para a altura do raio
++	vecSrc += (vecFacing * sv_grenade_forward_offset.GetFloat()); // Use a ConVar para o offset frontal
++	AngularImpulse rotSpeed(0, 0, sv_grenade_roll_angular.GetInt()); // Use a ConVar para a velocidade angular
++ConVar sv_physcannon_fast_gather("sv_physcannon_fast_gather", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables faster gathering mode for the physcannon. (0=off, 1=on, 2=instant)");
++ConVar sv_pistol_zoom_enable("sv_pistol_zoom_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable zoom functionality for pistol (0=disabled, 1=enabled)");
++ConVar sv_pistol_zoom_level("sv_pistol_zoom_level", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "FOV level when zoomed with pistol (lower = more zoom)");
++ConVar sv_pistol_autofire_rate("sv_pistol_autofire_rate", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "If > 0, the pistol will auto-fire at this rate (in seconds) when the attack button is held. 0 = disabled.");
++        // Calculate spread vectors from ConVar degrees
++ConVar sv_rpg_missile_ignition_delay("sv_rpg_missile_ignition_delay", ".3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay in seconds before RPG missile ignites after firing (default: 0.3 = original hardcoded value)");
++ConVar sv_rpg_secondary_mode("sv_rpg_secondary_mode", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable secondary mode toggle for RPG (0=disabled, 1=enabled)", true, 0.0f, true, 1.0f);
++ConVar sv_rpg_secondary_missile_velocity("sv_rpg_secondary_missile_velocity", "4000", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Missile velocity when laser is disabled", true, 1.0f, true, 10000.0f);
++ConVar sv_rpg_missile_shotdown("sv_rpg_missile_shotdown", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable or disable the ability to shoot down RPG missiles. 1 = Yes, 0 = No");
++ConVar sv_rpg_missile_kill_credit("sv_rpg_missile_kill_credit", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Who gets kill credit when missile is shot down. 0=Original shooter, 1=Who shot it down");
++ConVar sv_rpg_missile_hitbox_scale("sv_rpg_missile_hitbox_scale", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Scale factor for RPG missile hitbox. Higher = easier to hit", true, 1.0f, true, 50.0f);
++ConVar sv_rpg_weapon_switch("sv_rpg_weapon_switch", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Allow weapon switching while RPG missile is active. 0=Block switching, 1=Allow switching");
++ConVar sv_rpg_missile_shotdown_explode("sv_rpg_missile_shotdown_explode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shot down missiles explode on ground impact. 0=No explosion, 1=Explode normally");
++ConVar sv_rpg_toggle_last_state("sv_rpg_toggle_last_state", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Remember laser toggle state between weapon switches. 0=Always start ON, 1=Remember last state");
++	// Controlar estado inicial do laser baseado na ConVar
++extern ConVar sv_rpg_missile_ignition_delay;
++extern ConVar sv_rpg_secondary_mode;
++extern ConVar sv_rpg_secondary_missile_velocity;
++extern ConVar sv_rpg_missile_shotdown;
++extern ConVar sv_rpg_missile_kill_credit;
++extern ConVar sv_rpg_missile_hitbox_scale;
++extern ConVar sv_rpg_weapon_switch;
++extern ConVar sv_rpg_missile_shotdown_explode;
++ConVar sv_shotgun_pump("sv_shotgun_pump", "1", 0, "Defines the shotgun pump when deploying the shotgun. \	1: Default, 2: No pump, 3: Always pump");
++ConVar sv_slam_throw_charge_enable("sv_slam_throw_charge_enable", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables charge-up for the SLAM satchel throw.");
++ConVar sv_slam_charge_time("sv_slam_charge_time", "2.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max charge-up time for all SLAM throws in seconds.");
++ConVar sv_slam_charge_hud("sv_slam_charge_hud", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shows a charge bar on the HUD if enabled for SLAM.");
++ConVar sv_slam_throw_velocity_min("sv_slam_throw_velocity_min", "200.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum velocity for a charged satchel throw.");
++ConVar sv_slam_throw_velocity_max("sv_slam_throw_velocity_max", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum velocity for a charged satchel throw.");
++ConVar sv_slam_throw_forward_offset("sv_slam_throw_forward_offset", "18.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Forward offset for the SLAM throw origin.");
++ConVar sv_slam_throw_velocity_default("sv_slam_throw_velocity_default", "500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default velocity for satchel throw when charge is disabled ");
++ConVar sv_slam_deploy_delay("sv_slam_deploy_delay", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after deploying SLAM before next action can be taken.");
++ConVar sv_slam_secondary_delay("sv_slam_secondary_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after secondary attack (detonate) before next action.");
++ConVar sv_slam_primary_delay("sv_slam_primary_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay after primary attack (place/throw) before next action.");
++ConVar sv_slam_switch_mode_delay("sv_slam_switch_mode_delay", "0.5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between tripmine/satchel modes.");
++ConVar sv_slam_holster_delay("sv_slam_holster_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when holstering SLAM.");
++ConVar sv_slam_wall_switch_delay("sv_slam_wall_switch_delay", "0.3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay when switching between wall attach and throw modes.");
++ConVar sv_slam_detonate_ready_delay("sv_slam_detonate_ready_delay", "0.2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Delay for detonation explosion after trigger.");
++ConVar sv_slam_hud_update_rate("sv_slam_hud_update_rate", "0.05", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Rate at which charge HUD updates (in seconds).");
++ConVar sv_slam_attachment_range("sv_slam_attachment_range", "42.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for attaching SLAM to surfaces.");
++ConVar sv_slam_throw_vertical_offset("sv_slam_throw_vertical_offset", "24.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Vertical offset for throw origin.");
++ConVar sv_slam_attach_range("sv_slam_attach_range", "128.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for satchel attachment mode.");
++ConVar sv_slam_allow_steal("sv_slam_allow_steal", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Allow players to steal armed SLAMs with +use key");
++ConVar sv_slam_steal_range("sv_slam_steal_range", "100.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Range for stealing SLAMs");
++ConVar sv_slam_steal_announce("sv_slam_steal_announce", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Announce SLAM steals in chat");
++ConVar mp_allow_immediate_slam_detonation("mp_allow_immediate_slam_detonation", "0", FCVAR_NOTIFY, "If enabled, allows a thrown SLAM to be detonated as soon as it is thrown rather than wait for the deploy animation of the detonator to finish");
++//ConVar	sv_footsteps	( "sv_footsteps", "1", FCVAR_NOTIFY | FCVAR_REPLICATED, "Play footstep sound for players" );
++//extern ConVar sv_footsteps;
++//ConVar sv_wpn_sway_pred_legacy( "sv_wpn_sway_pred_legacy", "0", FCVAR_REPLICATED | FCVAR_CHEAT );
++ConVar sv_wpn_sway_pred_legacy( "sv_wpn_sway_pred_legacy", "0", FCVAR_REPLICATED );
++//ConVar sv_wpn_sway_pred_legacy( "sv_wpn_sway_pred_legacy", "1", FCVAR_REPLICATED | FCVAR_CHEAT );
++ConVar sv_wpn_sway_pred_legacy( "sv_wpn_sway_pred_legacy", "1", FCVAR_REPLICATED );
++static ConVar	r_showenvcubemap( "r_showenvcubemap", "0", FCVAR_CHEAT );
++static ConVar	r_eyegloss		( "r_eyegloss", "1", FCVAR_ARCHIVE ); // wet eyes
++static ConVar	r_eyemove		( "r_eyemove", "1", FCVAR_ARCHIVE ); // look around
++static ConVar	r_eyeshift_x	( "r_eyeshift_x", "0", FCVAR_ARCHIVE ); // eye X position
++static ConVar	r_eyeshift_y	( "r_eyeshift_y", "0", FCVAR_ARCHIVE ); // eye Y position
++static ConVar	r_eyeshift_z	( "r_eyeshift_z", "0", FCVAR_ARCHIVE ); // eye Z position
++static ConVar	r_eyesize		( "r_eyesize", "0", FCVAR_ARCHIVE ); // adjustment to iris textures
++static ConVar	mat_softwareskin( "mat_softwareskin", "0", FCVAR_CHEAT );
++static ConVar	r_nohw			( "r_nohw", "0", FCVAR_CHEAT );
++static ConVar	r_nosw			( "r_nosw", "0", FCVAR_CHEAT );
++static ConVar	r_teeth			( "r_teeth", "1" );
++static ConVar	r_drawentities	( "r_drawentities", "1", FCVAR_CHEAT );
++static ConVar	r_flex			( "r_flex", "1" );
++static ConVar	r_eyes			( "r_eyes", "1" );
++static ConVar	r_skin			( "r_skin","0", FCVAR_CHEAT );
++static ConVar	r_maxmodeldecal ( "r_maxmodeldecal", "50" );
++static ConVar	r_modelwireframedecal ( "r_modelwireframedecal", "0", FCVAR_CHEAT );
++static ConVar	mat_normals		( "mat_normals", "0", FCVAR_CHEAT );
++static ConVar	r_eyeglintlodpixels ( "r_eyeglintlodpixels", "0", FCVAR_CHEAT );
++static ConVar	r_rootlod		( "r_rootlod", "0" );
