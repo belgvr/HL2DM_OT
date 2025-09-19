@@ -136,8 +136,8 @@ public:
 	void    CheckChatForReadySignal(CHL2MP_Player* pPlayer, const char* chatmsg);
 	const char* GetChatFormat(bool bTeamOnly, CBasePlayer* pPlayer);
 
-	// NEW: Damage Display System
-	void ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft);
+	// This is the NEW 9-argument version of ShowDamageDisplay
+	void ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount);
 
 	// NEW: Killer Info System   
 	void DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount); // MODIFICADO
@@ -148,7 +148,8 @@ public:
 	bool ShouldShowKillerInfo(CHL2MP_Player* pPlayer);
 	void SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* message);
 	
-	bool WasAirKill(CHL2MP_Player* pVictim, const CTakeDamageInfo& info);
+	bool WasAirKill(CBasePlayer* pVictim, const CTakeDamageInfo& info);
+
 
 
 #endif

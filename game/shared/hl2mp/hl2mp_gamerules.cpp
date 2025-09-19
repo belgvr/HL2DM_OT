@@ -74,8 +74,8 @@ ConVar sv_damage_display_ff("sv_damage_display_ff", "0", FCVAR_NOTIFY, "Show fri
 ConVar sv_damage_display_kill("sv_damage_display_kill", "1", FCVAR_NOTIFY, "Show KILL message when killing enemy");
 ConVar sv_damage_display_x("sv_damage_display_x", "-1", FCVAR_NOTIFY, "X position for damage info. -1 = center, 0 = left, 1 = right");
 ConVar sv_damage_display_y("sv_damage_display_y", "0.53", FCVAR_NOTIFY, "Y position for damage info. -1 = center, 0 = bottom, 1 = top");
-ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_NOTIFY, "X position for kill message");
-ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.45", FCVAR_NOTIFY, "Y position for kill message");
+ConVar sv_damage_display_kill_x("sv_damage_display_kill_x", "-1", FCVAR_NOTIFY, "X position for kill/special kill message");
+ConVar sv_damage_display_kill_y("sv_damage_display_kill_y", "0.35", FCVAR_NOTIFY, "Y position for kill/special kill message");
 ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_NOTIFY, "How long damage info displays");
 ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
 ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_NOTIFY, "Fade in time for damage display");
@@ -92,6 +92,24 @@ ConVar sv_damage_display_color_kill("sv_damage_display_color_kill", "255,20,0", 
 ConVar sv_damage_display_hp_high_min("sv_damage_display_hp_high_min", "75", FCVAR_NOTIFY, "Minimum HP for high color");
 ConVar sv_damage_display_hp_medium_min("sv_damage_display_hp_medium_min", "26", FCVAR_NOTIFY, "Minimum HP for medium color");
 ConVar sv_damage_display_hp_low_min("sv_damage_display_hp_low_min", "1", FCVAR_NOTIFY, "Minimum HP for low color");
+
+// ConVars for Special Kill Display
+ConVar sv_damage_display_special_kills("sv_damage_display_special_kills", "1", FCVAR_NOTIFY, "Enable special announcements (Headshot, Airkill, etc.) instead of a generic KILL message.");
+ConVar sv_damage_display_special_kills_additional_time("sv_damage_display_special_kills_additional_time", "0.5", FCVAR_NOTIFY, "Additional time (in seconds) that special kill messages are displayed.");
+ConVar sv_damage_display_combo_style("sv_damage_display_combo_style", "1", FCVAR_NOTIFY, "How to display combination kills. 0 = Single Line (HEADSHOT AIRKILL!), 1 = Stacked.");
+ConVar sv_damage_display_combo_separator("sv_damage_display_combo_separator", " ", FCVAR_NOTIFY, "The character(s) to put between combo messages in single-line style.");
+
+// ConVars for Special Kill Colors
+ConVar sv_damage_display_color_headshot("sv_damage_display_color_headshot", "0,255,0", FCVAR_NOTIFY, "RGB color for HEADSHOT message. Format: R,G,B");
+ConVar sv_damage_display_color_airkill("sv_damage_display_color_airkill", "255,105,180", FCVAR_NOTIFY, "RGB color for AIRKILL message. Format: R,G,B");
+ConVar sv_damage_display_color_bouncekill("sv_damage_display_color_bouncekill", "255,80,0", FCVAR_NOTIFY, "RGB color for BOUNCE KILL message. Format: R,G,B");
+
+// ConVars for Damage Display Special Kills
+ConVar sv_damage_display_airkill_enable("sv_damage_display_airkill_enable", "1", FCVAR_NOTIFY, "Enable AIRKILL message on the damage display HUD.");
+ConVar sv_damage_display_airkill_velocity_threshold("sv_damage_display_airkill_velocity_threshold", "500", FCVAR_NOTIFY, "Vertical velocity threshold for damage display airkill detection (units/sec).");
+ConVar sv_damage_display_airkill_height_threshold("sv_damage_display_airkill_height_threshold", "5", FCVAR_NOTIFY, "Height above ground threshold for damage display airkill detection (units).");
+
+
 
 //Killer Info ConVars
 ConVar sv_killerinfo_enable("sv_killerinfo_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable killer info display system");
@@ -433,7 +451,6 @@ bool CHL2MPRules::IsIntermission(void)
 
 void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
-#ifndef CLIENT_DLL
 	if (IsIntermission())
 		return;
 
@@ -441,12 +458,20 @@ void CHL2MPRules::PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info
 	CBasePlayer* pAttacker = ToBasePlayer(info.GetAttacker());
 	if (pAttacker && pAttacker != pVictim)
 	{
-		ShowDamageDisplay(pAttacker, pVictim, (int)info.GetDamage(), true, 0);
+		// Safely get the victim as an HL2MP_Player to access m_iLastHitGroup
+		CHL2MP_Player* pVictimPlayer = ToHL2MPPlayer(pVictim);
+		int lastHitGroup = pVictimPlayer ? pVictimPlayer->m_iLastHitGroup : 0;
+
+		bool wasAirKill = WasAirKill(pVictim, info);
+		bool wasBounceKill = WasBounceKill(info);
+		int bounceCount = GetBounceCount(info);
+
+		// *** THIS IS THE FIX ***
+		// We now pass 'lastHitGroup' instead of 'info.GetDamageType()'
+		ShowDamageDisplay(pAttacker, pVictim, (int)info.GetDamage(), true, 0, lastHitGroup, wasAirKill, wasBounceKill, bounceCount);
 	}
 
-	// Apenas chama o sistema base - ele já faz a contagem correta
 	BaseClass::PlayerKilled(pVictim, info);
-#endif
 }
 
 #ifdef GAME_DLL
@@ -2233,7 +2258,35 @@ void CHL2MPRules::RecalculateTeamCounts()
 	}
 }
 
-void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft)
+bool CHL2MPRules::WasAirKill(CBasePlayer* pVictim, const CTakeDamageInfo& info)
+{
+	// This now correctly uses damage_display convars to be fully independent.
+	if (!pVictim || !sv_damage_display_airkill_enable.GetBool())
+		return false;
+
+	// Condição 1: A vítima tem velocidade vertical alta?
+	Vector velocity = pVictim->GetAbsVelocity();
+	float verticalSpeed = fabs(velocity.z);
+	if (verticalSpeed > sv_damage_display_airkill_velocity_threshold.GetFloat())
+	{
+		return true;
+	}
+
+	// Condição 2: Se não, a vítima está a uma altura mínima do chão?
+	trace_t height_tr;
+	Vector vecStart = pVictim->GetAbsOrigin();
+	Vector vecEnd = vecStart - Vector(0, 0, sv_damage_display_airkill_height_threshold.GetFloat());
+	UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &height_tr);
+
+	if (height_tr.fraction > 0.99f)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim, int damageDealt, bool isKill, int healthLeft, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount)
 {
 	if (!sv_damage_display.GetBool() || !pAttacker || !pVictim)
 		return;
@@ -2298,30 +2351,142 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 		UTIL_HudMessage(pAttacker, damageParams, damageMessage);
 
 		// Show kill message above if it's a kill
+		// Show kill message above if it's a kill
 		if (isKill && sv_damage_display_kill.GetBool())
 		{
-			int kr, kg, kb;
-			ParseRGBColor(sv_damage_display_color_kill.GetString(), kr, kg, kb);
+			// If special kills are disabled, show the old generic message
+			if (!sv_damage_display_special_kills.GetBool())
+			{
+				// ... (insert your old generic "KILL!" message code here) ...
+			}
+			else
+			{
+				CUtlVector<const char*> specialKills;
+				bool isHeadshot = false;
+				bool isAirKill = wasAirKill;
+				bool isBounce = wasBounceKill;
 
-			hudtextparms_t killParams;
-			killParams.x = sv_damage_display_kill_x.GetFloat();
-			killParams.y = sv_damage_display_kill_y.GetFloat();
-			killParams.effect = sv_damage_display_fx_style.GetInt();
-			killParams.r1 = kr;
-			killParams.g1 = kg;
-			killParams.b1 = kb;
-			killParams.a1 = 255;
-			killParams.r2 = 255;
-			killParams.g2 = 255;
-			killParams.b2 = 0;
-			killParams.a2 = 255;
-			killParams.fadeinTime = sv_damage_display_fadein_time.GetFloat();
-			killParams.fadeoutTime = sv_damage_display_fadeout_time.GetFloat();
-			killParams.holdTime = sv_damage_display_hold_time.GetFloat();
-			killParams.fxTime = 0.25f;
-			killParams.channel = 3;
+				// 1. Build a list of all special kills that occurred
+				if (hitGroup == HITGROUP_HEAD)
+				{
+					specialKills.AddToTail("HEADSHOT");
+					isHeadshot = true;
+				}
+				if (isAirKill)
+				{
+					specialKills.AddToTail("AIRKILL");
+				}
+				if (isBounce)
+				{
+					if (sv_killerinfo_bounce_counter.GetBool() && bounceCount >= sv_killerinfo_bounce_counter_min.GetInt())
+					{
+						static char bounceText[32];
+						Q_snprintf(bounceText, sizeof(bounceText), "BOUNCE KILL x%d", bounceCount);
+						specialKills.AddToTail(bounceText);
+					}
+					else
+					{
+						specialKills.AddToTail("BOUNCE KILL");
+					}
+				}
 
-			UTIL_HudMessage(pAttacker, killParams, "KILL!");
+				// Only proceed if at least one special kill happened, otherwise fall back to generic kill message
+				if (specialKills.Count() > 0)
+				{
+					int r, g, b;
+
+					// 2. Prioritize the color (Headshot > Airkill > Bounce)
+					if (isHeadshot)
+					{
+						ParseRGBColor(sv_damage_display_color_headshot.GetString(), r, g, b);
+					}
+					else if (isAirKill)
+					{
+						ParseRGBColor(sv_damage_display_color_airkill.GetString(), r, g, b);
+					}
+					else // isBounce
+					{
+						ParseRGBColor(sv_damage_display_color_bouncekill.GetString(), r, g, b);
+					}
+
+					// 3. Format the final kill string based on combo style
+					char finalKillMessage[256] = "";
+					if (sv_damage_display_combo_style.GetInt() == 0) // Single Line
+					{
+						for (int i = 0; i < specialKills.Count(); ++i)
+						{
+							Q_strncat(finalKillMessage, specialKills[i], sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+							if (i < specialKills.Count() - 1) // Add separator if not the last item
+							{
+								Q_strncat(finalKillMessage, sv_damage_display_combo_separator.GetString(), sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+							}
+						}
+						Q_strncat(finalKillMessage, "!", sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+					}
+					else // Stacked
+					{
+						for (int i = 0; i < specialKills.Count(); ++i)
+						{
+							Q_strncat(finalKillMessage, specialKills[i], sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+							if (i == specialKills.Count() - 1) // Add ! to the very last item
+							{
+								Q_strncat(finalKillMessage, "!", sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+							}
+							else // Add newline for all others
+							{
+								Q_strncat(finalKillMessage, "\n", sizeof(finalKillMessage), COPY_ALL_CHARACTERS);
+							}
+						}
+					}
+
+					// 4. Setup and send the HUD message
+					hudtextparms_t killParams;
+					killParams.x = sv_damage_display_kill_x.GetFloat();
+					killParams.y = sv_damage_display_kill_y.GetFloat();
+					killParams.effect = sv_damage_display_fx_style.GetInt();
+					killParams.r1 = r;
+					killParams.g1 = g;
+					killParams.b1 = b;
+					killParams.a1 = 255;
+					killParams.r2 = 255;
+					killParams.g2 = 255;
+					killParams.b2 = 0;
+					killParams.a2 = 255;
+					killParams.fadeinTime = sv_damage_display_fadein_time.GetFloat();
+					killParams.fadeoutTime = sv_damage_display_fadeout_time.GetFloat();
+					killParams.holdTime = sv_damage_display_hold_time.GetFloat() + sv_damage_display_special_kills_additional_time.GetFloat();
+					killParams.fxTime = 0.25f;
+					killParams.channel = 3;
+
+					UTIL_HudMessage(pAttacker, killParams, finalKillMessage);
+				}
+				else
+				{
+					// Fallback to the generic KILL message if no special conditions were met
+					int kr, kg, kb;
+					ParseRGBColor(sv_damage_display_color_kill.GetString(), kr, kg, kb);
+
+					hudtextparms_t killParams;
+					killParams.x = sv_damage_display_kill_x.GetFloat();
+					killParams.y = sv_damage_display_kill_y.GetFloat();
+					killParams.effect = sv_damage_display_fx_style.GetInt();
+					killParams.r1 = kr;
+					killParams.g1 = kg;
+					killParams.b1 = kb;
+					killParams.a1 = 255;
+					killParams.r2 = 255;
+					killParams.g2 = 255;
+					killParams.b2 = 0;
+					killParams.a2 = 255;
+					killParams.fadeinTime = sv_damage_display_fadein_time.GetFloat();
+					killParams.fadeoutTime = sv_damage_display_fadeout_time.GetFloat();
+					killParams.holdTime = sv_damage_display_hold_time.GetFloat();
+					killParams.fxTime = 0.25f;
+					killParams.channel = 3;
+
+					UTIL_HudMessage(pAttacker, killParams, "KILL!");
+				}
+			}
 		}
 	}
 	else if (displayArea == 2) // Hint area

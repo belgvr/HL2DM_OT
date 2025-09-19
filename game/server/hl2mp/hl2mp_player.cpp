@@ -1646,7 +1646,10 @@ int CHL2MP_Player::OnTakeDamage(const CTakeDamageInfo& inputInfo)
 		{
 			int healthAfterDamage = GetHealth() - (int)inputInfo.GetDamage();
 			if (healthAfterDamage < 0) healthAfterDamage = 0;
-			HL2MPRules()->ShowDamageDisplay(pAttacker, this, (int)inputInfo.GetDamage(), false, healthAfterDamage);
+			//HL2MPRules()->ShowDamageDisplay(pAttacker, this, (int)inputInfo.GetDamage(), false, healthAfterDamage);
+			// This is the NEW 9-argument call with dummy data for a non-lethal hit
+			HL2MPRules()->ShowDamageDisplay(pAttacker, this, (int)inputInfo.GetDamage(), false, GetHealth(), 0, false, false, 0);
+
 		}
 	}
 

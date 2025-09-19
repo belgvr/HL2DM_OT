@@ -208,7 +208,7 @@ private:
 	// NEW: Hitsounds System Variables
 	float m_flLastHitSoundTime;     // Time of last hit sound
 	int m_iConsecutiveHits;         // Counter for consecutive hits
-	int m_iLastHitGroup;            // Last hit group for headshot detection
+
 
 public:
 	// NEW: Public accessors for hitsounds system
@@ -216,6 +216,7 @@ public:
 	int GetConsecutiveHits() const { return m_iConsecutiveHits; }
 	int GetLastHitGroup() const { return m_iLastHitGroup; }
 	void SetLastHitGroup(int hitGroup) { m_iLastHitGroup = hitGroup; }
+	int m_iLastHitGroup;            // Last hit group for headshot detection
 };
 
 inline CHL2MP_Player* ToHL2MPPlayer(CBaseEntity* pEntity)
