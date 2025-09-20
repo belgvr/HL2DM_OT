@@ -80,6 +80,7 @@ ConVar sv_damage_display_hold_time("sv_damage_display_hold_time", ".5", FCVAR_GA
 ConVar sv_damage_display_fx_style("sv_damage_display_fx_style", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Effect style: 0/1 = fade, 2 = flash");
 ConVar sv_damage_display_fadein_time("sv_damage_display_fadein_time", "0.025", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade in time for damage display");
 ConVar sv_damage_display_fadeout_time("sv_damage_display_fadeout_time", "0.15", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade out time for damage display");
+ConVar sv_damage_display_show_hp_left_on_kill("sv_damage_display_show_hp_left_on_kill", "0", FCVAR_ARCHIVE, "Shows enemy's remaining health on kill '[0 HP left]' 0 = off, 1 = on");
 
 // Health-based color ConVars
 ConVar sv_damage_display_color_high("sv_damage_display_color_high", "0,255,40", FCVAR_GAMEDLL | FCVAR_NOTIFY, "RGB color for high HP (75-99). Format: R,G,B");
@@ -2295,6 +2296,13 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 	if (damageDealt <= 0)
 		return;
 
+	// << CORREÇÃO DEFINITIVA: Calculamos a vida restante manualmente.
+	// A variável 'healthLeft' que a função recebe é a vida ANTES do dano.
+	// A vida correta é simplesmente Vida Antes - Dano.
+	int vidaCorreta = healthLeft - damageDealt;
+	if (vidaCorreta < 0) vidaCorreta = 0; // Garante que não mostre vida negativa.
+
+
 	// Check friendly fire settings
 	if (!sv_damage_display_ff.GetBool() && IsTeamplay() &&
 		pAttacker->GetTeamNumber() == pVictim->GetTeamNumber())
@@ -2316,15 +2324,16 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 
 		// Determine color based on health left
 		int r, g, b;
-		if (healthLeft >= sv_damage_display_hp_high_min.GetInt())
+		// << CORREÇÃO DEFINITIVA: Usar a 'vidaCorreta' para determinar a cor
+		if (vidaCorreta >= sv_damage_display_hp_high_min.GetInt())
 		{
 			ParseRGBColor(sv_damage_display_color_high.GetString(), r, g, b);
 		}
-		else if (healthLeft >= sv_damage_display_hp_medium_min.GetInt())
+		else if (vidaCorreta >= sv_damage_display_hp_medium_min.GetInt())
 		{
 			ParseRGBColor(sv_damage_display_color_medium.GetString(), r, g, b);
 		}
-		else if (healthLeft >= sv_damage_display_hp_low_min.GetInt())
+		else if (vidaCorreta >= sv_damage_display_hp_low_min.GetInt())
 		{
 			ParseRGBColor(sv_damage_display_color_low.GetString(), r, g, b);
 		}
@@ -2348,10 +2357,18 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 		damageParams.channel = 2;
 
 		char damageMessage[128];
-		Q_snprintf(damageMessage, sizeof(damageMessage), "-%d HP\n[%d HP left]", damageDealt, healthLeft);
+		if (isKill && !sv_damage_display_show_hp_left_on_kill.GetBool())
+		{
+			Q_snprintf(damageMessage, sizeof(damageMessage), "-%d HP", damageDealt);
+		}
+		else
+		{
+			// << CORREÇÃO DEFINITIVA: Usar a 'vidaCorreta' na mensagem
+			Q_snprintf(damageMessage, sizeof(damageMessage), "-%d HP\n[%d HP left]", damageDealt, vidaCorreta);
+		}
+
 		UTIL_HudMessage(pAttacker, damageParams, damageMessage);
 
-		// Show kill message above if it's a kill
 		// Show kill message above if it's a kill
 		if (isKill && sv_damage_display_kill.GetBool())
 		{
@@ -2499,7 +2516,7 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 		}
 		else
 		{
-			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, healthLeft);
+			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, vidaCorreta);
 		}
 		ClientPrint(pAttacker, HUD_PRINTTALK, message);
 	}
@@ -2512,7 +2529,7 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 		}
 		else
 		{
-			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, healthLeft);
+			Q_snprintf(message, sizeof(message), "-%d HP [%d left]", damageDealt, vidaCorreta);
 		}
 		ClientPrint(pAttacker, HUD_PRINTCONSOLE, message);
 	}
