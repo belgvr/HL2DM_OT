@@ -56,16 +56,12 @@ extern int TrainSpeed(int iSpeed, int iMax);
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern ConVar footsteps;
-extern ConVar sv_footsteps;
-
-extern ConVar sv_footsteps_bhop_sound;
-
-
 #if defined(GAME_DLL) && !defined(_XBOX)
 extern ConVar sv_pushaway_max_force;
 extern ConVar sv_pushaway_force;
 extern ConVar sv_turbophysics;
+extern ConVar sv_footsteps;
+extern ConVar footsteps;
 
 class CUsePushFilter : public CTraceFilterEntitiesOnly
 {
@@ -509,14 +505,8 @@ surfacedata_t* CBasePlayer::GetLadderSurface(const Vector& origin)
 #endif
 }
 
-
 void CBasePlayer::UpdateStepSound(surfacedata_t* psurface, const Vector& vecOrigin, const Vector& vecVelocity)
 {
-	// Se está agachado E a CVar não permite som, BLOQUEAR TUDO
-	if ((GetFlags() & FL_DUCKING) && !sv_footsteps_bhop_sound.GetBool())
-		return; // NENHUM som quando agachado
-
-
 	bool bWalking;
 	float fvol;
 	Vector knee;
@@ -545,9 +535,7 @@ void CBasePlayer::UpdateStepSound(surfacedata_t* psurface, const Vector& vecOrig
 	if (GetMoveType() == MOVETYPE_NOCLIP || GetMoveType() == MOVETYPE_OBSERVER)
 		return;
 
-	//if ( !sv_footsteps.GetFloat() )
-	if (!sv_footsteps.GetBool())
-
+	if (!footsteps.GetBool())
 		return;
 
 	speed = VectorLength(vecVelocity);
@@ -681,7 +669,6 @@ void CBasePlayer::UpdateStepSound(surfacedata_t* psurface, const Vector& vecOrig
 //-----------------------------------------------------------------------------
 void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, float fvol, bool force)
 {
-	//if ( gpGlobals->maxClients > 1 && !sv_footsteps.GetFloat() )
 	if (!footsteps.GetBool())
 		return;
 
@@ -711,7 +698,8 @@ void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, floa
 	}
 	else
 	{
-		const char* pSoundName = MoveHelper()->GetSurfaceProps()->GetString(stepSoundName);
+		IPhysicsSurfaceProps* physprops = MoveHelper()->GetSurfaceProps();
+		const char* pSoundName = physprops->GetString(stepSoundName);
 
 		// Give child classes an opportunity to override.
 		pSoundName = GetOverrideStepSound(pSoundName);
@@ -734,7 +722,7 @@ void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, floa
 	// in MP, server removes all players in the vecOrigin's PVS, these players generate the footsteps client side
 	if (gpGlobals->maxClients > 1)
 	{
-		//filter.RemoveRecipientsByPVS( vecOrigin );
+		// filter.RemoveRecipientsByPVS( vecOrigin );
 	}
 #endif
 
@@ -1811,6 +1799,7 @@ float CBasePlayer::GetFOVDistanceAdjustFactor()
 	// If FOV is lower, then we're "zoomed" in and this will give a factor < 1 so apparent LOD distances can be
 	//  shorted accordingly
 	return localFOV / defaultFOV;
+
 }
 
 //-----------------------------------------------------------------------------
@@ -1868,20 +1857,6 @@ void CBasePlayer::SharedSpawn()
 	if (IsLocalPlayer() && haptics)
 		haptics->LocalPlayerReset();
 #endif
-}
-
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CBasePlayer::IsLerpingFOV(void) const
-{
-	// If it's immediate, just do it
-	if (m_Local.m_flFOVRate == 0.0f)
-		return false;
-
-	float deltaTime = (float)(gpGlobals->curtime - m_flFOVTime) / m_Local.m_flFOVRate;
-	return deltaTime < 1.f;
 }
 
 
@@ -2092,7 +2067,6 @@ bool fogparams_t::operator !=(const fogparams_t& other) const
 {
 	if (this->enable != other.enable ||
 		this->blend != other.blend ||
-		this->radial != other.radial ||
 		!VectorsAreEqual(this->dirPrimary, other.dirPrimary, 0.01f) ||
 		this->colorPrimary.Get() != other.colorPrimary.Get() ||
 		this->colorSecondary.Get() != other.colorSecondary.Get() ||
@@ -2110,4 +2084,3 @@ bool fogparams_t::operator !=(const fogparams_t& other) const
 
 	return false;
 }
-

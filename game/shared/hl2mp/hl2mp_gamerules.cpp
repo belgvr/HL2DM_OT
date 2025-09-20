@@ -116,6 +116,7 @@ ConVar sv_damage_display_airkill_height_threshold("sv_damage_display_airkill_hei
 ConVar sv_killerinfo_enable("sv_killerinfo_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable killer info display system");
 ConVar sv_killerinfo_show_weapon("sv_killerinfo_show_weapon", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show weapon used to kill");
 ConVar sv_killerinfo_show_health("sv_killerinfo_show_health", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining health");
+ConVar sv_killerinfo_show_health_negative_values("sv_killerinfo_show_health_negative_values", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show negative health values (overhealed players) for killer's remaining health. 0=disabled, 1=enabled, 2=show as 'DEAD'");
 ConVar sv_killerinfo_show_armor("sv_killerinfo_show_armor", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show killer's remaining armor");
 ConVar sv_killerinfo_show_distance("sv_killerinfo_show_distance", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Show distance to killer");
 ConVar sv_killerinfo_distance_unit("sv_killerinfo_distance_unit", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Distance unit: 0=meters, 1=feet");
@@ -2238,7 +2239,7 @@ void CHL2MPRules::RecalculateTeamCounts()
 	CTeam* pCombine = GetGlobalTeam(TEAM_COMBINE);
 	CTeam* pRebels = GetGlobalTeam(TEAM_REBELS);
 
-	if (pCombine && pRebels)
+	if (pCombine && pRebels) 
 	{
 		for (int i = 1; i <= gpGlobals->maxClients; i++)
 		{
@@ -2547,6 +2548,29 @@ void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKill
 
 	// <<< ESTA PARTE ESTAVA FALTANDO
 	int killerHealth = pKiller->GetHealth();
+	char killerHealthDisplay[16];
+
+	int showNegative = sv_killerinfo_show_health_negative_values.GetInt();
+	if (killerHealth < 0) {
+		if (showNegative == 0) {
+			killerHealth = 0;
+			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+		}
+		else if (showNegative == 1) {
+			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+		}
+		else if (showNegative == 2) {
+			Q_strncpy(killerHealthDisplay, "{#ff0000}DEAD", sizeof(killerHealthDisplay));
+		}
+		else {
+			killerHealth = 0;
+			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+		}
+	}
+	else {
+		Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+	}
+
 	int killerArmor = pKiller->ArmorValue();
 
 	Vector killerPos = pKiller->GetAbsOrigin();

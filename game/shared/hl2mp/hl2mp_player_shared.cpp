@@ -19,9 +19,6 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
 extern ConVar sv_footsteps;
-extern ConVar footsteps;
-ConVar sv_footsteps_permaterial("sv_footsteps_permaterial", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "0 = old single sound footsteps, 1 = per-material footsteps");
-ConVar sv_footsteps_bhop_sound("sv_footsteps_bhop_sound", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Control footstep sounds while crouched - includes walking, jumping, landing, and bunny hopping (0=silent, 1=normal sounds)");
 
 const char* g_ppszPlayerSoundPrefixNames[PLAYER_SOUNDS_MAX] =
 {
@@ -37,20 +34,7 @@ const char* CHL2MP_Player::GetPlayerModelSoundPrefix(void)
 
 void CHL2MP_Player::PrecacheFootStepSounds(void)
 {
-	//int iFootstepSounds = ARRAYSIZE( g_ppszPlayerSoundPrefixNames );
-	//int i;
-
-	//for ( i = 0; i < iFootstepSounds; ++i )
-	//{
-	//	char szFootStepName[128];
-
-	//	Q_snprintf( szFootStepName, sizeof( szFootStepName ), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[i] );
-	//	PrecacheScriptSound( szFootStepName );
-
-	//	Q_snprintf( szFootStepName, sizeof( szFootStepName ), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[i] );
-	//	PrecacheScriptSound( szFootStepName );
-	//}
-	//sv_footsteps.SetValue(0);
+	sv_footsteps.SetValue(0);
 }
 
 //-----------------------------------------------------------------------------
@@ -74,66 +58,7 @@ Vector CHL2MP_Player::GetAttackSpread(CBaseCombatWeapon* pWeapon, CBaseEntity* p
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, float fvol, bool force)
 {
-	if (!footsteps.GetBool())
-		return;
-
-#if defined( CLIENT_DLL )
-	if (!prediction->IsFirstTimePredicted())
-		return;
-#endif
-
-	// BLOQUEAR QUALQUER SOM SE AGACHADO (incluindo landing/impact)
-	if ((GetFlags() & FL_DUCKING) && !sv_footsteps_bhop_sound.GetBool())
-		return;
-
-	// INTERCEPTAR BHOP - agachado E no ar (independente de velocidade)
-	bool isDucking = (GetFlags() & FL_DUCKING) != 0;
-	bool isInAir = (GetFlags() & FL_ONGROUND) == 0;
-
-	if (isDucking && isInAir && !sv_footsteps_bhop_sound.GetBool())
-		return; // Bloquear QUALQUER som durante bhop agachado
-
-	// Se chegou aqui, usar sistema normal
-	if (sv_footsteps_permaterial.GetBool())
-	{
-		BaseClass::PlayStepSound(vecOrigin, psurface, fvol, force);
-	}
-	else
-	{
-		// Use old HL2MP single-sound system
-		if (GetFlags() & FL_DUCKING)
-			return;
-
-		m_Local.m_nStepside = !m_Local.m_nStepside;
-		char szStepSound[128];
-		if (m_Local.m_nStepside)
-		{
-			Q_snprintf(szStepSound, sizeof(szStepSound), "%s.RunFootstepLeft", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType]);
-		}
-		else
-		{
-			Q_snprintf(szStepSound, sizeof(szStepSound), "%s.RunFootstepRight", g_ppszPlayerSoundPrefixNames[m_iPlayerSoundType]);
-		}
-
-		CSoundParameters params;
-		if (GetParametersForSound(szStepSound, params, NULL) == false)
-			return;
-
-		CRecipientFilter filter;
-		filter.AddRecipientsByPAS(vecOrigin);
-		filter.RemoveRecipient(this);
-
-		EmitSound_t ep;
-		ep.m_nChannel = CHAN_BODY;
-		ep.m_pSoundName = params.soundname;
-		ep.m_flVolume = fvol;
-		ep.m_SoundLevel = params.soundlevel;
-		ep.m_nFlags = 0;
-		ep.m_nPitch = params.pitch;
-		ep.m_pOrigin = &vecOrigin;
-
-		EmitSound(filter, entindex(), ep);
-	}
+	BaseClass::PlayStepSound(vecOrigin, psurface, fvol, force);
 }
 
 
@@ -208,6 +133,11 @@ void CPlayerAnimState::ComputePlaybackRate()
 
 		// Note this gets set back to 1.0 if sequence changes due to ResetSequenceInfo below
 		GetOuter()->SetPlaybackRate((speed * flFactor) / maxspeed);
+
+		if (GetOuter()->m_flPlaybackRate > 11.0f)
+		{
+			GetOuter()->SetPlaybackRate(11.0f);
+		}
 
 		// BUG BUG:
 		// This stuff really should be m_flPlaybackRate = speed / m_flGroundSpeed
