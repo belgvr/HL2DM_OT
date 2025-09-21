@@ -19,6 +19,9 @@
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
 extern ConVar sv_footsteps;
+ConVar sv_footsteps_bhop_sound("sv_footsteps_bhop_sound", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Control footstep sounds while crouched and jumping (0=silent, 1=normal sounds)");
+ConVar sv_footsteps_crouched_walk_sound("sv_footsteps_crouched_walk_sound", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Control footstep sounds while crouching and walking on ground (0=silent, 1=normal sounds)");
+
 
 const char* g_ppszPlayerSoundPrefixNames[PLAYER_SOUNDS_MAX] =
 {

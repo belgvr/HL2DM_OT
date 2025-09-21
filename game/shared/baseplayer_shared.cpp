@@ -62,6 +62,8 @@ extern ConVar sv_pushaway_force;
 extern ConVar sv_turbophysics;
 extern ConVar sv_footsteps;
 extern ConVar footsteps;
+extern ConVar sv_footsteps_bhop_sound;
+extern ConVar sv_footsteps_crouched_walk_sound;
 
 class CUsePushFilter : public CTraceFilterEntitiesOnly
 {
@@ -538,6 +540,18 @@ void CBasePlayer::UpdateStepSound(surfacedata_t* psurface, const Vector& vecOrig
 	if (!footsteps.GetBool())
 		return;
 
+	// Verificações específicas para movimento agachado
+	if (GetFlags() & FL_DUCKING)
+	{
+		bool isInAir = !(GetFlags() & FL_ONGROUND);
+
+		if (isInAir && !sv_footsteps_bhop_sound.GetBool())
+			return; // Bloquear bhop sound (agachado no ar)
+
+		if (!isInAir && !sv_footsteps_crouched_walk_sound.GetBool())
+			return; // Bloquear crouch walk sound (agachado no chão)
+	}
+
 	speed = VectorLength(vecVelocity);
 	float groundspeed = Vector2DLength(vecVelocity.AsVector2D());
 
@@ -559,7 +573,6 @@ void CBasePlayer::UpdateStepSound(surfacedata_t* psurface, const Vector& vecOrig
 
 	// To hear step sounds you must be either on a ladder or moving along the ground AND
 	// You must be moving fast enough
-
 	if (!moving_fast_enough || !(fLadder || (onground && movingalongground)))
 		return;
 
@@ -672,6 +685,10 @@ void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, floa
 	if (!footsteps.GetBool())
 		return;
 
+	// VERIFICAÇÃO ADICIONAL PARA BHOP - bloqueia qualquer som de footstep quando agachado
+	if ((GetFlags() & FL_DUCKING) && !sv_footsteps_bhop_sound.GetBool())
+		return;
+
 #if defined( CLIENT_DLL )
 	// during prediction play footstep sounds only once
 	if (prediction->InPrediction() && !prediction->IsFirstTimePredicted())
@@ -689,7 +706,6 @@ void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, floa
 	m_Local.m_nStepside = !nSide;
 
 	CSoundParameters params;
-
 	Assert(nSide == 0 || nSide == 1);
 
 	if (m_StepSoundCache[nSide].m_usSoundNameIndex == stepSoundName)
@@ -700,13 +716,10 @@ void CBasePlayer::PlayStepSound(Vector& vecOrigin, surfacedata_t* psurface, floa
 	{
 		IPhysicsSurfaceProps* physprops = MoveHelper()->GetSurfaceProps();
 		const char* pSoundName = physprops->GetString(stepSoundName);
-
 		// Give child classes an opportunity to override.
 		pSoundName = GetOverrideStepSound(pSoundName);
-
 		if (!CBaseEntity::GetParametersForSound(pSoundName, params, NULL))
 			return;
-
 		// Only cache if there's one option.  Otherwise we'd never here any other sounds
 		if (params.count == 1)
 		{
