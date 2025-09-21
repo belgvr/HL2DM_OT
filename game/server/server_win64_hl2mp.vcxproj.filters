@@ -2036,6 +2036,9 @@
     <ClInclude Include="spawnweapons_manager.h">
       <Filter>Source Files\HL2MP</Filter>
     </ClInclude>
+    <ClInclude Include="hl2mp_savescores.h">
+      <Filter>Source Files\HL2MP</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gamedll_replay.cpp">
@@ -3920,6 +3923,9 @@
       <Filter>Tools Framework</Filter>
     </ClCompile>
     <ClCompile Include="spawnweapons_manager.cpp">
+      <Filter>Source Files\HL2MP</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp_savescores.cpp">
       <Filter>Source Files\HL2MP</Filter>
     </ClCompile>
   </ItemGroup>

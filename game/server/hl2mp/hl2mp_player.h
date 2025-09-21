@@ -21,6 +21,7 @@ class CHL2MP_Player;
 #include "utldict.h"
 
 #include "spawnweapons_manager.h"
+#include "hl2mp_savescores.h" 
 
 //=============================================================================
 // >> HL2MP_Player

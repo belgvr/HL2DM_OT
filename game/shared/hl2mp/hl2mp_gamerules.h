@@ -2,8 +2,8 @@
 //
 // Purpose: 
 //
-// $Workfile:      $
-// $Date:          $
+// $Workfile:     $
+// $Date:         $
 //
 //-----------------------------------------------------------------------------
 // $Log: $
@@ -18,6 +18,8 @@
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
 #include "gamevars_shared.h"
+
+#include "hl2mp_savescores.h"
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
@@ -147,7 +149,7 @@ public:
 
 	bool ShouldShowKillerInfo(CHL2MP_Player* pPlayer);
 	void SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* message);
-	
+
 	bool WasAirKill(CBasePlayer* pVictim, const CTakeDamageInfo& info);
 
 
@@ -156,12 +158,13 @@ public:
 
 	bool IsOfficialMap(void);
 
+	// --- FUNÇÕES DE CICLO DE VIDA DO JOGADOR ---
 	virtual void ClientDisconnected(edict_t* pClient);
+	virtual void PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info);
+	virtual void PlayerSpawn(CBasePlayer* pPlayer); // <<< ADICIONADO AQUI
 
 	bool CheckGameOver(void);
 	bool IsIntermission(void);
-
-	void PlayerKilled(CBasePlayer* pVictim, const CTakeDamageInfo& info);
 
 	bool	IsTeamplay(void) { return m_bTeamPlayEnabled; }
 	void	CheckAllPlayersReady(void);
@@ -193,6 +196,7 @@ public:
 	void RemoveAllPlayersEquipment();
 
 	virtual void LevelInitPostEntity() override;
+	virtual void LevelShutdown(void);
 #endif
 
 private:
@@ -240,10 +244,10 @@ extern int g_votetime;
 extern int g_timetortv;
 extern bool g_rtvbooted;
 
-extern ConVar sv_killerinfo_airkill_velocity_threshold; 
+extern ConVar sv_killerinfo_airkill_velocity_threshold;
 extern ConVar sv_killerinfo_airkill_height_threshold;
 extern ConVar sv_killerinfo_bouncekill_enable;
-extern ConVar sv_killerinfo_bounce_counter; 
+extern ConVar sv_killerinfo_bounce_counter;
 
 // Map voting utility
 extern void StartMapVote();

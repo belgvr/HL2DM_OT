@@ -6,6 +6,9 @@
 //=============================================================================//
 #include "cbase.h"
 #include "hl2mp_gamerules.h"
+
+#include "hl2mp_savescores.h" 
+
 #include "viewport_panel_names.h"
 #include "gameeventdefs.h"
 #include <KeyValues.h>
@@ -1484,6 +1487,7 @@ void CHL2MPRules::ClientDisconnected(edict_t* pClient)
 	// Msg( "CLIENT DISCONNECTED, REMOVING FROM TEAM.\n" );
 
 	CBasePlayer* pPlayer = (CBasePlayer*)CBaseEntity::Instance(pClient);
+	CSaveScores::SavePlayerScore(pPlayer);
 	if (pPlayer)
 	{
 		FireTargets("game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0);
@@ -2723,12 +2727,52 @@ int CHL2MPRules::GetBounceCount(const CTakeDamageInfo& info)
 	return 0;
 }
 
+void CHL2MPRules::LevelShutdown(void)
+{
+	// Desliga nosso sistema de SaveScores e limpa os arquivos
+	// CORREÇÃO: Usar o nome da classe CSaveScores:: e a função CleanupScoreFiles()
+	CSaveScores::CleanupScoreFiles();
+
+	BaseClass::LevelShutdown();
+}
+
 void CHL2MPRules::LevelInitPostEntity()
 {
 	BaseClass::LevelInitPostEntity();
+	CSaveScores::Init();
 
 	if (g_pSpawnWeaponsManager)
 	{
 		g_pSpawnWeaponsManager->LevelInit();
+	}
+}
+
+void CHL2MPRules::PlayerSpawn(CBasePlayer* pPlayer)
+{
+	BaseClass::PlayerSpawn(pPlayer); // O jogo reseta o score para 0 aqui
+
+	int restoredKills = 0;
+	int restoredDeaths = 0;
+
+	// Pede os dados para o nosso sistema de scores
+	if (CSaveScores::LoadPlayerScoreData(pPlayer, restoredKills, restoredDeaths))
+	{
+		// =======================================================================
+		// ESTA É A VERSÃO CORRETA QUE USA O TRUQUE
+		// =======================================================================
+
+		// Se houver kills para restaurar (positivos OU negativos)...
+		if (restoredKills != 0)
+		{
+			// ...usamos a mesma função para somar ou subtrair, passando o valor total.
+			// Se restoredKills for -2, a função vai somar -2, efetivamente tirando 2 kills.
+			pPlayer->IncrementFragCount(restoredKills);
+		}
+
+		// Fazemos o mesmo para as mortes.
+		if (restoredDeaths != 0)
+		{
+			pPlayer->IncrementDeathCount(restoredDeaths);
+		}
 	}
 }

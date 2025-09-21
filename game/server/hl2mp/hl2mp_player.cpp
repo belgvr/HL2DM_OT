@@ -39,6 +39,7 @@
 #include "admin/hl2mp_serveradmin.h"
 
 #include "spawnweapons_manager.h"
+#include "hl2mp_savescores.h"
 
 
 
@@ -1392,6 +1393,8 @@ void CHL2MP_Player::SendFOVCommand(int fov)
 
 bool CHL2MP_Player::ClientCommand(const CCommand& args)
 {
+
+	// Se não for o nosso comando de chat, a função continua a checar seus comandos originais.
 	if (FStrEq(args[0], "spectate"))
 	{
 		if (ShouldRunRateLimitedCommand(args))
@@ -1418,6 +1421,7 @@ bool CHL2MP_Player::ClientCommand(const CCommand& args)
 		return true;
 	}
 
+	// Se nenhum dos comandos acima for reconhecido, passa o comando para a classe base.
 	return BaseClass::ClientCommand(args);
 }
 
@@ -1877,17 +1881,35 @@ void CHL2MP_Player::SetReady(bool bReady)
 	m_bReady = bReady;
 }
 
+// Em hl2mp_player.cpp
 void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 {
 	CHL2MP_Admin::CheckChatText(p, bufsize);
 
 	// Check for FOV command
-	// Check for FOV command
 	if (Q_strnicmp(p, "!fov", 4) == 0)
 	{
 		HandleFOVCommand(p);
+		// Adicionado return para consistência, embora HandleFOVCommand possa já fazer isso.
+		return;
+	}
+	// Adiciona a checagem para o comando de reset de score
+	else if (FStrEq(p, "!rs") || FStrEq(p, "!resetscores"))
+	{
+		ResetFragCount();
+		ResetDeathCount();
+
+		const char* pResetMsg = CSaveScores::GetResetMessage();
+		char szFormattedMessage[128];
+		UTIL_FormatColors(pResetMsg, szFormattedMessage, sizeof(szFormattedMessage));
+		ClientPrint(this, HUD_PRINTTALK, szFormattedMessage);
+
+		// "Engole" o comando e SAI da função
+		p[0] = 0;
+		return; // <<< ESTA É A CORREÇÃO CRUCIAL
 	}
 
+	// Se nenhum comando foi executado, o resto do código roda normalmente.
 	//Look for escape sequences and replace
 	char* buf = new char[bufsize];
 	int pos = 0;
@@ -2375,4 +2397,4 @@ void CHL2MP_Player::ApplySpawnLoadoutThink()
 	{
 		g_pSpawnWeaponsManager->ApplyPlayerLoadout(this);
 	}
-}
+}	

@@ -164,6 +164,7 @@ C:\HL2DM_OT\src\game\server\func_dust.cpp;C:\HL2DM_OT\src\game\server\Release_mo
 C:\HL2DM_OT\src\game\shared\func_ladder.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\func_ladder.obj
 C:\HL2DM_OT\src\game\server\func_ladder_endpoint.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\func_ladder_endpoint.obj
 C:\HL2DM_OT\src\game\server\func_lod.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\func_lod.obj
+C:\HL2DM_OT\src\game\server\hl2mp_savescores.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\hl2mp_savescores.obj
 C:\HL2DM_OT\src\game\server\hl2\Func_Monitor.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\Func_Monitor.obj
 C:\HL2DM_OT\src\game\server\func_movelinear.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\func_movelinear.obj
 C:\HL2DM_OT\src\game\server\func_occluder.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\func_occluder.obj
