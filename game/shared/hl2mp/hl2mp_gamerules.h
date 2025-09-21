@@ -197,6 +197,7 @@ public:
 
 	virtual void LevelInitPostEntity() override;
 	virtual void LevelShutdown(void);
+	virtual void LevelShutdownPreEntity() override;
 #endif
 
 private:

@@ -2776,3 +2776,10 @@ void CHL2MPRules::PlayerSpawn(CBasePlayer* pPlayer)
 		}
 	}
 }
+
+void CHL2MPRules::LevelShutdownPreEntity()
+{
+	CSaveScores::SaveAllPlayersBeforeMapChange();
+	CSaveScores::CleanupScoreFiles();
+	BaseClass::LevelShutdownPreEntity();
+}

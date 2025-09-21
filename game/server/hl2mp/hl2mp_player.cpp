@@ -1894,20 +1894,28 @@ void CHL2MP_Player::CheckChatText(char* p, int bufsize)
 		return;
 	}
 	// Adiciona a checagem para o comando de reset de score
-	else if (FStrEq(p, "!rs") || FStrEq(p, "!resetscores"))
+	else if (FStrEq(p, "!rs") || FStrEq(p, "!resetscore"))
 	{
+		if (FragCount() == 0 && DeathCount() == 0)
+		{
+			//const char* pAlreadyZeroMsg = "{#ffffff}Your score is already {#00ff00}0/0{#ffffff}!";
+			//char szFormattedMsg[128];
+			//UTIL_FormatColors(pAlreadyZeroMsg, szFormattedMsg, sizeof(szFormattedMsg));
+			//ClientPrint(this, HUD_PRINTTALK, szFormattedMsg);
+			return;
+		}
+
 		ResetFragCount();
 		ResetDeathCount();
 
-		const char* pResetMsg = CSaveScores::GetResetMessage();
-		char szFormattedMessage[128];
-		UTIL_FormatColors(pResetMsg, szFormattedMessage, sizeof(szFormattedMessage));
-		ClientPrint(this, HUD_PRINTTALK, szFormattedMessage);
+		const char* pResetMsg = "{#ff0000}>	{#ffffff}Your score has been {#00ff00}reset{#ffffff}.";
+		char szFormattedReset[128];
+		UTIL_FormatColors(pResetMsg, szFormattedReset, sizeof(szFormattedReset));
+		ClientPrint(this, HUD_PRINTTALK, szFormattedReset);
 
-		// "Engole" o comando e SAI da função
-		p[0] = 0;
-		return; // <<< ESTA É A CORREÇÃO CRUCIAL
+		return;
 	}
+
 
 	// Se nenhum comando foi executado, o resto do código roda normalmente.
 	//Look for escape sequences and replace
