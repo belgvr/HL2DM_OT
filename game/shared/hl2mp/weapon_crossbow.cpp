@@ -502,6 +502,7 @@ public:
 	CWeaponCrossbow( void );
 	
 	virtual void	Precache( void );
+	virtual void	DefaultTouch(CBaseEntity* pOther);
 	virtual void	PrimaryAttack( void );
 	virtual void	SecondaryAttack( void );
 	virtual bool	Deploy( void );
@@ -1086,4 +1087,39 @@ bool CWeaponCrossbow::SendWeaponAnim( int iActivity )
 
 	//For now, just set the ideal activity and be done with it
 	return BaseClass::SendWeaponAnim( newActivity );
+}
+// Adicione este bloco de código inteiro em weapon_crossbow.cpp
+
+void CWeaponCrossbow::DefaultTouch(CBaseEntity* pOther)
+{
+	// Converte a entidade que tocou na arma para um jogador
+	CBasePlayer* pPlayer = ToBasePlayer(pOther);
+	if (!pPlayer)
+	{
+		// Se não for um jogador, não faz nada
+		return;
+	}
+
+	// Verifica se o jogador já possui uma crossbow
+	if (pPlayer->Weapon_OwnsThisType(GetClassname()))
+	{
+		// Se ele já tem, não damos a arma, apenas a munição.
+		// Esta é a nossa lógica customizada que ignora o pente da arma no chão.
+
+		// Damos uma quantidade fixa de flechas (ex: 5)
+		if (pPlayer->GiveAmmo(5, m_iPrimaryAmmoType))
+		{
+			// Toca o som de pegar munição
+			pPlayer->EmitSound("BaseCombatWeapon.AmmoPickup");
+
+			// Remove a arma do chão
+			UTIL_Remove(this);
+		}
+	}
+	else
+	{
+		// Se o jogador não tem uma crossbow, deixamos a lógica padrão do jogo
+		// decidir se ele pode ou não pegar a arma.
+		BaseClass::DefaultTouch(pOther);
+	}
 }
