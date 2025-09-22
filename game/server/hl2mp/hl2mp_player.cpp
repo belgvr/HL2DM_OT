@@ -2209,10 +2209,6 @@ bool CHL2MP_Player::LoadPlayerSettings()
 
 void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 {
-	if (g_pSpawnWeaponsManager)
-	{
-		g_pSpawnWeaponsManager->OnPlayerDeath(this);
-	}
 	// ====================================================================================
 	// DETECÇÃO DE AIRKILL (VERSÃO FINAL E SIMPLIFICADA)
 	// ====================================================================================
@@ -2252,6 +2248,7 @@ void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 	CreateRagdollEntity();
 	DetonateTripmines();
 
+	// ESTA LINHA AGORA VOLTA A SER A ÚNICA RESPONSÁVEL PELO DROP DE ARMAS
 	BaseClass::Event_Killed(subinfo);
 
 	if (info.GetDamageType() & DMG_DISSOLVE)
