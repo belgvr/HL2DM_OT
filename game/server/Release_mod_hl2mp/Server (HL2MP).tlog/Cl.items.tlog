@@ -324,7 +324,6 @@ C:\HL2DM_OT\src\game\shared\soundenvelope.cpp;C:\HL2DM_OT\src\game\server\Releas
 C:\HL2DM_OT\src\public\SoundParametersInternal.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\SoundParametersInternal.obj
 C:\HL2DM_OT\src\game\server\soundscape.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\soundscape.obj
 C:\HL2DM_OT\src\game\server\soundscape_system.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\soundscape_system.obj
-C:\HL2DM_OT\src\game\server\spawnweapons_manager.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\spawnweapons_manager.obj
 C:\HL2DM_OT\src\game\server\spotlightend.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\spotlightend.obj
 C:\HL2DM_OT\src\game\shared\Sprite.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\Sprite.obj
 C:\HL2DM_OT\src\game\server\sprite_perfmonitor.cpp;C:\HL2DM_OT\src\game\server\Release_mod_hl2mp\sprite_perfmonitor.obj

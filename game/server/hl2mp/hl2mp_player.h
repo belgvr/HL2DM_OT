@@ -20,7 +20,6 @@ class CHL2MP_Player;
 #include "hl2mp_gamerules.h"
 #include "utldict.h"
 
-#include "spawnweapons_manager.h"
 #include "hl2mp_savescores.h" 
 
 //=============================================================================
@@ -110,6 +109,9 @@ public:
 	void CreateRagdollEntity(void);
 	void GiveAllItems(void);
 	void GiveDefaultItems(void);
+
+	void GiveCustomItems(void);
+
 
 	void NoteWeaponFired(void);
 

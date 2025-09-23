@@ -1,4 +1,4 @@
-//2
+//
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose:		Player for HL2.
@@ -38,10 +38,9 @@
 #include "filesystem.h"
 #include "admin/hl2mp_serveradmin.h"
 
-#include "spawnweapons_manager.h"
 #include "hl2mp_savescores.h"
 
-
+KeyValues* g_pSpawnLoadoutsKV = nullptr;
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
@@ -88,6 +87,9 @@ ConVar sv_fov_min("sv_fov_min", "75", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum FOV
 ConVar sv_fov_max("sv_fov_max", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Maximum FOV value players can set.", true, 90.0f, true, 170.0f);
 ConVar sv_fov_default("sv_fov_default", "90", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Default FOV value for new players.", true, 60.0f, true, 170.0f);
 
+ConVar sv_spawnweapons_enable("sv_spawnweapons_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY,"Enable/Disable the custom spawn loadouts system.");
+
+ConVar sv_spawnweapons_file("sv_spawnweapons_file", "cfg/utils/spawn_weapons/spawn_loadouts.txt", FCVAR_GAMEDLL | FCVAR_NOTIFY,"Path to the master spawn loadouts configuration file.");
 
 extern ConVar sv_killerinfo_airkill_enable;
 extern ConVar sv_killerinfo_bouncekill_enable;
@@ -194,6 +196,28 @@ const char* g_ppszRandomCombineModels[] =
 #define HL2MPPLAYER_PHYSDAMAGE_SCALE 4.0f
 
 #pragma warning( disable : 4355 )
+
+
+void LoadSpawnLoadoutsFile()
+{
+	if (g_pSpawnLoadoutsKV)
+	{
+		g_pSpawnLoadoutsKV->deleteThis();
+		g_pSpawnLoadoutsKV = nullptr;
+	}
+
+	g_pSpawnLoadoutsKV = new KeyValues("SpawnLoadoutGroups");
+	if (g_pSpawnLoadoutsKV->LoadFromFile(filesystem, sv_spawnweapons_file.GetString(), "GAME"))
+	{
+		Msg("[SpawnWeapons] Master loadout config loaded from %s\n", sv_spawnweapons_file.GetString());
+	}
+	else
+	{
+		Warning("[SpawnWeapons] FAILED to load master loadout config: %s\n", sv_spawnweapons_file.GetString());
+		g_pSpawnLoadoutsKV->deleteThis();
+		g_pSpawnLoadoutsKV = nullptr;
+	}
+}
 
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState(this)
 {
@@ -428,31 +452,27 @@ void CHL2MP_Player::GiveAllItems(void)
 
 }
 
+// EM hl2mp_player.cpp
+
 void CHL2MP_Player::GiveDefaultItems(void)
 {
 	EquipSuit();
 
+	// Restaurei as munições e armas padrão aqui
 	CBasePlayer::GiveAmmo(255, "Pistol");
 	CBasePlayer::GiveAmmo(45, "SMG1");
 	CBasePlayer::GiveAmmo(1, "grenade");
 	CBasePlayer::GiveAmmo(6, "Buckshot");
 	CBasePlayer::GiveAmmo(6, "357");
 
-	const char* iModelName = NULL;
-	iModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
-
 	if (HL2MPRules()->IsTeamplay() == false)
 	{
-		if (Q_stristr(iModelName, "combine"))
-			//	if ( GetPlayerModelType() == PLAYER_SOUNDS_METROPOLICE || GetPlayerModelType() == PLAYER_SOUNDS_COMBINESOLDIER 
+		// Lógica de DM para crowbar/stunstick
+		const char* iModelName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_playermodel");
+		if (Q_stristr(iModelName, "combine") || Q_stristr(iModelName, "police"))
 		{
 			GiveNamedItem("weapon_stunstick");
 		}
-		else if (Q_stristr(iModelName, "police"))
-		{
-			GiveNamedItem("weapon_stunstick");
-		}
-		//else if ( GetPlayerModelType() == PLAYER_SOUNDS_CITIZEN )
 		else if (Q_stristr(iModelName, "models/human"))
 		{
 			GiveNamedItem("weapon_crowbar");
@@ -460,6 +480,7 @@ void CHL2MP_Player::GiveDefaultItems(void)
 	}
 	else
 	{
+		// Lógica de Teamplay para crowbar/stunstick
 		if (GetTeamNumber() == TEAM_COMBINE) {
 			GiveNamedItem("weapon_stunstick");
 		}
@@ -468,11 +489,13 @@ void CHL2MP_Player::GiveDefaultItems(void)
 		}
 	}
 
+	// Dá as armas padrão
 	GiveNamedItem("weapon_pistol");
 	GiveNamedItem("weapon_smg1");
 	GiveNamedItem("weapon_frag");
 	GiveNamedItem("weapon_physcannon");
 
+	// Pega a arma default do jogador (cl_defaultweapon)
 	const char* szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
 
 	CBaseCombatWeapon* pDefaultWeapon = Weapon_OwnsThisType(szDefaultWeaponName);
@@ -545,21 +568,20 @@ void CHL2MP_Player::DelayedLoadPlayerSettings()
 	LoadPlayerSettings();
 }
 
-void CHL2MP_Player::Spawn(void)
+// EM hl2mp_player.cpp
+
+// EM hl2mp_player.cpp
+
+void CHL2MP_Player::Spawn()
 {
-	//Msg("CHL2MP_Player::Spawn called - footstep system loaded\n");
-	//BaseClass::Spawn();
-
-	// m_flNextModelChangeTime = 0.0f;
-	// m_flNextTeamChangeTime = 0.0f;
-
 	m_flLastHitSoundTime = 0.0f;
 	m_iConsecutiveHits = 0;
 	m_iLastHitGroup = 0;
 
 	PickDefaultSpawnTeam();
 
-	BaseClass::Spawn();
+	// Inicializa o jogador SEM chamar BaseClass que dá armas automáticas
+	CHL2_Player::Spawn();  // Chama apenas a inicialização básica
 
 	SetContextThink(&CHL2MP_Player::DelayedLoadPlayerSettings, gpGlobals->curtime + 0.1f, "LoadPlayerSettingsContext");
 
@@ -570,11 +592,33 @@ void CHL2MP_Player::Spawn(void)
 	{
 		pl.deadflag = false;
 		RemoveSolidFlags(FSOLID_NOT_SOLID);
-
 		RemoveEffects(EF_NODRAW);
-
 		SetAllowPickupWeaponThroughObstacle(true);
-		GiveDefaultItems();
+
+		// LÓGICA LIMPA: só chama uma função ou outra
+		if (sv_spawnweapons_enable.GetBool())
+		{
+			// Tenta carregar custom, se falhar usa default
+			if (!g_pSpawnLoadoutsKV)
+			{
+				LoadSpawnLoadoutsFile();
+			}
+
+			if (g_pSpawnLoadoutsKV)
+			{
+				GiveCustomItems();
+			}
+			else
+			{
+				// Arquivo não carregou, fallback para default
+				GiveDefaultItems();
+			}
+		}
+		else
+		{
+			GiveDefaultItems();
+		}
+
 		SetAllowPickupWeaponThroughObstacle(false);
 	}
 
@@ -582,11 +626,8 @@ void CHL2MP_Player::Spawn(void)
 	ResetAnimation();
 
 	m_nRenderFX = kRenderNormal;
-
 	m_Local.m_iHideHUD = 0;
-
-	AddFlag(FL_ONGROUND); // set the player on the ground at the start of the round.
-
+	AddFlag(FL_ONGROUND);
 	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
 
 	if (HL2MPRules()->IsIntermission())
@@ -599,18 +640,11 @@ void CHL2MP_Player::Spawn(void)
 	}
 
 	m_iSpawnInterpCounter = (m_iSpawnInterpCounter + 1) % 8;
-
 	m_Local.m_bDucked = false;
-
 	SetPlayerUnderwater(false);
-
 	m_bReady = false;
-	if (g_pSpawnWeaponsManager && sv_spawnweapons_enable.GetBool())
-	{
-		// Small delay to ensure player is fully initialized
-		SetContextThink(&CHL2MP_Player::ApplySpawnLoadoutThink, gpGlobals->curtime + 0.1f, "SpawnLoadout");
-	}
 }
+
 
 bool CHL2MP_Player::ValidatePlayerModel(const char* pModel)
 {
@@ -2207,8 +2241,25 @@ bool CHL2MP_Player::LoadPlayerSettings()
 	return true;
 }
 
+// EM hl2mp_player.cpp
+
 void CHL2MP_Player::Event_Killed(const CTakeDamageInfo& info)
 {
+	// ====================================================================================
+	// ---> INÍCIO DA CORREÇÃO PARA O VIEWMODEL <---
+	// ====================================================================================
+	// Pega o viewmodel (a arma em primeira pessoa)
+	CBaseViewModel* vm = GetViewModel();
+	if (vm)
+	{
+		// Adiciona o efeito EF_NODRAW, que o torna invisível instantaneamente.
+		vm->AddEffects(EF_NODRAW);
+	}
+	// ====================================================================================
+	// ---> FIM DA CORREÇÃO <---
+	// ====================================================================================
+
+
 	// ====================================================================================
 	// DETECÇÃO DE AIRKILL (VERSÃO FINAL E SIMPLIFICADA)
 	// ====================================================================================
@@ -2396,10 +2447,179 @@ void CHL2MP_Player::ApplyFOVChange()
 	engine->ClientCommand(edict(), fovCommand);
 }
 
-void CHL2MP_Player::ApplySpawnLoadoutThink()
+CON_COMMAND(sv_spawnweapons_reload, "Reloads the master spawn loadouts configuration file.")
 {
-	if (g_pSpawnWeaponsManager)
+	LoadSpawnLoadoutsFile();
+}
+
+void CHL2MP_Player::GiveCustomItems(void)
+{
+	if (!g_pSpawnLoadoutsKV)
 	{
-		g_pSpawnWeaponsManager->ApplyPlayerLoadout(this);
+		LoadSpawnLoadoutsFile();
+		if (!g_pSpawnLoadoutsKV)
+		{
+			Warning("[SpawnWeapons] Loadouts not loaded. Giving default items.\n");
+			GiveDefaultItems();
+			return;
+		}
 	}
-}	
+
+	const char* mapName = gpGlobals->mapname.ToCStr();
+	KeyValues* pFinalWeaponsSection = nullptr;
+
+	// Procurar grupo específico do mapa (não incluir __DEFAULT__)
+	FOR_EACH_SUBKEY(g_pSpawnLoadoutsKV, pLoadoutGroup)
+	{
+		const char* pGroupName = pLoadoutGroup->GetName();
+		if (FStrEq(pGroupName, "__DEFAULT__"))
+			continue;
+
+		KeyValues* pMapsSection = pLoadoutGroup->FindKey("maps");
+		if (pMapsSection && pMapsSection->FindKey(mapName))
+		{
+			pFinalWeaponsSection = pLoadoutGroup->FindKey("weapons");
+			break;
+		}
+	}
+
+	// Se não encontrou grupo específico, usar __DEFAULT__
+	if (!pFinalWeaponsSection)
+	{
+		KeyValues* pDefaultGroup = g_pSpawnLoadoutsKV->FindKey("__DEFAULT__");
+		if (pDefaultGroup)
+		{
+			pFinalWeaponsSection = pDefaultGroup->FindKey("weapons");
+		}
+	}
+
+	if (!pFinalWeaponsSection)
+	{
+		Warning("[SpawnWeapons] No weapons section found. Giving default items.\n");
+		GiveDefaultItems();
+		return;
+	}
+
+	// Determinar loadout baseado no modo de jogo
+	KeyValues* pLoadoutKV = nullptr;
+	if (HL2MPRules()->IsTeamplay())
+	{
+		const char* teamName = (GetTeamNumber() == TEAM_COMBINE) ? "COMBINE" : "REBELS";
+		pLoadoutKV = pFinalWeaponsSection->FindKey(teamName);
+	}
+	else
+	{
+		pLoadoutKV = pFinalWeaponsSection->FindKey("DEATHMATCH");
+	}
+
+	if (!pLoadoutKV)
+	{
+		Warning("[SpawnWeapons] No loadout for current mode. Giving default items.\n");
+		GiveDefaultItems();
+		return;
+	}
+
+	// Dar suit
+	EquipSuit();
+
+	CBaseCombatWeapon* pBestWeapon = nullptr;
+	int bestSlot = 999;
+
+	// Dar armas do loadout
+	FOR_EACH_SUBKEY(pLoadoutKV, pWeaponKV)
+	{
+		const char* weaponName = pWeaponKV->GetName();
+		int desiredAmmoPrimary = pWeaponKV->GetInt("ammo_primary", 0);
+		int desiredAmmoSecondary = pWeaponKV->GetInt("ammo_secondary", 0);
+
+		CBaseCombatWeapon* pWeapon = static_cast<CBaseCombatWeapon*>(GiveNamedItem(weaponName));
+		if (!pWeapon)
+			continue;
+
+		// Munição primária
+		if (desiredAmmoPrimary > 0)
+		{
+			// Tratamento especial para SLAM e RPG
+			if (FStrEq(weaponName, "weapon_slam"))
+			{
+				int iAmmoIndex = GetAmmoDef()->Index("slam");
+				if (iAmmoIndex != -1)
+				{
+					SetAmmoCount(desiredAmmoPrimary, iAmmoIndex);
+				}
+			}
+			else if (FStrEq(weaponName, "weapon_rpg"))
+			{
+				int iAmmoIndex = GetAmmoDef()->Index("RPG_Round");
+				if (iAmmoIndex != -1)
+				{
+					SetAmmoCount(desiredAmmoPrimary, iAmmoIndex);
+				}
+			}
+			else
+			{
+				// Armas normais
+				int ammoIdx = pWeapon->GetPrimaryAmmoType();
+				if (ammoIdx != -1)
+				{
+					int currentAmmo = GetAmmoCount(ammoIdx);
+					if (desiredAmmoPrimary > currentAmmo)
+					{
+						GiveAmmo(desiredAmmoPrimary - currentAmmo, ammoIdx, true);
+					}
+				}
+			}
+		}
+
+		// Munição secundária
+		if (desiredAmmoSecondary > 0)
+		{
+			int ammoIdx = pWeapon->GetSecondaryAmmoType();
+			if (ammoIdx != -1)
+			{
+				int currentAmmo = GetAmmoCount(ammoIdx);
+				if (desiredAmmoSecondary > currentAmmo)
+				{
+					GiveAmmo(desiredAmmoSecondary - currentAmmo, ammoIdx, true);
+				}
+			}
+		}
+
+		// Determinar melhor arma (evitando problemas)
+		int weaponSlot = pWeapon->GetSlot();
+		if (weaponSlot > 0 && // Não selecionar crowbar como padrão
+			!FStrEq(weaponName, "weapon_rpg") &&
+			!FStrEq(weaponName, "weapon_slam") &&
+			weaponSlot < bestSlot)
+		{
+			pBestWeapon = pWeapon;
+			bestSlot = weaponSlot;
+		}
+	}
+
+	// Equipar arma padrão do cliente ou fallback
+	const char* szDefaultWeaponName = engine->GetClientConVarValue(engine->IndexOfEdict(edict()), "cl_defaultweapon");
+
+	// Tentar equipar a arma configurada pelo cliente
+	CBaseCombatWeapon* pDefaultWeapon = Weapon_OwnsThisType(szDefaultWeaponName);
+
+	if (pDefaultWeapon)
+	{
+		// Cliente tem a arma configurada, equipa ela
+		Weapon_Switch(pDefaultWeapon);
+	}
+	else if (pBestWeapon)
+	{
+		// Cliente não tem a arma configurada, usa a melhor do loadout
+		Weapon_Switch(pBestWeapon);
+	}
+	else
+	{
+		// Fallback final para physcannon
+		CBaseCombatWeapon* pPhysCannon = Weapon_OwnsThisType("weapon_physcannon");
+		if (pPhysCannon)
+		{
+			Weapon_Switch(pPhysCannon);
+		}
+	}
+}

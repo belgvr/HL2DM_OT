@@ -2741,10 +2741,10 @@ void CHL2MPRules::LevelInitPostEntity()
 	BaseClass::LevelInitPostEntity();
 	CSaveScores::Init();
 
-	if (g_pSpawnWeaponsManager)
-	{
-		g_pSpawnWeaponsManager->LevelInit();
-	}
+	//if (g_pSpawnWeaponsManager)
+	//{
+	//	g_pSpawnWeaponsManager->LevelInit();
+	//}
 }
 
 void CHL2MPRules::PlayerSpawn(CBasePlayer* pPlayer)

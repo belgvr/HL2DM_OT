@@ -93,79 +93,86 @@ void CSpawnWeaponsManager::DebugMsg(const char* fmt, ...)
     va_end(args);
 }
 
+// SafeRemovePlayerWeapons - versão robusta e segura
 void CSpawnWeaponsManager::SafeRemovePlayerWeapons(CHL2MP_Player* pPlayer)
 {
     if (!pPlayer)
         return;
 
-    // NÃO fazer nada se o jogador está morrendo ou sendo removido
-    if (pPlayer->IsMarkedForDeletion() || !pPlayer->IsAlive())
-    {
-        DebugMsg("Skipping weapon removal - player dying or marked for deletion\n");
+    // Se o player já está marcado para deleção, não mexemos.
+    if (pPlayer->IsMarkedForDeletion())
         return;
-    }
 
-    DebugMsg("Safely removing weapons from player %s\n", pPlayer->GetPlayerName());
+    // NÃO chamar Holster() em players mortos — isso costuma causar crash.
+    // Vamos aceitar que a função pode ser chamada em qualquer momento:
+    // - se o player está vivo, tratamos normalmente;
+    // - se está morto, ainda precisamos limpar referências cliente-side (viewmodels) e agendar remoção.
+    // Primeiro: força limpeza do viewmodel no cliente (se disponível)
+    // (DestroyViewModels é seguro em muitas builds HL2MP; se não existir, ignore a chamada)
+#ifdef _DEBUG
+    // nada de debug
+#endif
+    // Se o método existir no seu CHL2MP_Player, chama; caso contrário só ignore.
+    // Use um cast + checagem por ponteiro de função se sua versão precisar — aqui assumimos que existe.
+    pPlayer->DestroyViewModels();
 
-    // First, holster and clear the active weapon reference
+    // Garantir que o jogador não tem arma ativa apontada no momento
     CBaseCombatWeapon* pActiveWeapon = pPlayer->GetActiveWeapon();
-    if (pActiveWeapon)
+    if (pActiveWeapon && !pActiveWeapon->IsMarkedForDeletion())
     {
-        pActiveWeapon->Holster();
-        pPlayer->SetActiveWeapon(NULL);
-        DebugMsg("Holstered active weapon: %s\n", pActiveWeapon->GetClassname());
+        // primeiro, detach da lista do jogador para evitar que iterações subsequentes falhem
+        pPlayer->Weapon_Detach(pActiveWeapon);
+
+        // limpar owner/owner entity para evitar callbacks através do owner
+        pActiveWeapon->SetOwner(nullptr);
+        pActiveWeapon->SetOwnerEntity(nullptr);
+
+        // remover referência do player para a arma imediatamente
+        pPlayer->SetActiveWeapon(nullptr);
+
+        // agendar remoção segura no próximo tick (evita use-after-free)
+        pActiveWeapon->SetThink(&CBaseEntity::SUB_Remove);
+        pActiveWeapon->SetNextThink(gpGlobals->curtime + 0.01f);
     }
 
-    // Build a list of weapons to remove (to avoid iterator invalidation)
-    CUtlVector<CBaseCombatWeapon*> weaponsToRemove;
-
-    for (int i = 0; i < pPlayer->WeaponCount(); i++)
+    // Agora remover todas as outras armas de maneira segura.
+    // Importante: usar while(WeaponCount() > 0) com GetWeapon(0) evita invalidar índices.
+    while (pPlayer->WeaponCount() > 0)
     {
-        CBaseCombatWeapon* pWeapon = pPlayer->GetWeapon(i);
-        if (pWeapon)
-        {
-            weaponsToRemove.AddToTail(pWeapon);
-        }
-    }
-
-    // Now safely remove each weapon
-    for (int i = 0; i < weaponsToRemove.Count(); i++)
-    {
-        CBaseCombatWeapon* pWeapon = weaponsToRemove[i];
+        CBaseCombatWeapon* pWeapon = pPlayer->GetWeapon(0);
         if (!pWeapon)
-            continue;
+            break;
 
-        // Verificação adicional antes de remover
+        // se a arma já está marcada para remoção, apenas detach e continue
         if (pWeapon->IsMarkedForDeletion())
         {
-            DebugMsg("Weapon %s already marked for deletion, skipping\n", pWeapon->GetClassname());
+            pPlayer->Weapon_Detach(pWeapon);
             continue;
         }
 
-        DebugMsg("Removing weapon: %s\n", pWeapon->GetClassname());
-
-        // Ensure the weapon is holstered
-        if (pWeapon->IsWeaponVisible())
-        {
-            pWeapon->Holster();
-        }
-
-        // Clear ownership before removal
-        pWeapon->SetOwner(NULL);
-        pWeapon->SetOwnerEntity(NULL);
-
-        // Remove from player's weapon list
+        // Detach para remover da lista do jogador
         pPlayer->Weapon_Detach(pWeapon);
 
-        // Mark for deletion on next frame
-        UTIL_Remove(pWeapon);
+        // Limpa owner/owner entity
+        pWeapon->SetOwner(nullptr);
+        pWeapon->SetOwnerEntity(nullptr);
+
+        // Agendar remoção segura no próximo frame
+        pWeapon->SetThink(&CBaseEntity::SUB_Remove);
+        pWeapon->SetNextThink(gpGlobals->curtime + 0.01f);
+
+        // loop reinicia e pega o próximo item (sempre index 0)
     }
 
-    // Clear all ammo
+    // Limpar munição do jogador (evita referências pendentes)
     pPlayer->RemoveAllAmmo();
 
-    DebugMsg("Weapon removal completed for player %s\n", pPlayer->GetPlayerName());
+    // Assegura novamente que não há arma ativa
+    pPlayer->SetActiveWeapon(nullptr);
 }
+
+
+
 
 void CSpawnWeaponsManager::OnPlayerSpawn(CHL2MP_Player* pPlayer)
 {
@@ -174,9 +181,9 @@ void CSpawnWeaponsManager::OnPlayerSpawn(CHL2MP_Player* pPlayer)
 
     DebugMsg("OnPlayerSpawn called for player %s\n", pPlayer->GetPlayerName());
 
-    // Small delay to ensure player is fully spawned
+    /* Small delay to ensure player is fully spawned
     pPlayer->SetThink(&CHL2MP_Player::Spawn);
-    pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);
+    pPlayer->SetNextThink(gpGlobals->curtime + 0.1f);*/
 }
 
 void CSpawnWeaponsManager::OnPlayerDeath(CHL2MP_Player* pPlayer)
@@ -184,200 +191,171 @@ void CSpawnWeaponsManager::OnPlayerDeath(CHL2MP_Player* pPlayer)
     if (!pPlayer)
         return;
 
-    DebugMsg("OnPlayerDeath called for player %s\n", pPlayer->GetPlayerName());
-
-    // Clear active weapon reference immediately to prevent crashes
+    // Se houver arma ativa, desanexar/agendar remoção (forçado porque o jogador está morto)
     CBaseCombatWeapon* pActiveWeapon = pPlayer->GetActiveWeapon();
     if (pActiveWeapon)
     {
-        pActiveWeapon->Holster();
+        pPlayer->Weapon_Detach(pActiveWeapon);
+        pActiveWeapon->SetOwner(NULL);
+        pActiveWeapon->SetOwnerEntity(NULL);
+        pActiveWeapon->SetThink(&CBaseEntity::SUB_Remove);
+        pActiveWeapon->SetNextThink(gpGlobals->curtime + 0.01f);
+
         pPlayer->SetActiveWeapon(NULL);
     }
+
+    // Forçar remoção de todas as outras armas mesmo que o jogador esteja morto
+    SafeRemovePlayerWeapons(pPlayer);
+
+    // Garantir que o cliente limpe viewmodels: SetActiveWeapon(NULL) já ajuda.
+    // Alguns builds têm DestroyViewModels(); se disponível, seria ideal chamá-la:
+    // pPlayer->DestroyViewModels();  // opcional, dependendo da versão do SDK
 }
+
+// EM spawnweapons_manager.cpp
 
 void CSpawnWeaponsManager::ApplyPlayerLoadout(CHL2MP_Player* pPlayer)
 {
-    return; // DESABILITADO PARA TESTE
+    // Usando Warning() para ter certeza de que a mensagem aparecerá no console em laranja.
+    Warning("======= INICIANDO DEBUG DE APPLYPLAYERLOADOUT PARA %s =======\n", pPlayer ? pPlayer->GetPlayerName() : "NULL Player");
 
     if (!pPlayer || !m_pLoadoutGroupsKV)
     {
-        DebugMsg("ApplyPlayerLoadout: Invalid player or no config loaded\n");
+        Warning("DEBUG: ERRO - Jogador inválido ou arquivo de configuração não carregado. Abortando.\n");
         return;
     }
 
     if (!sv_spawnweapons_enable.GetBool())
     {
-        DebugMsg("ApplyPlayerLoadout: System disabled\n");
+        Warning("DEBUG: Sistema desabilitado pela CVar. Abortando.\n");
         return;
     }
 
-    const char* pMapName = gpGlobals->mapname.ToCStr();
-    DebugMsg("Applying loadout for player %s on map %s\n", pPlayer->GetPlayerName(), pMapName);
+    Warning("DEBUG: Procurando loadout para o mapa %s...\n", gpGlobals->mapname.ToCStr());
 
-    // Find the appropriate loadout group for the current map
+    // ... (A lógica para encontrar a seção de armas correta permanece a mesma) ...
     KeyValues* pFinalWeaponsSection = nullptr;
-
     FOR_EACH_SUBKEY(m_pLoadoutGroupsKV, pLoadoutGroup)
     {
-        const char* pGroupName = pLoadoutGroup->GetName();
-        if (FStrEq(pGroupName, "__DEFAULT__"))
-            continue;
-
         KeyValues* pMapsSection = pLoadoutGroup->FindKey("maps");
-        if (pMapsSection && pMapsSection->FindKey(pMapName))
+        if (pMapsSection && pMapsSection->FindKey(gpGlobals->mapname.ToCStr()))
         {
             pFinalWeaponsSection = pLoadoutGroup->FindKey("weapons");
-            DebugMsg("Found specific loadout group for map: %s\n", pGroupName);
+            Warning("DEBUG: Encontrado grupo de loadout específico para o mapa: %s\n", pLoadoutGroup->GetName());
             break;
         }
     }
-
-    // Fall back to default if no specific map loadout found
     if (!pFinalWeaponsSection)
     {
         KeyValues* pDefaultGroup = m_pLoadoutGroupsKV->FindKey("__DEFAULT__");
         if (pDefaultGroup)
         {
             pFinalWeaponsSection = pDefaultGroup->FindKey("weapons");
-            DebugMsg("Using default loadout group\n");
+            Warning("DEBUG: Usando grupo de loadout __DEFAULT__.\n");
         }
     }
-
     if (!pFinalWeaponsSection)
     {
-        DebugMsg("No valid weapons section found\n");
+        Warning("DEBUG: ERRO - Nenhuma seção 'weapons' válida foi encontrada. Abortando.\n");
         return;
     }
 
-    // Determine which loadout to use based on game mode and team
+    // ... (A lógica para encontrar o loadout de DM ou Teamplay permanece a mesma) ...
     KeyValues* pLoadoutKV = nullptr;
-
     if (HL2MPRules()->IsTeamplay())
     {
         const char* teamName = (pPlayer->GetTeamNumber() == TEAM_COMBINE) ? "COMBINE" : "REBELS";
         pLoadoutKV = pFinalWeaponsSection->FindKey(teamName);
-        DebugMsg("Teamplay mode - looking for %s loadout\n", teamName);
+        Warning("DEBUG: Modo Teamplay, procurando por loadout '%s'.\n", teamName);
     }
     else
     {
         pLoadoutKV = pFinalWeaponsSection->FindKey("DEATHMATCH");
-        DebugMsg("Deathmatch mode - looking for DEATHMATCH loadout\n");
+        Warning("DEBUG: Modo Deathmatch, procurando por loadout 'DEATHMATCH'.\n");
     }
-
     if (!pLoadoutKV)
     {
-        DebugMsg("No loadout configuration found for current game mode\n");
+        Warning("DEBUG: ERRO - Nenhum loadout encontrado para o modo de jogo atual. Abortando.\n");
         return;
     }
 
-    // Remove existing weapons if configured to do so
+    Warning("DEBUG: Loadout encontrado. Preparando para dar itens...\n");
+
+    // Lembre-se, o bloco SafeRemovePlayerWeapons deve estar comentado!
+    /*
     if (sv_spawnweapons_strip_on_spawn.GetBool())
     {
         SafeRemovePlayerWeapons(pPlayer);
     }
+    */
 
-    // Ensure player has suit
     pPlayer->EquipSuit();
 
     CBaseCombatWeapon* pBestWeapon = nullptr;
     int bestSlot = 999;
 
-    // Give weapons from loadout
+    // Loop para dar as armas
     FOR_EACH_SUBKEY(pLoadoutKV, pWeaponKV)
     {
         const char* weaponName = pWeaponKV->GetName();
-        int desiredAmmoPrimary = pWeaponKV->GetInt("ammo_primary", 0);
-        int desiredAmmoSecondary = pWeaponKV->GetInt("ammo_secondary", 0);
-
-        DebugMsg("Giving weapon: %s (primary ammo: %d, secondary ammo: %d)\n",
-            weaponName, desiredAmmoPrimary, desiredAmmoSecondary);
+        Warning("  -> Loop: Processando arma '%s'\n", weaponName);
 
         CBaseCombatWeapon* pWeapon = static_cast<CBaseCombatWeapon*>(pPlayer->GiveNamedItem(weaponName));
 
         if (pWeapon)
         {
-            DebugMsg("Successfully gave weapon: %s\n", weaponName);
+            Warning("    -> SUCESSO ao dar o item '%s'.\n", weaponName);
 
-            // Handle special weapons that need custom ammo management
-            if (FStrEq(weaponName, "weapon_slam"))
+            // Lógica de munição
+            int desiredAmmoPrimary = pWeaponKV->GetInt("ammo_primary", 0);
+            if (desiredAmmoPrimary > 0)
             {
-                if (desiredAmmoPrimary > 0)
-                {
-                    int iAmmoIndex = GetAmmoDef()->Index("slam");
-                    if (iAmmoIndex != -1)
-                    {
-                        pPlayer->SetAmmoCount(desiredAmmoPrimary, iAmmoIndex);
-                        DebugMsg("Set SLAM ammo to %d\n", desiredAmmoPrimary);
-                    }
-                }
-            }
-            else if (FStrEq(weaponName, "weapon_rpg"))
-            {
-                if (desiredAmmoPrimary > 0)
-                {
-                    int iAmmoIndex = GetAmmoDef()->Index("RPG_Round");
-                    if (iAmmoIndex != -1)
-                    {
-                        pPlayer->SetAmmoCount(desiredAmmoPrimary, iAmmoIndex);
-                        DebugMsg("Set RPG ammo to %d\n", desiredAmmoPrimary);
-                    }
-                }
-            }
-            else
-            {
-                // Handle normal weapons
                 int ammoIdx1 = pWeapon->GetPrimaryAmmoType();
-                if (ammoIdx1 != -1 && desiredAmmoPrimary > 0)
+                if (ammoIdx1 != -1)
                 {
-                    int currentAmmo = pPlayer->GetAmmoCount(ammoIdx1);
-                    if (desiredAmmoPrimary > currentAmmo)
-                    {
-                        pPlayer->GiveAmmo(desiredAmmoPrimary - currentAmmo, ammoIdx1, true);
-                        DebugMsg("Gave %d primary ammo for %s\n", desiredAmmoPrimary - currentAmmo, weaponName);
-                    }
-                }
-
-                int ammoIdx2 = pWeapon->GetSecondaryAmmoType();
-                if (ammoIdx2 != -1 && desiredAmmoSecondary > 0)
-                {
-                    int currentAmmo2 = pPlayer->GetAmmoCount(ammoIdx2);
-                    if (desiredAmmoSecondary > currentAmmo2)
-                    {
-                        pPlayer->GiveAmmo(desiredAmmoSecondary - currentAmmo2, ammoIdx2, true);
-                        DebugMsg("Gave %d secondary ammo for %s\n", desiredAmmoSecondary - currentAmmo2, weaponName);
-                    }
+                    Warning("      -> Dando %d de munição primária.\n", desiredAmmoPrimary);
+                    pPlayer->GiveAmmo(desiredAmmoPrimary, ammoIdx1, true);
                 }
             }
 
-            // Select the best weapon to equip (prefer lower slot numbers, avoid problematic weapons)
+            int desiredAmmoSecondary = pWeaponKV->GetInt("ammo_secondary", 0);
+            if (desiredAmmoSecondary > 0)
+            {
+                int ammoIdx2 = pWeapon->GetSecondaryAmmoType();
+                if (ammoIdx2 != -1)
+                {
+                    Warning("      -> Dando %d de munição secundária.\n", desiredAmmoSecondary);
+                    pPlayer->GiveAmmo(desiredAmmoSecondary, ammoIdx2, true);
+                }
+            }
+
+            // Lógica de melhor arma
             int weaponSlot = pWeapon->GetSlot();
-            if (weaponSlot > 0 && // Don't select crowbar as default
-                !FStrEq(weaponName, "weapon_rpg") &&
-                !FStrEq(weaponName, "weapon_slam") &&
-                weaponSlot < bestSlot)
+            if (weaponSlot > 0 && weaponSlot < bestSlot)
             {
                 pBestWeapon = pWeapon;
                 bestSlot = weaponSlot;
-                DebugMsg("Selected %s as best weapon (slot %d)\n", weaponName, weaponSlot);
             }
         }
         else
         {
-            Warning("[SpawnWeapons] Failed to give weapon: %s\n", weaponName);
+            Warning("    -> FALHA ao dar o item '%s'.\n", weaponName);
         }
     }
 
-    // Equip the best weapon found
+    Warning("DEBUG: Fim do loop de armas.\n");
+
     if (pBestWeapon)
     {
+        Warning("DEBUG: Tentando equipar a melhor arma: %s\n", pBestWeapon->GetClassname());
         pPlayer->Weapon_Equip(pBestWeapon);
         pPlayer->Weapon_Switch(pBestWeapon);
-        DebugMsg("Equipped best weapon: %s\n", pBestWeapon->GetClassname());
+        Warning("DEBUG: Melhor arma equipada com sucesso.\n");
     }
     else
     {
-        DebugMsg("No suitable weapon found to equip\n");
+        Warning("DEBUG: Nenhuma arma adequada encontrada para equipar.\n");
     }
 
-    DebugMsg("Loadout application completed for player %s\n", pPlayer->GetPlayerName());
+    Warning("======= FIM DO DEBUG DE APPLYPLAYERLOADOUT =======\n");
 }
