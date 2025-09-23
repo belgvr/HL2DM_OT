@@ -98,6 +98,13 @@ void CSpawnWeaponsManager::SafeRemovePlayerWeapons(CHL2MP_Player* pPlayer)
     if (!pPlayer)
         return;
 
+    // NÃO fazer nada se o jogador está morrendo ou sendo removido
+    if (pPlayer->IsMarkedForDeletion() || !pPlayer->IsAlive())
+    {
+        DebugMsg("Skipping weapon removal - player dying or marked for deletion\n");
+        return;
+    }
+
     DebugMsg("Safely removing weapons from player %s\n", pPlayer->GetPlayerName());
 
     // First, holster and clear the active weapon reference
@@ -127,6 +134,13 @@ void CSpawnWeaponsManager::SafeRemovePlayerWeapons(CHL2MP_Player* pPlayer)
         CBaseCombatWeapon* pWeapon = weaponsToRemove[i];
         if (!pWeapon)
             continue;
+
+        // Verificação adicional antes de remover
+        if (pWeapon->IsMarkedForDeletion())
+        {
+            DebugMsg("Weapon %s already marked for deletion, skipping\n", pWeapon->GetClassname());
+            continue;
+        }
 
         DebugMsg("Removing weapon: %s\n", pWeapon->GetClassname());
 
@@ -183,6 +197,8 @@ void CSpawnWeaponsManager::OnPlayerDeath(CHL2MP_Player* pPlayer)
 
 void CSpawnWeaponsManager::ApplyPlayerLoadout(CHL2MP_Player* pPlayer)
 {
+    return; // DESABILITADO PARA TESTE
+
     if (!pPlayer || !m_pLoadoutGroupsKV)
     {
         DebugMsg("ApplyPlayerLoadout: Invalid player or no config loaded\n");

@@ -15,7 +15,7 @@
 #include "ammodef.h"
 
 #ifdef CLIENT_DLL
-#include "c_hl2mp_player.h"
+#inclu "c_hl2mp_player.h"
 #else
 
 #include "nav_mesh.h"
