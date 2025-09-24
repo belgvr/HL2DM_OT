@@ -60,6 +60,8 @@ CUtlDict<AdminGroup_t, unsigned short> g_AdminGroups;
 
 ConVar sv_showadminpermissions("sv_showadminpermissions", "1", 0, "If non-zero, a non-root admin will only see the commands they have access to");
 
+ConVar sv_slap_force("sv_slap_force", "0,0,0,0,300,300", 0, "Controls slap push force as random values between min and max: minX,maxX,minY,maxY,minZ,maxZ. Example: -100,100,-100,100,150,300 for lighter slap. Default value slightly pushes up.");
+
 extern IServerPluginHelpers* serverpluginhelpers;
 
 // no choice either here, gotta add this for menu panels
@@ -4230,6 +4232,26 @@ static void CVarCommand(const CCommand& args)
 	}
 }
 
+void ParseSlapForce(float& minX, float& maxX, float& minY, float& maxY, float& minZ, float& maxZ)
+{
+	const char* forceStr = sv_slap_force.GetString();
+
+	// Valores padrão caso o parsing falhe
+	minX = 0.0f; maxX = 0.0f;
+	minY = 0.0f; maxY = 0.0f;
+	minZ = 300.0f;  maxZ = 300.0f;
+
+	// Parse da string no formato: minX,maxX,minY,maxY,minZ,maxZ
+	if (sscanf(forceStr, "%f,%f,%f,%f,%f,%f", &minX, &maxX, &minY, &maxY, &minZ, &maxZ) != 6)
+	{
+		// Se parsing falhar, usar valores padrão
+		DevMsg("Warning: Invalid sv_slap_force values. Using defaults: 0,0,0,0,300,300 for a slight upward push\n");
+		minX = 0.0f; maxX = 0.0f;
+		minY = 0.0f; maxY = 0.0f;
+		minZ = 300.0f;  maxZ = 300.0f;
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: SLap player (+ damage)
 //-----------------------------------------------------------------------------
@@ -4472,10 +4494,13 @@ static void SlapPlayerCommand(const CCommand& args)
 			Q_snprintf(slapDamageText, sizeof(slapDamageText), "no damage");
 		}
 
+		float minX, maxX, minY, maxY, minZ, maxZ;
+		ParseSlapForce(minX, maxX, minY, maxY, minZ, maxZ);
+
 		Vector slapForce;
-		slapForce.x = RandomFloat(-150, 150);
-		slapForce.y = RandomFloat(-150, 150);
-		slapForce.z = RandomFloat(200, 400);
+		slapForce.x = RandomFloat(minX, maxX);
+		slapForce.y = RandomFloat(minY, maxY);
+		slapForce.z = RandomFloat(minZ, maxZ);
 
 		pTarget->ApplyAbsVelocityImpulse(slapForce);
 
@@ -6695,12 +6720,12 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 	if (!p || bufsize <= 0)
 		return;
 
-	if ((Q_strcmp(p, "rtv") == 0) || (Q_strcmp(p, "!rtv") == 0) || (Q_strcmp(p, "rockthevote") == 0))
+	if ((Q_stricmp(p, "rtv") == 0) || (Q_stricmp(p, "!rtv") == 0) || (Q_stricmp(p, "rockthevote") == 0))
 	{
 		RtvCommand(CCommand());
 		return;
 	}
-	else if ((Q_strcmp(p, "nominate") == 0) || (Q_strcmp(p, "!nominate") == 0))
+	else if ((Q_stricmp(p, "nominate") == 0) || (Q_stricmp(p, "!nominate") == 0))
 	{
 		NominateCommand(CCommand());
 		return;
@@ -6709,7 +6734,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 	// support for chat commands
 	if (p[0] == '!' || p[0] == '/')
 	{
-		if (Q_strncmp(p, "!say", 4) == 0 || Q_strncmp(p, "/say", 4) == 0)
+		if (Q_strnicmp(p, "!say", 4) == 0 || Q_strnicmp(p, "/say", 4) == 0)
 		{
 			const char* args = p + 4;
 			char consoleCmd[256];
@@ -6724,7 +6749,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!csay", 5) == 0 || Q_strncmp(p, "/csay", 5) == 0)
+		else if (Q_strnicmp(p, "!csay", 5) == 0 || Q_strnicmp(p, "/csay", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6739,7 +6764,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!psay", 5) == 0 || Q_strncmp(p, "/psay", 5) == 0)
+		else if (Q_strnicmp(p, "!psay", 5) == 0 || Q_strnicmp(p, "/psay", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6754,7 +6779,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!chat", 5) == 0 || Q_strncmp(p, "/chat", 5) == 0)
+		else if (Q_strnicmp(p, "!chat", 5) == 0 || Q_strnicmp(p, "/chat", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6769,7 +6794,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!ban", 4) == 0 || Q_strncmp(p, "/ban", 4) == 0)
+		else if (Q_strnicmp(p, "!ban", 4) == 0 || Q_strnicmp(p, "/ban", 4) == 0)
 		{
 			const char* args = p + 4;
 			char consoleCmd[256];
@@ -6784,7 +6809,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!kick", 5) == 0 || Q_strncmp(p, "/kick", 5) == 0)
+		else if (Q_strnicmp(p, "!kick", 5) == 0 || Q_strnicmp(p, "/kick", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6799,7 +6824,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!who", 4) == 0 || Q_strncmp(p, "/who", 4) == 0)
+		else if (Q_strnicmp(p, "!who", 4) == 0 || Q_strnicmp(p, "/who", 4) == 0)
 		{
 			const char* args = p + 4;
 			char consoleCmd[256];
@@ -6814,7 +6839,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!addban", 7) == 0 || Q_strncmp(p, "/addban", 7) == 0)
+		else if (Q_strnicmp(p, "!addban", 7) == 0 || Q_strnicmp(p, "/addban", 7) == 0)
 		{
 			const char* args = p + 7;
 			char consoleCmd[256];
@@ -6829,7 +6854,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!unban", 6) == 0 || Q_strncmp(p, "/unban", 6) == 0)
+		else if (Q_strnicmp(p, "!unban", 6) == 0 || Q_strnicmp(p, "/unban", 6) == 0)
 		{
 			const char* args = p + 6;
 			char consoleCmd[256];
@@ -6844,7 +6869,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!slay", 5) == 0 || Q_strncmp(p, "/slay", 5) == 0)
+		else if (Q_strnicmp(p, "!slay", 5) == 0 || Q_strnicmp(p, "/slay", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6859,7 +6884,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!slap", 5) == 0 || Q_strncmp(p, "/slap", 5) == 0)
+		else if (Q_strnicmp(p, "!slap", 5) == 0 || Q_strnicmp(p, "/slap", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6874,7 +6899,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!cvar", 5) == 0 || Q_strncmp(p, "/cvar", 5) == 0)
+		else if (Q_strnicmp(p, "!cvar", 5) == 0 || Q_strnicmp(p, "/cvar", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6889,7 +6914,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!rcon", 5) == 0 || Q_strncmp(p, "/rcon", 5) == 0)
+		else if (Q_strnicmp(p, "!rcon", 5) == 0 || Q_strnicmp(p, "/rcon", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6904,7 +6929,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!map", 4) == 0 || Q_strncmp(p, "/map", 4) == 0)
+		else if (Q_strnicmp(p, "!map", 4) == 0 || Q_strnicmp(p, "/map", 4) == 0)
 		{
 			const char* args = p + 4;
 			char consoleCmd[256];
@@ -6919,7 +6944,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!gag", 4) == 0 || Q_strncmp(p, "/gag", 4) == 0)
+		else if (Q_strnicmp(p, "!gag", 4) == 0 || Q_strnicmp(p, "/gag", 4) == 0)
 		{
 			const char* args = p + 4;
 			char consoleCmd[256];
@@ -6934,7 +6959,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!ungag", 6) == 0 || Q_strncmp(p, "/ungag", 6) == 0)
+		else if (Q_strnicmp(p, "!ungag", 6) == 0 || Q_strnicmp(p, "/ungag", 6) == 0)
 		{
 			const char* args = p + 6;
 			char consoleCmd[256];
@@ -6949,7 +6974,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!mute", 5) == 0 || Q_strncmp(p, "/mute", 5) == 0)
+		else if (Q_strnicmp(p, "!mute", 5) == 0 || Q_strnicmp(p, "/mute", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6964,7 +6989,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!unmute", 7) == 0 || Q_strncmp(p, "/unmute", 7) == 0)
+		else if (Q_strnicmp(p, "!unmute", 7) == 0 || Q_strnicmp(p, "/unmute", 7) == 0)
 		{
 			const char* args = p + 7;
 			char consoleCmd[256];
@@ -6979,7 +7004,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!team", 5) == 0 || Q_strncmp(p, "/team", 5) == 0)
+		else if (Q_strnicmp(p, "!team", 5) == 0 || Q_strnicmp(p, "/team", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -6994,7 +7019,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!bring", 6) == 0 || Q_strncmp(p, "/bring", 6) == 0)
+		else if (Q_strnicmp(p, "!bring", 6) == 0 || Q_strnicmp(p, "/bring", 6) == 0)
 		{
 			const char* args = p + 6;
 			char consoleCmd[256];
@@ -7009,7 +7034,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!goto", 5) == 0 || Q_strncmp(p, "/goto", 5) == 0)
+		else if (Q_strnicmp(p, "!goto", 5) == 0 || Q_strnicmp(p, "/goto", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -7024,7 +7049,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!noclip", 7) == 0 || Q_strncmp(p, "/noclip", 7) == 0)
+		else if (Q_strnicmp(p, "!noclip", 7) == 0 || Q_strnicmp(p, "/noclip", 7) == 0)
 		{
 			const char* args = p + 7;
 			char consoleCmd[256];
@@ -7039,7 +7064,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!exec", 5) == 0 || Q_strncmp(p, "/exec", 5) == 0)
+		else if (Q_strnicmp(p, "!exec", 5) == 0 || Q_strnicmp(p, "/exec", 5) == 0)
 		{
 			const char* args = p + 5;
 			char consoleCmd[256];
@@ -7054,7 +7079,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!reloadadmins", 13) == 0 || Q_strncmp(p, "/reloadadmins", 13) == 0)
+		else if (Q_strnicmp(p, "!reloadadmins", 13) == 0 || Q_strnicmp(p, "/reloadadmins", 13) == 0)
 		{
 			char consoleCmd[256];
 
@@ -7068,7 +7093,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!help", 5) == 0 || Q_strncmp(p, "/help", 5) == 0)
+		else if (Q_strnicmp(p, "!help", 5) == 0 || Q_strnicmp(p, "/help", 5) == 0)
 		{
 			char consoleCmd[256];
 
@@ -7083,7 +7108,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!credits", 8) == 0 || Q_strncmp(p, "/credits", 8) == 0)
+		else if (Q_strnicmp(p, "!credits", 8) == 0 || Q_strnicmp(p, "/credits", 8) == 0)
 		{
 			char consoleCmd[256];
 
@@ -7098,7 +7123,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!version", 8) == 0 || Q_strncmp(p, "/version", 8) == 0)
+		else if (Q_strnicmp(p, "!version", 8) == 0 || Q_strnicmp(p, "/version", 8) == 0)
 		{
 			char consoleCmd[256];
 
@@ -7113,7 +7138,7 @@ void CHL2MP_Admin::CheckChatText(char* p, int bufsize)
 			return;
 		}
 
-		else if (Q_strncmp(p, "!sa", 3) == 0 || Q_strncmp(p, "/sa", 3) == 0)
+		else if (Q_strnicmp(p, "!sa", 3) == 0 || Q_strnicmp(p, "/sa", 3) == 0)
 		{
 			char consoleCmd[256];
 
