@@ -1285,6 +1285,8 @@ static void CreditsCommand(const CCommand& args)
 		Msg("Humam\n");
 		Msg("[MO] Kakujitsu\n");
 		Msg("Ribas\n");
+		Msg("PauloTrovisco\n");
+		Msg("Defender Gordo e Kamikaze\n");
 		Msg("SALO POWER\n");
 		Msg("Sub-Zero\n");
 		Msg("ONE | The Nanny\n");
@@ -1310,6 +1312,8 @@ static void CreditsCommand(const CCommand& args)
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Henky\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Humam\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Ribas\n");
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "PauloTrovisco\n");
+		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Defender Gordo e Kamikaze\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "[MO] Kakujitsu\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "SALO POWER\n");
 		ClientPrint(pPlayer, HUD_PRINTCONSOLE, "Sub-Zero\n");

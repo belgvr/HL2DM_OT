@@ -133,6 +133,9 @@ ConVar sv_killerinfo_bouncekill_enable("sv_killerinfo_bouncekill_enable", "1", F
 ConVar sv_killerinfo_bounce_counter("sv_killerinfo_bounce_counter", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Display the bounce count on ricochet kills (0=disabled, 1=enabled)");
 ConVar sv_killerinfo_bounce_counter_min("sv_killerinfo_bounce_counter_min", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum number of bounces to show the bounce count");
 
+ConVar sv_killerinfo_file("sv_killerinfo_file", "cfg/utils/killerinfo/killerinfo.txt", FCVAR_NONE, "Path to KillerInfo config file. Controls death message fragments, colors, and formatting.");
+ConVar sv_killerinfo_weapons_file("sv_killerinfo_weapons_file", "cfg/utils/killerinfo/killerinfo_weapons.txt", FCVAR_NONE, "Path to KillerInfo weapon translation file. Converts internal weapon names (e.g., weapon_shotgun) to readable labels (e.g., SHOTGUN).");
+
 
 extern ConVar mp_chattime;
 extern ConVar sv_rtv_mintime;
@@ -382,8 +385,15 @@ CHL2MPRules::CHL2MPRules()
 	g_mapVotes.RemoveAll();
 	g_playersWhoVoted.RemoveAll();
 	g_nominatedMaps.RemoveAll();
+
+	m_pKillerInfoStrings = nullptr;
+	m_pKillerInfoWeapons = nullptr;
+
+	ReloadKillerInfoFiles(); // <- carrega os arquivos .txt aqui
+
 #endif
 }
+
 
 const CViewVectors* CHL2MPRules::GetViewVectors()const
 {
@@ -401,8 +411,21 @@ CHL2MPRules::~CHL2MPRules(void)
 	// Note, don't delete each team since they are in the gEntList and will 
 	// automatically be deleted from there, instead.
 	g_Teams.Purge();
+
+	if (m_pKillerInfoStrings)
+	{
+		m_pKillerInfoStrings->deleteThis();
+		m_pKillerInfoStrings = nullptr;
+	}
+
+	if (m_pKillerInfoWeapons)
+	{
+		m_pKillerInfoWeapons->deleteThis();
+		m_pKillerInfoWeapons = nullptr;
+	}
 #endif
 }
+
 
 void CHL2MPRules::CreateStandardEntities(void)
 {
@@ -2547,116 +2570,164 @@ bool CHL2MPRules::WasBounceKill(const CTakeDamageInfo& info)
 
 void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount)
 {
-	if (!pVictim || !pKiller || !sv_killerinfo_enable.GetBool())
+	if (!pVictim || !pKiller || !sv_killerinfo_enable.GetBool() || !m_pKillerInfoStrings)
 		return;
 
-	// <<< ESTA PARTE ESTAVA FALTANDO
-	int killerHealth = pKiller->GetHealth();
-	char killerHealthDisplay[16];
+	if (!pVictim->IsConnected() || !pKiller->IsConnected())
+		return;
 
-	int showNegative = sv_killerinfo_show_health_negative_values.GetInt();
-	if (killerHealth < 0) {
-		if (showNegative == 0) {
-			killerHealth = 0;
-			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+	char tempBuffer[256];
+	CUtlString fullMessage;
+
+	// =================================================================
+	// 1. Monta a parte principal da mensagem (Killed by... with...)
+	// =================================================================
+	Q_snprintf(tempBuffer, sizeof(tempBuffer), GetKillerInfoString("KillerFragment", "> Killed by: %s"), pKiller->GetPlayerName());
+	fullMessage += tempBuffer;
+
+	if (sv_killerinfo_show_weapon.GetBool())
+	{
+		const char* effectiveWeaponName = weaponName;
+
+		// CORREÇÃO DE ARMA: Se o weaponName for "player", buscamos a arma real do assassino
+		// para garantir que a informação seja idêntica à do console.
+		if (Q_stricmp(weaponName, "player") == 0)
+		{
+			// A classe base da sua arma (contida no seu include) herda de CBaseCombatWeapon,
+			// então este ponteiro funciona perfeitamente.
+			CBaseCombatWeapon* pKillerWeapon = pKiller->GetActiveWeapon();
+			if (pKillerWeapon)
+			{
+				// Pegamos o nome da classe da arma (ex: "weapon_shotgun").
+				effectiveWeaponName = pKillerWeapon->GetClassname();
+			}
+			else
+			{
+				// Fallback caso o killer não tenha uma arma ativa.
+				effectiveWeaponName = "player_as_weapon";
+			}
 		}
-		else if (showNegative == 1) {
-			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+
+		const char* translatedWeaponName = effectiveWeaponName;
+		if (m_pKillerInfoWeapons)
+		{
+			// Apenas uma linha: busca a tradução usando o nome completo que pegamos.
+			// Isso funciona para "weapon_shotgun", "crossbow_bolt", etc.
+			translatedWeaponName = m_pKillerInfoWeapons->GetString(effectiveWeaponName, effectiveWeaponName);
 		}
-		else if (showNegative == 2) {
-			Q_strncpy(killerHealthDisplay, "{#ff0000}DEAD", sizeof(killerHealthDisplay));
-		}
-		else {
-			killerHealth = 0;
-			Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
-		}
+
+		char weaponFragment[256];
+		Q_snprintf(weaponFragment, sizeof(weaponFragment), "%s", GetKillerInfoString("WeaponFragment", "with %s"));
+
+		char finalWeaponString[512];
+		V_snprintf(finalWeaponString, sizeof(finalWeaponString), weaponFragment, translatedWeaponName);
+		fullMessage += finalWeaponString;
 	}
-	else {
-		Q_snprintf(killerHealthDisplay, sizeof(killerHealthDisplay), "%d", killerHealth);
+
+	// =================================================================
+	// 2. Monta a linha de stats (HP, AP, Dist)
+	// =================================================================
+	CUtlString statsLine;
+
+	if (sv_killerinfo_show_health.GetBool())
+	{
+		int killerHealth = pKiller->GetHealth();
+		char healthNumStr[12];
+		Q_snprintf(healthNumStr, sizeof(healthNumStr), "%d", killerHealth);
+
+		const char* healthColorStr = GetKillerInfoString("HealthColors/LowHealthColor", "{#FF0000}");
+		KeyValues* pHealthColorsKV = m_pKillerInfoStrings->FindKey("HealthColors");
+		if (pHealthColorsKV)
+		{
+			if (killerHealth >= pHealthColorsKV->GetInt("HighHealthMin", 70))
+				healthColorStr = pHealthColorsKV->GetString("HighHealthColor", "{#00FF00}");
+			else if (killerHealth >= pHealthColorsKV->GetInt("MediumHealthMin", 35))
+				healthColorStr = pHealthColorsKV->GetString("MediumHealthColor", "{#FFFF00}");
+		}
+
+		Q_snprintf(tempBuffer, sizeof(tempBuffer), GetKillerInfoString("HealthFragment", "\n> [HP: %s%s, "), healthColorStr, healthNumStr);
+		statsLine += tempBuffer;
 	}
 
 	int killerArmor = pKiller->ArmorValue();
-
-	Vector killerPos = pKiller->GetAbsOrigin();
-	Vector victimPos = pVictim->GetAbsOrigin();
-	float distance = killerPos.DistTo(victimPos);
-	float displayDistance;
-	const char* unitStr;
-
-	if (sv_killerinfo_distance_unit.GetInt() == 1)
+	if (sv_killerinfo_show_armor.GetBool() && killerArmor > 0)
 	{
-		displayDistance = distance * 0.0625f; // pés
-		unitStr = "ft";
-	}
-	else
-	{
-		displayDistance = distance * 0.01905f; // metros
-		unitStr = "m";
-	}
-
-	char message[256];
-	char weaponDisplay[64] = "";
-	char distanceDisplay[32] = "";
-	char armorDisplay[32] = "";
-
-	if (sv_killerinfo_show_weapon.GetBool() && weaponName)
-	{
-		Q_snprintf(weaponDisplay, sizeof(weaponDisplay), CHAT_WHITE " With" CHAT_COMBINE " %s", weaponName);
+		Q_snprintf(tempBuffer, sizeof(tempBuffer), GetKillerInfoString("ArmorFragment", "AP: %d, "), killerArmor);
+		statsLine += tempBuffer;
 	}
 
 	if (sv_killerinfo_show_distance.GetBool())
 	{
-		Q_snprintf(distanceDisplay, sizeof(distanceDisplay), CHAT_WHITE " | Dist: " CHAT_DM "%.1f%s", displayDistance, unitStr);
-	}
-
-	if (sv_killerinfo_show_armor.GetBool() && killerArmor > 0)
-	{
-		Q_snprintf(armorDisplay, sizeof(armorDisplay), CHAT_WHITE " | AP:" CHAT_COMBINE " %d", killerArmor);
-	}
-
-	const char* hpColor;
-	if (killerHealth >= sv_damage_display_hp_high_min.GetInt())
-		hpColor = CHAT_FULLGREEN;
-	else if (killerHealth >= sv_damage_display_hp_medium_min.GetInt())
-		hpColor = CHAT_FULLYELLOW;
-	else if (killerHealth >= sv_damage_display_hp_low_min.GetInt())
-		hpColor = CHAT_FULLRED;
-	else
-		hpColor = CHAT_FULLRED;
-	// <<< FIM DA PARTE QUE FALTAVA
-
-	// --- Bloco de Kills Especiais ---
-	char specialDisplay[128] = "";
-
-	if (wasAirKill)
-	{
-		Q_strncat(specialDisplay, " " CHAT_DEEPPINK "[AIRKILL]", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
-	}
-	if ((hitGroup == HITGROUP_HEAD) && sv_killerinfo_headshot_enable.GetBool())
-	{
-		Q_strncat(specialDisplay, " " CHAT_PETROL "[HEADSHOT]", sizeof(specialDisplay), COPY_ALL_CHARACTERS);
-	}
-
-	if (wasBounceKill && sv_killerinfo_bouncekill_enable.GetBool())
-	{
-		char bounceText[64];
-		if (sv_killerinfo_bounce_counter.GetBool() && bounceCount >= sv_killerinfo_bounce_counter_min.GetInt())
+		float distance = pKiller->GetAbsOrigin().DistTo(pVictim->GetAbsOrigin());
+		const char* unitStr = GetKillerInfoString("UnitMeters", "m");
+		if (sv_killerinfo_distance_unit.GetInt() == 1)
 		{
-			Q_snprintf(bounceText, sizeof(bounceText), " " CHAT_DEEPORANGE "[BOUNCE KILL " CHAT_FULLYELLOW "x%d" CHAT_DEEPORANGE "]", bounceCount);
+			distance *= 0.0625f;
+			unitStr = GetKillerInfoString("UnitFeet", "ft");
 		}
 		else
 		{
-			Q_snprintf(bounceText, sizeof(bounceText), " " CHAT_DEEPORANGE "[BOUNCE KILL]");
+			distance *= 0.01905f;
 		}
-		Q_strncat(specialDisplay, bounceText, sizeof(specialDisplay), COPY_ALL_CHARACTERS);
+		Q_snprintf(tempBuffer, sizeof(tempBuffer), GetKillerInfoString("DistanceFragment", "Dist: %.1f%s]"), distance, unitStr);
+		statsLine += tempBuffer;
 	}
 
-	// --- Montagem da Mensagem Final ---
-	Q_snprintf(message, sizeof(message),
-		CHAT_FULLRED "> " CHAT_WHITE "Killed by: " CHAT_FULLRED "%s%s \n" CHAT_FULLRED "> " CHAT_WHITE "[HP: %s%d" CHAT_WHITE "%s%s" CHAT_WHITE "]%s",
-		pKiller->GetPlayerName(), weaponDisplay, hpColor, killerHealth, distanceDisplay, armorDisplay, specialDisplay);
+	if (!statsLine.IsEmpty())
+	{
+		statsLine.TrimRight();
+		if (statsLine.Length() > 0 && statsLine[statsLine.Length() - 1] == ',')
+		{
+			statsLine.SetLength(statsLine.Length() - 1);
+			statsLine += "]";
+		}
+		fullMessage += statsLine;
+	}
 
-	ClientPrint(pVictim, HUD_PRINTTALK, message);
+	// =================================================================
+	// 3. Adiciona os Kills Especiais
+	// =================================================================
+	if (wasAirKill && sv_killerinfo_airkill_enable.GetBool())
+		fullMessage += GetKillerInfoString("AirKillFragment", " [AIRKILL]");
+	if (hitGroup == HITGROUP_HEAD && sv_killerinfo_headshot_enable.GetBool())
+		fullMessage += GetKillerInfoString("HeadshotFragment", " [HEADSHOT]");
+	if (wasBounceKill && sv_killerinfo_bouncekill_enable.GetBool())
+	{
+		if (sv_killerinfo_bounce_counter.GetBool() && bounceCount >= sv_killerinfo_bounce_counter_min.GetInt())
+		{
+			Q_snprintf(tempBuffer, sizeof(tempBuffer), GetKillerInfoString("BounceKillCountFragment", " [BOUNCE x%d]"), bounceCount);
+			fullMessage += tempBuffer;
+		}
+		else
+		{
+			fullMessage += GetKillerInfoString("BounceKillFragment", " [BOUNCE]");
+		}
+	}
+
+	// =================================================================
+	// 4. Processa o '\n' do arquivo .txt e envia para o jogador
+	// =================================================================
+
+	char processedMessage[512];
+	const char* source = fullMessage.Get();
+	int destIndex = 0;
+	for (int i = 0; source[i] != '\0' && destIndex < sizeof(processedMessage) - 1; ++i)
+	{
+		if (source[i] == '\\' && source[i + 1] == 'n')
+		{
+			processedMessage[destIndex++] = '\n';
+			i++;
+		}
+		else
+		{
+			processedMessage[destIndex++] = source[i];
+		}
+	}
+	processedMessage[destIndex] = '\0';
+
+	char formattedMessage[512];
+	UTIL_FormatColors(processedMessage, formattedMessage, sizeof(formattedMessage));
+	ClientPrint(pVictim, HUD_PRINTTALK, formattedMessage);
 }
 
 
@@ -2782,4 +2853,48 @@ void CHL2MPRules::LevelShutdownPreEntity()
 	CSaveScores::SaveAllPlayersBeforeMapChange();
 	CSaveScores::CleanupScoreFiles();
 	BaseClass::LevelShutdownPreEntity();
+}
+
+void CHL2MPRules::ReloadKillerInfoFiles()
+{
+	if (m_pKillerInfoStrings)
+	{
+		m_pKillerInfoStrings->deleteThis();
+		m_pKillerInfoStrings = nullptr;
+	}
+
+	if (m_pKillerInfoWeapons)
+	{
+		m_pKillerInfoWeapons->deleteThis();
+		m_pKillerInfoWeapons = nullptr;
+	}
+
+	m_pKillerInfoStrings = new KeyValues("KillerInfo_Strings");
+	m_pKillerInfoStrings->LoadFromFile(filesystem, sv_killerinfo_file.GetString(), "MOD");
+
+	m_pKillerInfoWeapons = new KeyValues("KillerInfo_Weapons");
+	m_pKillerInfoWeapons->LoadFromFile(filesystem, sv_killerinfo_weapons_file.GetString(), "MOD");
+
+	Msg("KillerInfo files reloaded.\n");
+}
+
+
+// Comando global (fora da classe)
+CON_COMMAND(sv_killerinfo_reload, "Reloads KillerInfo configuration and weapon translation files from disk.")
+{
+	if (g_pGameRules)
+	{
+		CHL2MPRules* pRules = static_cast<CHL2MPRules*>(g_pGameRules);
+		pRules->ReloadKillerInfoFiles();
+	}
+} 
+
+const char* CHL2MPRules::GetKillerInfoString(const char* key, const char* def)
+{
+	if (m_pKillerInfoStrings)
+	{
+		const char* v = m_pKillerInfoStrings->GetString(key, NULL);
+		return (v && *v) ? v : def;
+	}
+	return def;
 }

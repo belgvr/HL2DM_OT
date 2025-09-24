@@ -29,7 +29,7 @@ void CSaveScores::Init()
 	}
 
 	KeyValues* kv = new KeyValues("SaveScoresSettings");
-	if (kv->LoadFromFile(filesystem, "cfg/savescores/savescores_settings.cfg", "MOD"))
+	if (kv->LoadFromFile(filesystem, "cfg/savescores/savescores.txt", "MOD"))
 	{
 		Q_strncpy(m_szWelcomeBackMsg, kv->GetString("messages/score_reloaded", "{#ffffff}Your score has been {#0080ff}reloaded{#ffffff}."), sizeof(m_szWelcomeBackMsg));
 		Msg("SaveScores: Custom settings loaded from savescores_settings.cfg\n");

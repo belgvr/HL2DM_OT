@@ -124,6 +124,11 @@ public:
 	void RestartGame();
 
 	void OnNavMeshLoad(void);
+	void ReloadKillerInfoFiles();
+	KeyValues* m_pKV_KillerInfo_Weapons;
+
+
+	const char* GetKillerInfoString(const char* key, const char* def = "");
 
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot(CItem* pItem);
@@ -210,6 +215,9 @@ private:
 	bool m_bCompleteReset;
 	bool m_bAwaitingReadyRestart;
 	bool m_bHeardAllPlayersReady;
+
+	KeyValues* m_pKillerInfoStrings;
+	KeyValues* m_pKillerInfoWeapons;
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;
