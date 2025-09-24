@@ -67,6 +67,11 @@ ConVar player_throwforce( "player_throwforce", "1000", FCVAR_REPLICATED | FCVAR_
 //New CVAR for fast gathering
 ConVar sv_physcannon_fast_gather("sv_physcannon_fast_gather", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables faster gathering mode for the physcannon. (0=off, 1=on, 2=instant)");
 
+//Flash Controller CVARS
+ConVar sv_physcannon_flash_color("sv_physcannon_flash_color", "245,245,255,32", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the screen flash from the Physcannon. (R G B A), use 0,0,0,0 to totally disable it");
+ConVar sv_physcannon_flash_time("sv_physcannon_flash_time", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade time (seconds) for the physcannon flash.");
+ConVar sv_physcannon_flash_hold("sv_physcannon_flash_hold", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade hold time (seconds) for the physcannon flash.");
+ConVar sv_physcannon_flash_mode("sv_physcannon_flash_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade mode for the physcannon flash: 1=IN, 2=OUT");
 
 
 #ifndef CLIENT_DLL
@@ -1202,8 +1207,27 @@ void CWeaponPhysCannon::PrimaryFireEffect( void )
 	pOwner->ViewPunch( QAngle(-6, SharedRandomInt( "physcannonfire", -2,2) ,0) );
 	
 #ifndef CLIENT_DLL
-	color32 white = { 245, 245, 255, 32 };
-	UTIL_ScreenFade( pOwner, white, 0.1f, 0.0f, FFADE_IN );
+	// Puxa a cor da CVar
+	const char* pszColor = sv_physcannon_flash_color.GetString();
+	int r = 245, g = 245, b = 255, a = 32; // Valores padrão originais
+	sscanf(pszColor, "%d,%d,%d,%d", &r, &g, &b, &a);
+	color32 color = { (byte)clamp(r,0,255), (byte)clamp(g,0,255), (byte)clamp(b,0,255), (byte)clamp(a,0,255) };
+
+	// Se a cor for 0,0,0,0, o efeito é desativado e a função termina aqui
+	if (color.r == 0 && color.g == 0 && color.b == 0 && color.a == 0)
+	{
+		WeaponSound(SINGLE);
+		return;
+	}
+
+	// Puxa os outros valores das CVars
+	float fadeTime = sv_physcannon_flash_time.GetFloat();
+	float fadeHold = sv_physcannon_flash_hold.GetFloat();
+	int fadeFlag = (sv_physcannon_flash_mode.GetInt() == 2) ? FFADE_OUT : FFADE_IN;
+
+	// Aplica o flash com os valores customizáveis
+	UTIL_ScreenFade(pOwner, color, fadeTime, fadeHold, fadeFlag);
+	
 #endif
 
 	WeaponSound( SINGLE );

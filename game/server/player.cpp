@@ -111,7 +111,7 @@ ConVar sv_chat_seconds_per_msg_tier2( "sv_chat_seconds_per_msg_tier2", "10", FCV
 static ConVar sv_maxusrcmdprocessticks( "sv_maxusrcmdprocessticks", "24", FCVAR_NOTIFY, "Maximum number of client-issued usrcmd ticks that can be replayed in packet loss conditions, 0 to allow no restrictions" );
 
 ConVar sv_ear_ring("sv_ear_ring", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the ear-ringing effect when the player is hit by an explosion (0 = off, 1 = on)");
-
+ConVar sv_red_screen_on_crush("sv_red_screen_on_crush", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enables/Disables the red screen effect when the player is hurt by crush or props (0 = off, 1 = on)");
 
 
 
@@ -1009,9 +1009,12 @@ void CBasePlayer::DamageEffect(float flDamage, int fDamageType)
 {
 	if (fDamageType & DMG_CRUSH)
 	{
-		//Red damage indicator
-		color32 red = {128,0,0,128};
-		UTIL_ScreenFade( this, red, 1.0f, 0.1f, FFADE_IN );
+		// Red damage indicator
+		if (!sv_red_screen_on_crush.GetBool())
+			return;
+
+		color32 red = { 128, 0, 0, 128 };
+		UTIL_ScreenFade( this, red, 1.0f, 0.1f, FFADE_IN);
 	}
 	else if (fDamageType & DMG_DROWN)
 	{
