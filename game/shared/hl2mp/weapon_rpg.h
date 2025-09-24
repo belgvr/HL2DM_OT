@@ -184,7 +184,7 @@ public:
 	void	Precache(void);
 
 	void	PrimaryAttack(void);
-	void	SecondaryAttack(void);		// NEW: Secondary attack for laser toggle
+	//void	SecondaryAttack(void);		// NEW: Secondary attack for laser toggle
 	virtual float GetFireRate(void) { return 1; };
 	void	ItemPostFrame(void);
 

@@ -65,11 +65,13 @@ ConVar sv_rpg_missile_shotdown("sv_rpg_missile_shotdown", "0", FCVAR_GAMEDLL | F
 
 ConVar sv_rpg_missile_kill_credit("sv_rpg_missile_kill_credit", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Who gets kill credit when missile is shot down. 0=Original shooter, 1=Who shot it down");
 ConVar sv_rpg_missile_hitbox_scale("sv_rpg_missile_hitbox_scale", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Scale factor for RPG missile hitbox. Higher = easier to hit", true, 1.0f, true, 50.0f);
-
 ConVar sv_rpg_weapon_switch("sv_rpg_weapon_switch", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Allow weapon switching while RPG missile is active. 0=Block switching, 1=Allow switching");
 ConVar sv_rpg_missile_shotdown_explode("sv_rpg_missile_shotdown_explode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Shot down missiles explode on ground impact. 0=No explosion, 1=Explode normally");
-
 ConVar sv_rpg_toggle_last_state("sv_rpg_toggle_last_state", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Remember laser toggle state between weapon switches. 0=Always start ON, 1=Remember last state");
+ConVar sv_rpg_flash_color("sv_rpg_flash_color", "255,255,255,64", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the screen flash from the RPG. (R G B), use 0,0,0,0 to totally disable it");
+ConVar sv_rpg_flash_time("sv_rpg_flash_time", "0.1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade time (seconds)");
+ConVar sv_rpg_flash_hold("sv_rpg_flash_hold", "0.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade hold time (seconds)");
+ConVar sv_rpg_flash_mode("sv_rpg_flash_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Fade mode: 1=IN, 2=OUT");
 
 //-----------------------------------------------------------------------------
 // Laser Dot
@@ -550,6 +552,18 @@ void CMissile::CreateSmokeTrail(void)
 }
 
 
+color32 GetFlashColorFromCvar()
+{
+	const char* pszColor = sv_rpg_flash_color.GetString();
+	int r = 255, g = 255, b = 255, a = 64; // default
+
+	// Lê 4 inteiros separados por vírgula
+	sscanf(pszColor, "%d,%d,%d,%d", &r, &g, &b, &a);
+
+	color32 clr = { (unsigned char)r, (unsigned char)g, (unsigned char)b, (unsigned char)a };
+	return clr;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -578,9 +592,20 @@ void CMissile::IgniteThink(void)
 	{
 		CBasePlayer* pPlayer = ToBasePlayer(m_hOwner->GetOwner());
 
-		color32 white = { 255,225,205,64 };
-		UTIL_ScreenFade(pPlayer, white, 0.1f, 0.0f, FFADE_IN);
+		color32 color = GetFlashColorFromCvar();
+
+		// Se a cor for totalmente transparente, não aplica
+		if (color.r == 0 && color.g == 0 && color.b == 0 && color.a == 0)
+			return;
+
+		float fadeTime = sv_rpg_flash_time.GetFloat();
+		float fadeHold = sv_rpg_flash_hold.GetFloat();
+
+		int fadeFlag = (sv_rpg_flash_mode.GetInt() == 2) ? FFADE_OUT : FFADE_IN;
+
+		UTIL_ScreenFade(pPlayer, color, fadeTime, fadeHold, fadeFlag);
 	}
+
 
 	CreateSmokeTrail();
 }
@@ -1607,40 +1632,6 @@ void CWeaponRPG::PrimaryAttack(void)
 
 	// player "shoot" animation
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Secondary Attack - Toggle laser mode
-//-----------------------------------------------------------------------------
-void CWeaponRPG::SecondaryAttack(void)
-{
-	//	// Check if secondary mode is enabled
-	//	if (!sv_rpg_secondary_mode.GetBool())
-	//		return;
-	//
-	//	// Can't toggle while missile is active
-	//	if (m_hMissile != NULL)
-	//		return;
-	//
-	//	// Toggle laser mode
-	//	m_bLaserToggleMode = !m_bLaserToggleMode;
-	//	m_bLastKnownLaserState = m_bLaserToggleMode;  // ADICIONAR ESTA LINHA
-	//	m_flNextSecondaryAttack = gpGlobals->curtime + 0.5f;
-	//
-	//	if (m_bLaserToggleMode == true)
-	//	{
-	//		StartGuiding();
-	//#ifndef CLIENT_DLL
-	//		EmitSound("Weapon_RPG.LaserOn");
-	//#endif
-	//	}
-	//	else
-	//	{
-	//		StopGuiding();
-	//#ifndef CLIENT_DLL
-	//		EmitSound("Weapon_RPG.LaserOff");
-	//#endif
-	//	}
 }
 
 //-----------------------------------------------------------------------------
