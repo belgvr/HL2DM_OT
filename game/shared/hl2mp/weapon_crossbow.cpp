@@ -50,6 +50,7 @@ ConVar sv_crossbow_trail_rebels_color("sv_crossbow_trail_rebels_color", "255,0,0
 ConVar sv_crossbow_trail_combine_color("sv_crossbow_trail_combine_color", "0,100,255,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Trail color for combine team crossbow bolts in R,G,B,A format");
 ConVar sv_crossbow_trail_linger("sv_crossbow_trail_linger", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Whether the trail should linger after the bolt is destroyed until its lifetime (as defined in sv_crossbow_trail_lifetime) (0=no, 1=yes)");
 
+ConVar sv_crossbow_bounce_new_sound("sv_crossbow_bounce_new_sound", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Use new sound when crossbow bolt bounces (0=old sound, 1=new sound)");
 // ==================================================================================================
 // FIM DAS MODIFICAÇÕES
 // ==================================================================================================
@@ -336,7 +337,9 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 	float trail_lifetime = sv_crossbow_trail_lifetime.GetFloat();
 	if (trail_lifetime <= 0.1f) trail_lifetime = 0.1f;
 
-	// Lógica de ricochete em portas e objetos móveis (do seu código original)
+	// ========================================================================
+	// Lógica de ricochete em portas e objetos móveis
+	// ========================================================================
 	if (FClassnameIs(pOther, "prop_door_rotating") ||
 		FClassnameIs(pOther, "func_door") ||
 		FClassnameIs(pOther, "func_door_rotating") ||
@@ -359,8 +362,6 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		m_bHasBounced = true;
 		m_iHealth++;
 
-		//EmitSound("Weapon_Crossbow.BoltHitWorld");
-
 		if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
 		{
 			g_pEffects->Sparks(GetAbsOrigin());
@@ -368,13 +369,42 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		return;
 	}
 
-	// Lógica de impacto em itens e armas (do seu código original)
+	// ========================================================================
+	// CORRIGIDO: Lógica de impacto em itens e armas (COM FÍSICA)
+	// ========================================================================
 	if ((FClassnameIs(pOther, "item_*") || FClassnameIs(pOther, "weapon_*")) && !FClassnameIs(pOther, "weapon_rpg"))
 	{
-		// Aqui a flecha deve ser removida, então aplicamos a lógica de linger/no-linger
+		CGameTrace tr;
+		Ray_t ray;
+		ray.Init(GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * gpGlobals->frametime);
+		CTraceFilterSkipTwoEntities traceFilter(this, GetOwnerEntity(), COLLISION_GROUP_NONE);
+		enginetrace->TraceRay(ray, MASK_SOLID, &traceFilter, &tr);
+		if (tr.m_pEnt != pOther)
+		{
+			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
+			return;
+		}
+
+		// NOVO: Aplicar força física no objeto
+		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
+		if (pPhysics)
+		{
+			Vector vecVelocity = GetAbsVelocity();
+			Vector vecImpulse = vecVelocity * 15.0f; // Força padrão para itens/armas
+
+			if (pPhysics->IsAsleep())
+				pPhysics->Wake();
+
+			pPhysics->ApplyForceCenter(vecImpulse);
+		}
+
+		// Lógica de remoção da flecha
 		if (sv_crossbow_trail_linger.GetBool())
 		{
-			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetMoveType(MOVETYPE_NONE);
+			AddEffects(EF_NODRAW);
+			SetSolid(SOLID_NONE);
+			SetTouch(NULL);
 			SetThink(&CCrossbowBolt::DelayedRemoveThink);
 			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
@@ -386,11 +416,31 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		return;
 	}
 
+	// ========================================================================
+	// CORRIGIDO: Tratamento especial para RPG (COM FÍSICA)
+	// ========================================================================
 	if (FClassnameIs(pOther, "weapon_rpg"))
 	{
+		// Aplicar força física no RPG (força menor por ser mais pesado)
+		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
+		if (pPhysics)
+		{
+			Vector vecVelocity = GetAbsVelocity();
+			Vector vecImpulse = vecVelocity * 10.0f; // Força menor para RPG
+
+			if (pPhysics->IsAsleep())
+				pPhysics->Wake();
+
+			pPhysics->ApplyForceCenter(vecImpulse);
+		}
+
+		// Lógica de remoção da flecha
 		if (sv_crossbow_trail_linger.GetBool())
 		{
-			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetMoveType(MOVETYPE_NONE);
+			AddEffects(EF_NODRAW);
+			SetSolid(SOLID_NONE);
+			SetTouch(NULL);
 			SetThink(&CCrossbowBolt::DelayedRemoveThink);
 			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
@@ -402,23 +452,24 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		return;
 	}
 
-	// Lógica de impacto em alvos com vida (do seu código original)
+	// ========================================================================
+	// Lógica de impacto em alvos com vida (NPCs, jogadores)
+	// ========================================================================
 	if (pOther->m_takedamage != DAMAGE_NO)
 	{
-		trace_t tr;
+		trace_t tr, tr2;
 		tr = BaseClass::GetTouchTrace();
 		Vector vecNormalizedVel = GetAbsVelocity();
 		ClearMultiDamage();
 		VectorNormalize(vecNormalizedVel);
+
 		if (GetOwnerEntity() && GetOwnerEntity()->IsPlayer() && pOther->IsNPC())
 		{
 			CTakeDamageInfo dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_NEVERGIB);
 			dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-
 			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
-
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
 		else
@@ -426,43 +477,74 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			CTakeDamageInfo dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_BULLET | DMG_NEVERGIB);
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-
 			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
-
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
 		ApplyMultiDamage();
+
+		// Adrian: keep going through the glass.
 		if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
 			return;
 
-		EmitSound("Weapon_Crossbow.BoltHitBody");
+		SetAbsVelocity(Vector(0, 0, 0));
 
-		// PONTO DE MUDANÇA: Em vez de SUB_Remove, aplicamos a lógica de linger/no-linger
+		// play body "thwack" sound
+		EmitSound("Weapon_Crossbow.BoltHitBody");
+		Vector vForward;
+		AngleVectors(GetAbsAngles(), &vForward);
+		VectorNormalize(vForward);
+		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
+		if (tr2.fraction != 1.0f)
+		{
+			if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
+			{
+				CEffectData data;
+				data.m_vOrigin = tr2.endpos;
+				data.m_vNormal = vForward;
+				data.m_nEntIndex = tr2.fraction != 1.0f;
+				DispatchEffect("BoltImpact", data);
+			}
+		}
+		SetTouch(NULL);
+		SetThink(NULL);
+
+		// Lógica de remoção da flecha
 		if (sv_crossbow_trail_linger.GetBool())
 		{
-			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetMoveType(MOVETYPE_NONE);
+			AddEffects(EF_NODRAW);
+			SetSolid(SOLID_NONE);
+			SetTouch(NULL);
 			SetThink(&CCrossbowBolt::DelayedRemoveThink);
 			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
 		else
 		{
 			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
-			UTIL_Remove(this);
+			SetThink(&CCrossbowBolt::SUB_Remove);
+			SetNextThink(gpGlobals->curtime + 0.1f);
 		}
 	}
-	else // Lógica de impacto em paredes e props (do seu código original)
+	else
 	{
+		// ====================================================================
+		// Lógica de impacto em paredes e objetos sólidos
+		// ====================================================================
 		trace_t tr;
 		tr = BaseClass::GetTouchTrace();
+
+		// See if we struck the world
 		if (pOther->GetMoveType() == MOVETYPE_NONE && !(tr.surface.flags & SURF_SKY))
 		{
+			EmitSound("Weapon_Crossbow.BoltHitWorld");
 			Vector vecDir = GetAbsVelocity();
 			float speed = VectorNormalize(vecDir);
-			float hitDot = DotProduct(tr.plane.normal, -vecDir);
 
-			// Lógica de ricochete em paredes (do seu código original)
+			// See if we should reflect off this surface
+			float hitDot = DotProduct(tr.plane.normal, -vecDir);
 			if ((hitDot < 0.5f) && (speed > 100))
 			{
+				// Ricochete - manter trail normalmente
 				Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
 				QAngle reflectAngles;
 				VectorAngles(vReflection, reflectAngles);
@@ -470,47 +552,96 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				SetAbsVelocity(vReflection * speed * 0.75f);
 				m_bHasBounced = true;
 				m_iHealth++;
-				SetGravity(1.0f); // SUA GRAVIDADE ORIGINAL RESTAURADA
+				SetGravity(1.0f);
 
-				EmitSound("Weapon_Crossbow.BoltHitWorld");
-
-				if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
+				if (sv_crossbow_bounce_new_sound.GetBool())
 				{
-					g_pEffects->Sparks(GetAbsOrigin());
+					EmitSound("Weapon_Crossbow.BoltHitWorldNEW");
+				}
+				else
+				{
+					EmitSound("Weapon_Crossbow.BoltHitWorld");
 				}
 			}
-			else // Lógica de fincar na parede (do seu código original)
+			else
 			{
-				// SOM DIFERENTE para quando a flecha PARA na parede
-				EmitSound("Weapon_Crossbow.BoltHitWorld");
+				// Flecha ficou presa na parede
+				SetMoveType(MOVETYPE_NONE);
+				AddEffects(EF_NODRAW);
+				SetTouch(NULL);
+				Vector vForward;
+				AngleVectors(GetAbsAngles(), &vForward);
+				VectorNormalize(vForward);
 				CEffectData data;
 				data.m_vOrigin = tr.endpos;
-				AngleVectors(GetAbsAngles(), &data.m_vNormal);
+				data.m_vNormal = vForward;
+				data.m_nEntIndex = 0;
 				DispatchEffect("BoltImpact", data);
+				UTIL_ImpactTrace(&tr, DMG_BULLET);
 
-				// PONTO DE MUDANÇA: Em vez de SUB_Remove, aplicamos a lógica de linger/no-linger
+				// Lógica de remoção da flecha
 				if (sv_crossbow_trail_linger.GetBool())
 				{
-					SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+					SetMoveType(MOVETYPE_NONE);
+					AddEffects(EF_NODRAW);
+					SetSolid(SOLID_NONE);
+					SetTouch(NULL);
 					SetThink(&CCrossbowBolt::DelayedRemoveThink);
 					SetNextThink(gpGlobals->curtime + trail_lifetime);
 				}
 				else
 				{
 					if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
-					UTIL_Remove(this);
+					SetThink(&CCrossbowBolt::SUB_Remove);
+					SetNextThink(gpGlobals->curtime + 0.1f);
+				}
+
+				if (m_pGlowSprite != NULL)
+				{
+					m_pGlowSprite->TurnOn();
+					m_pGlowSprite->FadeAndDie(3.0f);
 				}
 			}
+
+			// Shoot some sparks
+			if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
+			{
+				g_pEffects->Sparks(GetAbsOrigin());
+			}
 		}
-		else // Lógica de impacto no céu, etc (do seu código original)
+		else
 		{
+			// ================================================================
+			// NOVO: Props físicos genéricos e outros objetos
+			// ================================================================
+			IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
+			if (pPhysics)
+			{
+				Vector vecVelocity = GetAbsVelocity();
+				Vector vecImpulse = vecVelocity * 12.0f; // Força média para props
+
+				if (pPhysics->IsAsleep())
+					pPhysics->Wake();
+
+				pPhysics->ApplyForceCenter(vecImpulse);
+			}
+
+			// Put a mark unless we've hit the sky
 			if ((tr.surface.flags & SURF_SKY) == false)
 			{
 				UTIL_ImpactTrace(&tr, DMG_BULLET);
 			}
+
+			// Remove trail e flecha imediatamente
 			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
 			UTIL_Remove(this);
 		}
+	}
+
+	if (g_pGameRules->IsMultiplayer())
+	{
+		// SetThink( &CCrossbowBolt::ExplodeThink );
+		// SetNextThink( gpGlobals->curtime + 0.1f );
 	}
 }
 
