@@ -38,6 +38,7 @@
 // ==================================================================================================
 // INÍCIO DAS MODIFICAÇÕES: NOVAS VARIAVEIS DE CONSOLE PARA CROSSBOW TRAIL
 // ==================================================================================================
+ConVar sv_crossbow_trail_enable("sv_crossbow_trail_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable crossbow bolt trails (0=disabled, 1=enabled)");
 ConVar sv_crossbow_trail_sprite("sv_crossbow_trail_sprite", "sprites/laser.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material for the crossbow bolt's trail.");
 ConVar sv_crossbow_trail_color("sv_crossbow_trail_color", "255,80,0,255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the crossbow bolt's trail in R,G,B,A format.");
 ConVar sv_crossbow_trail_lifetime("sv_crossbow_trail_lifetime", "3.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lifetime in seconds of the crossbow bolt trail, affecting its length.");
@@ -154,12 +155,18 @@ CCrossbowBolt::~CCrossbowBolt(void)
 		UTIL_Remove(m_pGlowSprite);
 	}
 
-	// O rastro agora é gerenciado pela função DetachTrail e não deve ser removido aqui.
+	// Verificar se trail existe antes de tentar remover
+	if (m_pBoltTrail)
+	{
+		UTIL_Remove(m_pBoltTrail);
+	}
 }
+
 
 void CCrossbowBolt::ApplyTrailColor(void)
 {
-	if (!m_pBoltTrail)
+	// Verificar se trail está habilitado E se existe
+	if (!sv_crossbow_trail_enable.GetBool() || !m_pBoltTrail)
 		return;
 
 	int r, g, b, a;
@@ -167,6 +174,7 @@ void CCrossbowBolt::ApplyTrailColor(void)
 
 	m_pBoltTrail->SetTransparency(kRenderTransAdd, r, g, b, a, kRenderFxNone);
 }
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Versão SIMPLIFICADA da GetTrailColors (sem debug excessivo)
@@ -246,19 +254,27 @@ bool CCrossbowBolt::CreateSprites(void)
 		m_pGlowSprite->TurnOff();
 	}
 
-	// NOVO: Criar o trail do crossbow bolt SEM COR ainda
-	m_pBoltTrail = CSpriteTrail::SpriteTrailCreate(sv_crossbow_trail_sprite.GetString(), GetLocalOrigin(), false);
-
-	if (m_pBoltTrail != NULL)
+	// NOVO: Criar o trail do crossbow bolt APENAS se estiver habilitado
+	if (sv_crossbow_trail_enable.GetBool())
 	{
-		m_pBoltTrail->FollowEntity(this);
+		m_pBoltTrail = CSpriteTrail::SpriteTrailCreate(sv_crossbow_trail_sprite.GetString(), GetLocalOrigin(), false);
 
-		// COR TEMPORÁRIA - será substituída quando o owner for definido
-		m_pBoltTrail->SetTransparency(kRenderTransAdd, 255, 80, 0, 255, kRenderFxNone);
+		if (m_pBoltTrail != NULL)
+		{
+			m_pBoltTrail->FollowEntity(this);
 
-		m_pBoltTrail->SetStartWidth(sv_crossbow_trail_startwidth.GetFloat());
-		m_pBoltTrail->SetEndWidth(sv_crossbow_trail_endwidth.GetFloat());
-		m_pBoltTrail->SetLifeTime(sv_crossbow_trail_lifetime.GetFloat());
+			// COR TEMPORÁRIA - será substituída quando o owner for definido
+			m_pBoltTrail->SetTransparency(kRenderTransAdd, 255, 80, 0, 255, kRenderFxNone);
+
+			m_pBoltTrail->SetStartWidth(sv_crossbow_trail_startwidth.GetFloat());
+			m_pBoltTrail->SetEndWidth(sv_crossbow_trail_endwidth.GetFloat());
+			m_pBoltTrail->SetLifeTime(sv_crossbow_trail_lifetime.GetFloat());
+		}
+	}
+	else
+	{
+		// Trail desabilitado - setar como NULL
+		m_pBoltTrail = NULL;
 	}
 
 	return true;
@@ -1308,10 +1324,9 @@ void CWeaponCrossbow::DefaultTouch(CBaseEntity* pOther)
 
 void CCrossbowBolt::DelayedRemoveThink(void)
 {
-	// Desliga o rastro para que ele pare de renderizar imediatamente
+	// Verificar se trail existe antes de tentar remover
 	if (m_pBoltTrail)
 	{
-		// Apenas para garantir, remove o rastro que já deveria ter sumido
 		UTIL_Remove(m_pBoltTrail);
 		m_pBoltTrail = NULL;
 	}
@@ -1323,6 +1338,6 @@ void CCrossbowBolt::DelayedRemoveThink(void)
 		m_pGlowSprite = NULL;
 	}
 
-	// Finalmente, remove a própria flecha-âncora invisível.
+	// Remove a própria flecha
 	UTIL_Remove(this);
 }
