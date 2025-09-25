@@ -87,7 +87,7 @@ public:
 	void Precache(void);
 	void BubbleThink(void);
 	void BoltTouch(CBaseEntity* pOther);
-	void DelayedRemoveThink(void); // <-- ADICIONE ESTA LINHA AQUI
+	void DelayedRemoveThink(void);
 	bool CreateVPhysics(void);
 	unsigned int PhysicsSolidMaskForEntity() const;
 	static CCrossbowBolt* BoltCreate(const Vector& vecOrigin, const QAngle& angAngles, int iDamage, CBasePlayer* pentOwner = NULL);
@@ -164,7 +164,6 @@ void CCrossbowBolt::ApplyTrailColor(void)
 	int r, g, b, a;
 	GetTrailColors(r, g, b, a);
 
-	Warning("APLICANDO COR DO TRAIL: %d,%d,%d,%d\n", r, g, b, a);
 	m_pBoltTrail->SetTransparency(kRenderTransAdd, r, g, b, a, kRenderFxNone);
 }
 
@@ -190,19 +189,16 @@ void CCrossbowBolt::GetTrailColors(int& r, int& g, int& b, int& a)
 		return;
 
 	int teamNum = pPlayer->GetTeamNumber();
-	Warning("Player encontrado, team: %d\n", teamNum);
 
 	const char* colorString = nullptr;
 
 	if (teamNum == 2) // Combine
 	{
 		colorString = sv_crossbow_trail_combine_color.GetString();
-		Warning("Usando cor Combine: %s\n", colorString);
 	}
 	else if (teamNum == 3) // Rebels  
 	{
 		colorString = sv_crossbow_trail_rebels_color.GetString();
-		Warning("Usando cor Rebels: %s\n", colorString);
 	}
 
 	if (colorString && strlen(colorString) > 0)
@@ -362,11 +358,13 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		SetAbsVelocity(vReflection * speed * 0.75f);
 		m_bHasBounced = true;
 		m_iHealth++;
+
+		//EmitSound("Weapon_Crossbow.BoltHitWorld");
+
 		if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
 		{
 			g_pEffects->Sparks(GetAbsOrigin());
 		}
-		EmitSound("Weapon_Crossbow.BoltBounce"); // Som de ricochete original
 		return;
 	}
 
@@ -419,7 +417,7 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
 
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); } // <-- ADICIONE ESTA LINHA
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
@@ -429,7 +427,7 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
 
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); } // <-- ADICIONE ESTA LINHA
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
@@ -474,17 +472,16 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				m_iHealth++;
 				SetGravity(1.0f); // SUA GRAVIDADE ORIGINAL RESTAURADA
 
-				EmitSound("Weapon_Crossbow.BoltBounce"); // <-- ADICIONE ESTA LINHA AQUI
-
+				EmitSound("Weapon_Crossbow.BoltHitWorld");
 
 				if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
 				{
 					g_pEffects->Sparks(GetAbsOrigin());
 				}
-				// Sem som de bounce aqui, como no seu original
 			}
 			else // Lógica de fincar na parede (do seu código original)
 			{
+				// SOM DIFERENTE para quando a flecha PARA na parede
 				EmitSound("Weapon_Crossbow.BoltHitWorld");
 				CEffectData data;
 				data.m_vOrigin = tr.endpos;
