@@ -335,202 +335,92 @@ void CCrossbowBolt::Precache(void)
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
-// VERSÃO FINALÍSSIMA 2.0 - NÚMERO DE RICOCHETES CORRIGIDO
-// VERSÃO FINAL DA BOLTTOUCH - AGORA COM CONTROLE DE LINGER
-// VERSÃO FINAL 3.0 - COMPORTAMENTO DE RICOCHETE FIEL AO ORIGINAL
-// VERSÃO 4.0 - FIEL AO CÓDIGO ORIGINAL, APENAS COM A LÓGICA DA ÂNCORA
+// ==================================================================================================
+// INÍCIO DA CORREÇÃO: Função BoltTouch restaurada com novas features integradas
+// ==================================================================================================
 void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 {
-	if (!GetOwnerEntity())
+	if (!pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS))
+		return;
+
+	// Obter o dono da flecha
+	CBaseEntity* pOwner = GetOwnerEntity();
+
+	if (!pOwner)
 	{
 		UTIL_Remove(this);
 		return;
 	}
-	if (!pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS))
-		return;
 
-	// Pega o lifetime para usar depois
+	// MODIFICAÇÃO: Pega o lifetime do trail para usar depois
 	float trail_lifetime = sv_crossbow_trail_lifetime.GetFloat();
 	if (trail_lifetime <= 0.1f) trail_lifetime = 0.1f;
 
-	// ========================================================================
-	// Lógica de ricochete em portas e objetos móveis
-	// ========================================================================
-	if (FClassnameIs(pOther, "prop_door_rotating") ||
-		FClassnameIs(pOther, "func_door") ||
-		FClassnameIs(pOther, "func_door_rotating") ||
-		FClassnameIs(pOther, "func_movelinear") ||
-		FClassnameIs(pOther, "func_train") ||
-		FClassnameIs(pOther, "func_tanktrain") ||
-		FClassnameIs(pOther, "func_conveyor") ||
-		FClassnameIs(pOther, "func_tracktrain"))
+
+	// Se acertamos uma entidade que pode tomar dano
+	if (pOther->m_takedamage != DAMAGE_NO)
 	{
 		trace_t tr;
 		tr = BaseClass::GetTouchTrace();
-		Vector vecDir = GetAbsVelocity();
-		float speed = VectorNormalize(vecDir);
-		float hitDot = DotProduct(tr.plane.normal, -vecDir);
-		Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
-		QAngle reflectAngles;
-		VectorAngles(vReflection, reflectAngles);
-		SetLocalAngles(reflectAngles);
-		SetAbsVelocity(vReflection * speed * 0.75f);
-		m_bHasBounced = true;
-		m_iHealth++;
-
-		if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
-		{
-			g_pEffects->Sparks(GetAbsOrigin());
-		}
-		return;
-	}
-
-	// ========================================================================
-	// CORRIGIDO: Lógica de impacto em itens e armas (COM FÍSICA)
-	// ========================================================================
-	if ((FClassnameIs(pOther, "item_*") || FClassnameIs(pOther, "weapon_*")) && !FClassnameIs(pOther, "weapon_rpg"))
-	{
-		CGameTrace tr;
-		Ray_t ray;
-		ray.Init(GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * gpGlobals->frametime);
-		CTraceFilterSkipTwoEntities traceFilter(this, GetOwnerEntity(), COLLISION_GROUP_NONE);
-		enginetrace->TraceRay(ray, MASK_SOLID, &traceFilter, &tr);
-		if (tr.m_pEnt != pOther)
-		{
-			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
-			return;
-		}
-
-		// NOVO: Aplicar força física no objeto
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
-		{
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 15.0f; // Força padrão para itens/armas
-
-			if (pPhysics->IsAsleep())
-				pPhysics->Wake();
-
-			pPhysics->ApplyForceCenter(vecImpulse);
-		}
-
-		// Lógica de remoção da flecha
-		if (sv_crossbow_trail_linger.GetBool())
-		{
-			SetMoveType(MOVETYPE_NONE);
-			AddEffects(EF_NODRAW);
-			SetSolid(SOLID_NONE);
-			SetTouch(NULL);
-			SetThink(&CCrossbowBolt::DelayedRemoveThink);
-			SetNextThink(gpGlobals->curtime + trail_lifetime);
-		}
-		else
-		{
-			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
-			UTIL_Remove(this);
-		}
-		return;
-	}
-
-	// ========================================================================
-	// CORRIGIDO: Tratamento especial para RPG (COM FÍSICA)
-	// ========================================================================
-	if (FClassnameIs(pOther, "weapon_rpg"))
-	{
-		// Aplicar força física no RPG (força menor por ser mais pesado)
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
-		{
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 10.0f; // Força menor para RPG
-
-			if (pPhysics->IsAsleep())
-				pPhysics->Wake();
-
-			pPhysics->ApplyForceCenter(vecImpulse);
-		}
-
-		// Lógica de remoção da flecha
-		if (sv_crossbow_trail_linger.GetBool())
-		{
-			SetMoveType(MOVETYPE_NONE);
-			AddEffects(EF_NODRAW);
-			SetSolid(SOLID_NONE);
-			SetTouch(NULL);
-			SetThink(&CCrossbowBolt::DelayedRemoveThink);
-			SetNextThink(gpGlobals->curtime + trail_lifetime);
-		}
-		else
-		{
-			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
-			UTIL_Remove(this);
-		}
-		return;
-	}
-
-	// ========================================================================
-	// Lógica de impacto em alvos com vida (NPCs, jogadores)
-	// ========================================================================
-	if (pOther->m_takedamage != DAMAGE_NO)
-	{
-		trace_t tr, tr2;
-		tr = BaseClass::GetTouchTrace();
-		Vector vecNormalizedVel = GetAbsVelocity();
+		Vector	vecNormalizedVel = GetAbsVelocity();
 		ClearMultiDamage();
 		VectorNormalize(vecNormalizedVel);
 
-		if (GetOwnerEntity() && GetOwnerEntity()->IsPlayer() && pOther->IsNPC())
+		// Lógica de dano
+		if (pOwner->IsPlayer() && pOther->IsNPC())
 		{
-			CTakeDamageInfo dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_NEVERGIB);
+			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, DMG_NEVERGIB);
 			dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
 		else
 		{
-			CTakeDamageInfo dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_BULLET | DMG_NEVERGIB);
+			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, DMG_BULLET | DMG_NEVERGIB);
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
+
 		ApplyMultiDamage();
 
-		// Adrian: keep going through the glass.
+		// A flecha deve atravessar vidro quebrável
 		if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
 			return;
 
 		SetAbsVelocity(Vector(0, 0, 0));
 
-		// play body "thwack" sound
+		// Toca o som de acerto no corpo
 		EmitSound("Weapon_Crossbow.BoltHitBody");
+
+		// Lógica para fincar a flecha na parede atrás do alvo
 		Vector vForward;
 		AngleVectors(GetAbsAngles(), &vForward);
 		VectorNormalize(vForward);
-		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-		if (tr2.fraction != 1.0f)
+		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr);
+
+		if (tr.fraction != 1.0f)
 		{
-			if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
+			if (tr.m_pEnt == NULL || (tr.m_pEnt && tr.m_pEnt->GetMoveType() == MOVETYPE_NONE))
 			{
-				CEffectData data;
-				data.m_vOrigin = tr2.endpos;
+				CEffectData	data;
+				data.m_vOrigin = tr.endpos;
 				data.m_vNormal = vForward;
-				data.m_nEntIndex = tr2.fraction != 1.0f;
+				data.m_nEntIndex = tr.fraction != 1.0;
 				DispatchEffect("BoltImpact", data);
 			}
 		}
+
 		SetTouch(NULL);
 		SetThink(NULL);
 
-		// Lógica de remoção da flecha
+		// MODIFICAÇÃO: Lógica de remoção da flecha com LINGER
 		if (sv_crossbow_trail_linger.GetBool())
 		{
 			SetMoveType(MOVETYPE_NONE);
 			AddEffects(EF_NODRAW);
 			SetSolid(SOLID_NONE);
-			SetTouch(NULL);
 			SetThink(&CCrossbowBolt::DelayedRemoveThink);
 			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
@@ -538,38 +428,32 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		{
 			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
 			SetThink(&CCrossbowBolt::SUB_Remove);
-			SetNextThink(gpGlobals->curtime + 0.1f);
+			SetNextThink(gpGlobals->curtime);
 		}
 	}
-	else
+	else // Se acertamos o mundo ou um prop
 	{
-		// ====================================================================
-		// Lógica de impacto em paredes e objetos sólidos
-		// ====================================================================
 		trace_t tr;
 		tr = BaseClass::GetTouchTrace();
 
-		// See if we struck the world
+		// Se acertamos o mundo (e não o céu)
 		if (pOther->GetMoveType() == MOVETYPE_NONE && !(tr.surface.flags & SURF_SKY))
 		{
-			EmitSound("Weapon_Crossbow.BoltHitWorld");
 			Vector vecDir = GetAbsVelocity();
 			float speed = VectorNormalize(vecDir);
-
-			// See if we should reflect off this surface
 			float hitDot = DotProduct(tr.plane.normal, -vecDir);
+
+			// Lógica de ricochete
 			if ((hitDot < 0.5f) && (speed > 100))
 			{
-				// Ricochete - manter trail normalmente
 				Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
 				QAngle reflectAngles;
 				VectorAngles(vReflection, reflectAngles);
 				SetLocalAngles(reflectAngles);
 				SetAbsVelocity(vReflection * speed * 0.75f);
-				m_bHasBounced = true;
-				m_iHealth++;
-				SetGravity(1.0f);
+				m_bHasBounced = true; // Para lógica de achievement/dano especial
 
+				// MODIFICAÇÃO: Lógica do novo som de ricochete
 				if (sv_crossbow_bounce_new_sound.GetBool())
 				{
 					EmitSound("Weapon_Crossbow.BoltHitWorldNEW");
@@ -579,12 +463,12 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 					EmitSound("Weapon_Crossbow.BoltHitWorld");
 				}
 			}
-			else
+			else // Flecha fincou na parede
 			{
-				// Flecha ficou presa na parede
 				SetMoveType(MOVETYPE_NONE);
 				AddEffects(EF_NODRAW);
 				SetTouch(NULL);
+
 				Vector vForward;
 				AngleVectors(GetAbsAngles(), &vForward);
 				VectorNormalize(vForward);
@@ -593,15 +477,16 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				data.m_vNormal = vForward;
 				data.m_nEntIndex = 0;
 				DispatchEffect("BoltImpact", data);
-				UTIL_ImpactTrace(&tr, DMG_BULLET);
 
-				// Lógica de remoção da flecha
+				UTIL_ImpactTrace(&tr, DMG_BULLET);
+				EmitSound("Weapon_Crossbow.BoltHitWorld");
+
+				// MODIFICAÇÃO: Lógica de remoção da flecha com LINGER
 				if (sv_crossbow_trail_linger.GetBool())
 				{
 					SetMoveType(MOVETYPE_NONE);
 					AddEffects(EF_NODRAW);
 					SetSolid(SOLID_NONE);
-					SetTouch(NULL);
 					SetThink(&CCrossbowBolt::DelayedRemoveThink);
 					SetNextThink(gpGlobals->curtime + trail_lifetime);
 				}
@@ -609,7 +494,7 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				{
 					if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
 					SetThink(&CCrossbowBolt::SUB_Remove);
-					SetNextThink(gpGlobals->curtime + 0.1f);
+					SetNextThink(gpGlobals->curtime);
 				}
 
 				if (m_pGlowSprite != NULL)
@@ -619,36 +504,22 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				}
 			}
 
-			// Shoot some sparks
+			// Efeitos de faísca
 			if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
 			{
 				g_pEffects->Sparks(GetAbsOrigin());
 			}
 		}
-		else
+		else // Acertamos outra coisa (props físicos, etc.)
 		{
-			// ================================================================
-			// NOVO: Props físicos genéricos e outros objetos
-			// ================================================================
-			IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-			if (pPhysics)
-			{
-				Vector vecVelocity = GetAbsVelocity();
-				Vector vecImpulse = vecVelocity * 12.0f; // Força média para props
-
-				if (pPhysics->IsAsleep())
-					pPhysics->Wake();
-
-				pPhysics->ApplyForceCenter(vecImpulse);
-			}
-
-			// Put a mark unless we've hit the sky
+			// Criar decalque se não for o céu
 			if ((tr.surface.flags & SURF_SKY) == false)
 			{
 				UTIL_ImpactTrace(&tr, DMG_BULLET);
 			}
 
-			// Remove trail e flecha imediatamente
+			// MODIFICAÇÃO: Aqui, em vez de aplicar força customizada, simplesmente removemos a flecha
+			// como o original faz. O sistema de física já vai lidar com o impacto no prop.
 			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
 			UTIL_Remove(this);
 		}
@@ -656,10 +527,12 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 
 	if (g_pGameRules->IsMultiplayer())
 	{
-		// SetThink( &CCrossbowBolt::ExplodeThink );
-		// SetNextThink( gpGlobals->curtime + 0.1f );
+		// Lógica multiplayer adicional pode vir aqui se necessário
 	}
 }
+// ==================================================================================================
+// FIM DA CORREÇÃO
+// ==================================================================================================
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -697,7 +570,7 @@ public:
 	CWeaponCrossbow(void);
 
 	virtual void	Precache(void);
-	virtual void	DefaultTouch(CBaseEntity* pOther);
+	//virtual void	DefaultTouch(CBaseEntity* pOther);
 	virtual void	PrimaryAttack(void);
 	virtual void	SecondaryAttack(void);
 	virtual bool	Deploy(void);
@@ -1288,39 +1161,39 @@ bool CWeaponCrossbow::SendWeaponAnim(int iActivity)
 }
 // Adicione este bloco de código inteiro em weapon_crossbow.cpp
 
-void CWeaponCrossbow::DefaultTouch(CBaseEntity* pOther)
-{
-	// Converte a entidade que tocou na arma para um jogador
-	CBasePlayer* pPlayer = ToBasePlayer(pOther);
-	if (!pPlayer)
-	{
-		// Se não for um jogador, não faz nada
-		return;
-	}
-
-	// Verifica se o jogador já possui uma crossbow
-	if (pPlayer->Weapon_OwnsThisType(GetClassname()))
-	{
-		// Se ele já tem, não damos a arma, apenas a munição.
-		// Esta é a nossa lógica customizada que ignora o pente da arma no chão.
-
-		// Damos uma quantidade fixa de flechas (ex: 5)
-		if (pPlayer->GiveAmmo(5, m_iPrimaryAmmoType))
-		{
-			// Toca o som de pegar munição
-			pPlayer->EmitSound("BaseCombatWeapon.AmmoPickup");
-
-			// Remove a arma do chão
-			UTIL_Remove(this);
-		}
-	}
-	else
-	{
-		// Se o jogador não tem uma crossbow, deixamos a lógica padrão do jogo
-		// decidir se ele pode ou não pegar a arma.
-		BaseClass::DefaultTouch(pOther);
-	}
-}
+//void CWeaponCrossbow::DefaultTouch(CBaseEntity* pOther)
+//{
+//	// Converte a entidade que tocou na arma para um jogador
+//	CBasePlayer* pPlayer = ToBasePlayer(pOther);
+//	if (!pPlayer)
+//	{
+//		// Se não for um jogador, não faz nada
+//		return;
+//	}
+//
+//	// Verifica se o jogador já possui uma crossbow
+//	if (pPlayer->Weapon_OwnsThisType(GetClassname()))
+//	{
+//		// Se ele já tem, não damos a arma, apenas a munição.
+//		// Esta é a nossa lógica customizada que ignora o pente da arma no chão.
+//
+//		// Damos uma quantidade fixa de flechas (ex: 5)
+//		if (pPlayer->GiveAmmo(5, m_iPrimaryAmmoType))
+//		{
+//			// Toca o som de pegar munição
+//			pPlayer->EmitSound("BaseCombatWeapon.AmmoPickup");
+//
+//			// Remove a arma do chão
+//			UTIL_Remove(this);
+//		}
+//	}
+//	else
+//	{
+//		// Se o jogador não tem uma crossbow, deixamos a lógica padrão do jogo
+//		// decidir se ele pode ou não pegar a arma.
+//		BaseClass::DefaultTouch(pOther);
+//	}
+//}
 
 void CCrossbowBolt::DelayedRemoveThink(void)
 {
