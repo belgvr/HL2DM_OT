@@ -214,7 +214,7 @@ void CGrenadeFrag::GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail)
 		if (pPlayer)
 		{
 			// No HL2DM, team 2 = Rebels, team 3 = Combine
-			isCombineTeam = (pPlayer->GetTeamNumber() == 3);
+			isCombineTeam = (pPlayer->GetTeamNumber() == 2);
 		}
 	}
 	else if (m_combineSpawned)
@@ -226,11 +226,11 @@ void CGrenadeFrag::GetTeamColors(int& r, int& g, int& b, int& a, bool isTrail)
 	const char* colorString;
 	if (isCombineTeam)
 	{
-		colorString = isTrail ? sv_grenade_frag_rebels_trail_color.GetString() : sv_grenade_frag_rebels_glow_color.GetString();
+		colorString = isTrail ? sv_grenade_frag_combine_trail_color.GetString() : sv_grenade_frag_combine_glow_color.GetString();
 	}
 	else
 	{
-		colorString = isTrail ? sv_grenade_frag_combine_trail_color.GetString() : sv_grenade_frag_combine_glow_color.GetString();
+		colorString = isTrail ? sv_grenade_frag_rebels_trail_color.GetString() : sv_grenade_frag_rebels_glow_color.GetString();
 	}
 
 	sscanf(colorString, "%d,%d,%d,%d", &r, &g, &b, &a);
@@ -280,17 +280,11 @@ void CGrenadeFrag::CreateEffects(void)
 
 	// Start up the eye trail
 	if (!m_pGlowTrail.Get())
-	//{
-	//	m_pGlowTrail = CSpriteTrail::SpriteTrailCreate(sv_grenade_frag_trail_sprite.GetString(), GetLocalOrigin(), false);
-	//}
 		m_pGlowTrail = CSpriteTrail::SpriteTrailCreate(sv_grenade_frag_trail_sprite.GetString(), GetLocalOrigin(), false);
 
 
 	if (m_pGlowTrail != NULL)
 	{
-		//m_pGlowTrail->FollowEntity(this);
-		//m_pGlowTrail->SetAttachment(this, nAttachment);
-
 		int r, g, b, a;
 		GetTeamColors(r, g, b, a, true); // true = trail color
 		m_pGlowTrail->SetTransparency(kRenderTransAdd, r, g, b, a, kRenderFxNone);
