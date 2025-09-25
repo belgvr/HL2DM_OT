@@ -75,7 +75,11 @@ public:
 
 	Class_T Classify(void) { return CLASS_NONE; }
 	void ApplyTrailColor(void);
-	void FadeTrailImmediately(void);
+
+	// Remova as funções antigas que não são mais usadas pela BoltTouch
+	// void FadeTrailImmediately(void);
+	// void DetachTrail(void);
+	// virtual void UpdateOnRemove(void);
 
 
 public:
@@ -83,13 +87,11 @@ public:
 	void Precache(void);
 	void BubbleThink(void);
 	void BoltTouch(CBaseEntity* pOther);
+	void DelayedRemoveThink(void); // <-- ADICIONE ESTA LINHA AQUI
 	bool CreateVPhysics(void);
 	unsigned int PhysicsSolidMaskForEntity() const;
 	static CCrossbowBolt* BoltCreate(const Vector& vecOrigin, const QAngle& angAngles, int iDamage, CBasePlayer* pentOwner = NULL);
 
-	// NOVO: Funções para o trail
-	void DetachTrail(void);
-	virtual void UpdateOnRemove(void);
 
 protected:
 	bool CreateSprites(void);
@@ -106,12 +108,14 @@ protected:
 };
 
 
+
 LINK_ENTITY_TO_CLASS(crossbow_bolt, CCrossbowBolt);
 
 BEGIN_DATADESC(CCrossbowBolt)
 // Function Pointers
 DEFINE_FUNCTION(BubbleThink),
 DEFINE_FUNCTION(BoltTouch),
+DEFINE_FUNCTION(DelayedRemoveThink),
 
 // These are recreated on reload, they don't need storage
 DEFINE_FIELD(m_pGlowSprite, FIELD_EHANDLE),
@@ -318,18 +322,25 @@ void CCrossbowBolt::Precache(void)
 // Purpose: 
 // Input  : *pOther - 
 //-----------------------------------------------------------------------------
+// VERSÃO FINALÍSSIMA 2.0 - NÚMERO DE RICOCHETES CORRIGIDO
+// VERSÃO FINAL DA BOLTTOUCH - AGORA COM CONTROLE DE LINGER
+// VERSÃO FINAL 3.0 - COMPORTAMENTO DE RICOCHETE FIEL AO ORIGINAL
+// VERSÃO 4.0 - FIEL AO CÓDIGO ORIGINAL, APENAS COM A LÓGICA DA ÂNCORA
 void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 {
 	if (!GetOwnerEntity())
 	{
-		DetachTrail();
 		UTIL_Remove(this);
 		return;
 	}
 	if (!pOther->IsSolid() || pOther->IsSolidFlagSet(FSOLID_VOLUME_CONTENTS))
 		return;
 
-	// Para portas e objetos móveis - manter trail e ricochetear
+	// Pega o lifetime para usar depois
+	float trail_lifetime = sv_crossbow_trail_lifetime.GetFloat();
+	if (trail_lifetime <= 0.1f) trail_lifetime = 0.1f;
+
+	// Lógica de ricochete em portas e objetos móveis (do seu código original)
 	if (FClassnameIs(pOther, "prop_door_rotating") ||
 		FClassnameIs(pOther, "func_door") ||
 		FClassnameIs(pOther, "func_door_rotating") ||
@@ -351,57 +362,52 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		SetAbsVelocity(vReflection * speed * 0.75f);
 		m_bHasBounced = true;
 		m_iHealth++;
-		// Shoot some sparks
 		if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
 		{
 			g_pEffects->Sparks(GetAbsOrigin());
 		}
-		EmitSound("Weapon_Crossbow.BoltBounce");
+		EmitSound("Weapon_Crossbow.BoltBounce"); // Som de ricochete original
 		return;
 	}
 
-	// Para itens e armas - detach trail antes de remover
+	// Lógica de impacto em itens e armas (do seu código original)
 	if ((FClassnameIs(pOther, "item_*") || FClassnameIs(pOther, "weapon_*")) && !FClassnameIs(pOther, "weapon_rpg"))
 	{
-		CGameTrace tr;
-		Ray_t ray;
-		ray.Init(GetAbsOrigin(), GetAbsOrigin() + GetAbsVelocity() * gpGlobals->frametime);
-		CTraceFilterSkipTwoEntities traceFilter(this, GetOwnerEntity(), COLLISION_GROUP_NONE);
-		enginetrace->TraceRay(ray, MASK_SOLID, &traceFilter, &tr);
-		if (tr.m_pEnt != pOther)
+		// Aqui a flecha deve ser removida, então aplicamos a lógica de linger/no-linger
+		if (sv_crossbow_trail_linger.GetBool())
 		{
-			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
-			return;
+			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetThink(&CCrossbowBolt::DelayedRemoveThink);
+			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
+		else
 		{
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 10.0f;
-			pPhysics->ApplyForceCenter(vecImpulse);
+			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
+			UTIL_Remove(this);
 		}
-		DetachTrail();
-		UTIL_Remove(this);
 		return;
 	}
 
 	if (FClassnameIs(pOther, "weapon_rpg"))
 	{
-		IPhysicsObject* pPhysics = pOther->VPhysicsGetObject();
-		if (pPhysics)
+		if (sv_crossbow_trail_linger.GetBool())
 		{
-			Vector vecVelocity = GetAbsVelocity();
-			Vector vecImpulse = vecVelocity * 10.0f;
-			pPhysics->ApplyForceCenter(vecImpulse);
+			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetThink(&CCrossbowBolt::DelayedRemoveThink);
+			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
-		DetachTrail();
-		UTIL_Remove(this);
+		else
+		{
+			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
+			UTIL_Remove(this);
+		}
 		return;
 	}
 
+	// Lógica de impacto em alvos com vida (do seu código original)
 	if (pOther->m_takedamage != DAMAGE_NO)
 	{
-		trace_t tr, tr2;
+		trace_t tr;
 		tr = BaseClass::GetTouchTrace();
 		Vector vecNormalizedVel = GetAbsVelocity();
 		ClearMultiDamage();
@@ -412,7 +418,9 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
+
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); } // <-- ADICIONE ESTA LINHA
+
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
 		else
@@ -420,57 +428,43 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 			CTakeDamageInfo dmgInfo(this, GetOwnerEntity(), m_iDamage, DMG_BULLET | DMG_NEVERGIB);
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
-			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); }
+
+			if (m_bHasBounced) { dmgInfo.AddDamageType(DMG_BOUNCE_KILL); } // <-- ADICIONE ESTA LINHA
+
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
 		}
 		ApplyMultiDamage();
-		// Adrian: keep going through the glass.
 		if (pOther->GetCollisionGroup() == COLLISION_GROUP_BREAKABLE_GLASS)
 			return;
-		SetAbsVelocity(Vector(0, 0, 0));
-		// play body "thwack" sound
+
 		EmitSound("Weapon_Crossbow.BoltHitBody");
-		Vector vForward;
-		AngleVectors(GetAbsAngles(), &vForward);
-		VectorNormalize(vForward);
-		UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + vForward * 128, MASK_OPAQUE, pOther, COLLISION_GROUP_NONE, &tr2);
-		if (tr2.fraction != 1.0f)
+
+		// PONTO DE MUDANÇA: Em vez de SUB_Remove, aplicamos a lógica de linger/no-linger
+		if (sv_crossbow_trail_linger.GetBool())
 		{
-			if (tr2.m_pEnt == NULL || (tr2.m_pEnt && tr2.m_pEnt->GetMoveType() == MOVETYPE_NONE))
-			{
-				CEffectData data;
-				data.m_vOrigin = tr2.endpos;
-				data.m_vNormal = vForward;
-				data.m_nEntIndex = tr2.fraction != 1.0f;
-				DispatchEffect("BoltImpact", data);
-			}
+			SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+			SetThink(&CCrossbowBolt::DelayedRemoveThink);
+			SetNextThink(gpGlobals->curtime + trail_lifetime);
 		}
-		SetTouch(NULL);
-		SetThink(NULL);
-
-		// ===================== ALTERAÇÃO 1 APLICADA AQUI =====================
-		// O rastro SEMPRE deve se desvincular e continuar até o fim da sua vida.
-		DetachTrail();
-		// =====================================================================
-
-		SetThink(&CCrossbowBolt::SUB_Remove);
-		SetNextThink(gpGlobals->curtime + 0.1f);
+		else
+		{
+			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
+			UTIL_Remove(this);
+		}
 	}
-	else
+	else // Lógica de impacto em paredes e props (do seu código original)
 	{
 		trace_t tr;
 		tr = BaseClass::GetTouchTrace();
-		// See if we struck the world
 		if (pOther->GetMoveType() == MOVETYPE_NONE && !(tr.surface.flags & SURF_SKY))
 		{
-			EmitSound("Weapon_Crossbow.BoltHitWorld");
 			Vector vecDir = GetAbsVelocity();
 			float speed = VectorNormalize(vecDir);
-			// See if we should reflect off this surface
 			float hitDot = DotProduct(tr.plane.normal, -vecDir);
+
+			// Lógica de ricochete em paredes (do seu código original)
 			if ((hitDot < 0.5f) && (speed > 100))
 			{
-				// Ricochete - manter trail normalmente
 				Vector vReflection = 2.0f * tr.plane.normal * hitDot + vecDir;
 				QAngle reflectAngles;
 				VectorAngles(vReflection, reflectAngles);
@@ -478,135 +472,49 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				SetAbsVelocity(vReflection * speed * 0.75f);
 				m_bHasBounced = true;
 				m_iHealth++;
-				SetGravity(1.0f);
+				SetGravity(1.0f); // SUA GRAVIDADE ORIGINAL RESTAURADA
+
+				EmitSound("Weapon_Crossbow.BoltBounce"); // <-- ADICIONE ESTA LINHA AQUI
+
+
+				if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
+				{
+					g_pEffects->Sparks(GetAbsOrigin());
+				}
+				// Sem som de bounce aqui, como no seu original
 			}
-			else
+			else // Lógica de fincar na parede (do seu código original)
 			{
-				// Flecha ficou presa na parede
-				SetMoveType(MOVETYPE_NONE);
-				AddEffects(EF_NODRAW);
-				SetTouch(NULL);
-				Vector vForward;
-				AngleVectors(GetAbsAngles(), &vForward);
-				VectorNormalize(vForward);
+				EmitSound("Weapon_Crossbow.BoltHitWorld");
 				CEffectData data;
 				data.m_vOrigin = tr.endpos;
-				data.m_vNormal = vForward;
-				data.m_nEntIndex = 0;
+				AngleVectors(GetAbsAngles(), &data.m_vNormal);
 				DispatchEffect("BoltImpact", data);
-				UTIL_ImpactTrace(&tr, DMG_BULLET);
-				// Remover após pequeno delay
-				SetThink(&CCrossbowBolt::SUB_Remove);
-				SetNextThink(gpGlobals->curtime + 0.1f);
-				if (m_pGlowSprite != NULL)
-				{
-					m_pGlowSprite->TurnOn();
-					m_pGlowSprite->FadeAndDie(3.0f);
-				}
 
-				// ===================== ALTERAÇÃO 2 APLICADA AQUI =====================
-				// O rastro SEMPRE deve se desvincular e continuar até o fim da sua vida.
-				DetachTrail();
-				// =====================================================================
-			}
-			// Shoot some sparks
-			if (UTIL_PointContents(GetAbsOrigin()) != CONTENTS_WATER)
-			{
-				g_pEffects->Sparks(GetAbsOrigin());
+				// PONTO DE MUDANÇA: Em vez de SUB_Remove, aplicamos a lógica de linger/no-linger
+				if (sv_crossbow_trail_linger.GetBool())
+				{
+					SetMoveType(MOVETYPE_NONE); AddEffects(EF_NODRAW); SetSolid(SOLID_NONE); SetTouch(NULL);
+					SetThink(&CCrossbowBolt::DelayedRemoveThink);
+					SetNextThink(gpGlobals->curtime + trail_lifetime);
+				}
+				else
+				{
+					if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
+					UTIL_Remove(this);
+				}
 			}
 		}
-		else
+		else // Lógica de impacto no céu, etc (do seu código original)
 		{
-			// Put a mark unless we've hit the sky
 			if ((tr.surface.flags & SURF_SKY) == false)
 			{
 				UTIL_ImpactTrace(&tr, DMG_BULLET);
 			}
-			// Remover trail imediatamente se não for parede (ex: atingiu o skybox)
-			if (m_pBoltTrail)
-			{
-				UTIL_Remove(m_pBoltTrail);
-				m_pBoltTrail = NULL;
-			}
+			if (m_pBoltTrail) UTIL_Remove(m_pBoltTrail);
 			UTIL_Remove(this);
 		}
 	}
-	if (g_pGameRules->IsMultiplayer())
-	{
-		// SetThink( &CCrossbowBolt::ExplodeThink );
-		// SetNextThink( gpGlobals->curtime + 0.1f );
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Detach trail from bolt so it continues to exist after bolt is removed
-//-----------------------------------------------------------------------------
-void CCrossbowBolt::DetachTrail(void)
-{
-	if (m_pBoltTrail)
-	{
-		Warning("DETACHING TRAIL (Robust) - iniciando fade out\n");
-
-		// 1. Congela o rastro no lugar, quebrando o vínculo do FollowEntity
-		m_pBoltTrail->SetMoveType(MOVETYPE_NONE);
-		m_pBoltTrail->SetAbsVelocity(Vector(0, 0, 0));
-
-		// 2. Desvincula da hierarquia de entidades (ainda importante como garantia)
-		m_pBoltTrail->SetParent(NULL);
-
-		// 3. Define seu tempo de vida para o fade out
-		float fadeTime = sv_crossbow_trail_lifetime.GetFloat();
-		if (fadeTime <= 0) // Garante que não tenhamos um tempo de vida zero ou negativo
-		{
-			fadeTime = 1.0f;
-		}
-		
-		Warning("Aplicando fade out de %.1f segundos\n", fadeTime);
-		m_pBoltTrail->FadeAndDie(fadeTime);
-		
-		// 4. Diz à flecha para "esquecer" o rastro
-		m_pBoltTrail = NULL; 
-	}
-}
-
-void CCrossbowBolt::FadeTrailImmediately(void)
-{
-	if (m_pBoltTrail)
-	{
-		Warning("FADE IMEDIATO do trail\n");
-
-		// Para o movimento
-		m_pBoltTrail->SetAbsVelocity(Vector(0, 0, 0));
-
-		// Desvincula
-		m_pBoltTrail->SetParent(NULL);
-
-		// Fade rápido (0.3 segundos)
-		m_pBoltTrail->FadeAndDie(0.3f);
-	}
-}
-
-// NOVO: Função chamada quando a flecha é removida
-//-----------------------------------------------------------------------------
-// Purpose: Called when bolt is being removed
-//-----------------------------------------------------------------------------
-void CCrossbowBolt::UpdateOnRemove(void)
-{
-	// Se ainda tem trail ativo, faz detach
-	if (m_pBoltTrail)
-	{
-		Warning("UpdateOnRemove - fazendo detach do trail\n");
-		DetachTrail();
-	}
-
-	// Remove o glow sprite normalmente
-	if (m_pGlowSprite)
-	{
-		UTIL_Remove(m_pGlowSprite);
-		m_pGlowSprite = NULL;
-	}
-
-	BaseClass::UpdateOnRemove();
 }
 
 //-----------------------------------------------------------------------------
@@ -1268,4 +1176,25 @@ void CWeaponCrossbow::DefaultTouch(CBaseEntity* pOther)
 		// decidir se ele pode ou não pegar a arma.
 		BaseClass::DefaultTouch(pOther);
 	}
+}
+
+void CCrossbowBolt::DelayedRemoveThink(void)
+{
+	// Desliga o rastro para que ele pare de renderizar imediatamente
+	if (m_pBoltTrail)
+	{
+		// Apenas para garantir, remove o rastro que já deveria ter sumido
+		UTIL_Remove(m_pBoltTrail);
+		m_pBoltTrail = NULL;
+	}
+
+	// Remove o brilho
+	if (m_pGlowSprite)
+	{
+		UTIL_Remove(m_pGlowSprite);
+		m_pGlowSprite = NULL;
+	}
+
+	// Finalmente, remove a própria flecha-âncora invisível.
+	UTIL_Remove(this);
 }
