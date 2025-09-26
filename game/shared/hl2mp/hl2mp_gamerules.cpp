@@ -41,6 +41,14 @@
 
 #include "shareddefs.h"
 
+#include "IEffects.h"         
+#include "recipientfilter.h"  
+#include "beam_shared.h"
+
+void OnDeathBeamSpriteChanged(IConVar* var, const char* pOldValue, float flOldValue);
+
+
+
 extern void respawn(CBaseEntity* pEdict, bool fCopyCorpse);
 
 extern bool FindInList(const char** pStrings, const char* pToFind);
@@ -136,6 +144,23 @@ ConVar sv_killerinfo_bounce_counter_min("sv_killerinfo_bounce_counter_min", "1",
 ConVar sv_killerinfo_file("sv_killerinfo_file", "cfg/utils/killerinfo/killerinfo.txt", FCVAR_NONE, "Path to KillerInfo config file. Controls death message fragments, colors, and formatting.");
 ConVar sv_killerinfo_weapons_file("sv_killerinfo_weapons_file", "cfg/utils/killerinfo/killerinfo_weapons.txt", FCVAR_NONE, "Path to KillerInfo weapon translation file. Converts internal weapon names (e.g., weapon_shotgun) to readable labels (e.g., SHOTGUN).");
 
+// ==================================================================================================
+// CVARS PARA O EFEITO DEATH BEAM
+// ==================================================================================================
+ConVar sv_deathbeam_enable("sv_deathbeam_enable", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Enable/disable the death beam effect. 0 = off, 1 = on");
+ConVar sv_deathbeam_duration("sv_deathbeam_duration", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Duration of the beam in seconds.");
+ConVar sv_deathbeam_sprite("sv_deathbeam_sprite", "sprites/laser.vmt", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sprite material used for the beam.", OnDeathBeamSpriteChanged);
+ConVar sv_deathbeam_color("sv_deathbeam_color", "255,0,0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Color of the beam in R,G,B format.");
+ConVar sv_deathbeam_startwidth("sv_deathbeam_startwidth", "16.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Starting width of the beam.");
+ConVar sv_deathbeam_endwidth("sv_deathbeam_endwidth", "16.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ending width of the beam.");
+ConVar sv_deathbeam_brightness("sv_deathbeam_brightness", "255", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Brightness of the beam (0-255).");
+ConVar sv_deathbeam_scrollspeed("sv_deathbeam_scrollspeed", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Speed at which the texture scrolls along the beam.");
+ConVar sv_deathbeam_visibility("sv_deathbeam_visibility", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Who can see the beam: 1=Victim only, 2=Victim and Attacker, 3=Everyone.");
+// ==================================================================================================
+
+#ifndef CLIENT_DLL
+int g_iDeathBeamSpriteIndex = 0;
+#endif
 
 extern ConVar mp_chattime;
 extern ConVar sv_rtv_mintime;
@@ -1534,7 +1559,7 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 {
 #ifndef CLIENT_DLL
 	// Work out what killed the player, and send a message to all clients about it
-	const char* killer_weapon_name = "world";		// by default, the player is killed by the world
+	const char* killer_weapon_name = "world";
 	int killer_ID = 0;
 
 	// Find the killer & the scorer
@@ -1562,7 +1587,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 			{
 				if (pInflictor == pScorer)
 				{
-					// If the inflictor is the killer,  then it must be their current weapon doing the damage
 					if (pScorer->GetActiveWeapon())
 					{
 						killer_weapon_name = pScorer->GetActiveWeapon()->GetClassname();
@@ -1570,7 +1594,7 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 				}
 				else
 				{
-					killer_weapon_name = pInflictor->GetClassname();  // it's just that easy
+					killer_weapon_name = pInflictor->GetClassname();
 				}
 			}
 		}
@@ -1612,7 +1636,6 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		{
 			killer_weapon_name = "slam";
 		}
-		// CÓDIGO DE PONTUAÇÃO REMOVIDO - agora está na PlayerKilled
 	}
 
 	IGameEvent* event = gameeventmanager->CreateEvent("player_death");
@@ -1624,6 +1647,62 @@ void CHL2MPRules::DeathNotice(CBasePlayer* pVictim, const CTakeDamageInfo& info)
 		event->SetInt("priority", 7);
 		gameeventmanager->FireEvent(event);
 	}
+
+	// ==================================================================================================
+	// INÍCIO DA LÓGICA DO DEATH BEAM (CORRIGIDA)
+	// ==================================================================================================
+	if (sv_deathbeam_enable.GetBool())
+	{
+		if (pScorer && pScorer != pVictim)
+		{
+			Vector vecVictimPos = pVictim->WorldSpaceCenter();
+			Vector vecAttackerPos = pScorer->WorldSpaceCenter();
+
+			int r, g, b;
+			ParseRGBColor(sv_deathbeam_color.GetString(), r, g, b);
+
+			CRecipientFilter filter;
+			int visibility = sv_deathbeam_visibility.GetInt();
+
+			if (visibility == 1)
+			{
+				filter.AddRecipient(pVictim);
+			}
+			else if (visibility == 2)
+			{
+				filter.AddRecipient(pVictim);
+				filter.AddRecipient(pScorer);
+			}
+			else
+			{
+				filter.AddAllPlayers();
+			}
+
+			filter.MakeReliable();
+
+			// CORREÇÃO: Usando a macro TE_BeamPoints em vez de g_pEffects
+			te->BeamPoints(
+				filter, 0.0,
+				&vecAttackerPos,
+				&vecVictimPos,
+				g_iDeathBeamSpriteIndex,
+				0, // halo index
+				0, // start frame
+				0, // frame rate
+				sv_deathbeam_duration.GetFloat(),
+				sv_deathbeam_startwidth.GetFloat(),
+				sv_deathbeam_endwidth.GetFloat(),
+				0,0,
+				r, g, b,
+				sv_deathbeam_brightness.GetInt(),
+				sv_deathbeam_scrollspeed.GetInt()
+			);
+		}
+	}
+	// ==================================================================================================
+	// FIM DA LÓGICA DO DEATH BEAM
+	// ==================================================================================================
+
 #endif
 }
 
@@ -1735,12 +1814,20 @@ float CHL2MPRules::GetMapRemainingTime()
 	return timeleft;
 }
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
+void OnDeathBeamSpriteChanged(IConVar* var, const char* pOldValue, float flOldValue)
+{
+	// Pré-carrega o novo modelo em tempo real e atualiza nosso índice global.
+	if (sv_deathbeam_sprite.GetString() && *sv_deathbeam_sprite.GetString())
+	{
+		g_iDeathBeamSpriteIndex = CBaseEntity::PrecacheModel(sv_deathbeam_sprite.GetString());
+	}
+}
+
 void CHL2MPRules::Precache(void)
 {
 	CBaseEntity::PrecacheScriptSound("AlyxEmp.Charge");
+
+	g_iDeathBeamSpriteIndex = CBaseEntity::PrecacheModel(sv_deathbeam_sprite.GetString());
 }
 
 #ifdef GAME_DLL
