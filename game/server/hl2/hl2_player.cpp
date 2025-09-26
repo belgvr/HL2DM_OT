@@ -3330,7 +3330,7 @@ void CHL2_Player::InputForceDropPhysObjects( inputdata_t &data )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHL2_Player::UpdateClientData( void )
+void CHL2_Player::UpdateClientData(void)
 {
 	if (m_DmgTake || m_DmgSave || m_bitsHUDDamage != m_bitsDamageType)
 	{
@@ -3344,26 +3344,29 @@ void CHL2_Player::UpdateClientData( void )
 		int iShowHudDamage = g_pGameRules->Damage_GetShowOnHud();
 		int visibleDamageBits = m_bitsDamageType & iShowHudDamage;
 
-		m_DmgTake = clamp( m_DmgTake, 0, 255 );
-		m_DmgSave = clamp( m_DmgSave, 0, 255 );
+		m_DmgTake = clamp(m_DmgTake, 0, 255);
+		m_DmgSave = clamp(m_DmgSave, 0, 255);
 
 		// If we're poisoned, but it wasn't this frame, don't send the indicator
-		// Without this check, any damage that occured to the player while they were
-		// recovering from a poison bite would register as poisonous as well and flash
-		// the whole screen! -- jdw
-		if ( visibleDamageBits & DMG_POISON )
+		if (visibleDamageBits & DMG_POISON)
 		{
 			float flLastPoisonedDelta = gpGlobals->curtime - m_tbdPrev;
-			if ( flLastPoisonedDelta > 0.1f )
+			if (flLastPoisonedDelta > 0.1f)
 			{
 				visibleDamageBits &= ~DMG_POISON;
 			}
 		}
 
-		if (IsAlive() || sv_red_screen_on_damage.GetBool())
+		// ==========================================================
+		// INÍCIO DA SOLUÇÃO FINAL E DEFINITIVA
+		// ==========================================================
+		CSingleUserRecipientFilter user(this);
+		user.MakeReliable();
+
+		// A CVar está LIGADA? (Comportamento original do jogo)
+		if (sv_red_screen_on_damage.GetBool())
 		{
-			CSingleUserRecipientFilter user(this);
-			user.MakeReliable();
+			// Sim. Envia a mensagem com o valor REAL do dano.
 			UserMessageBegin(user, "Damage");
 			WRITE_BYTE(m_DmgSave);
 			WRITE_BYTE(m_DmgTake);
@@ -3373,11 +3376,33 @@ void CHL2_Player::UpdateClientData( void )
 			WRITE_FLOAT(damageOrigin.z);
 			MessageEnd();
 		}
+		else // A CVar está DESLIGADA? (Nosso comportamento customizado)
+		{
+			// Sim. A tela vermelha NUNCA pode aparecer.
+			// Para isso, só enviamos a mensagem se o jogador ainda estiver vivo (vida > 0).
+			if (GetHealth() > 0)
+			{
+				// Enviamos um valor de dano FALSO (1) para ativar o indicador
+				// de direção sem causar um flash vermelho forte.
+				UserMessageBegin(user, "Damage");
+				WRITE_BYTE(m_DmgSave);
+				WRITE_BYTE(1);
+				WRITE_LONG(visibleDamageBits);
+				WRITE_FLOAT(damageOrigin.x);
+				WRITE_FLOAT(damageOrigin.y);
+				WRITE_FLOAT(damageOrigin.z);
+				MessageEnd();
+			}
+			// Se GetHealth() for 0 ou menos, NADA é enviado. Sem mensagem, sem tela vermelha de morte.
+		}
+		// ==========================================================
+		// FIM DA SOLUÇÃO
+		// ==========================================================
 
 		m_DmgTake = 0;
 		m_DmgSave = 0;
 		m_bitsHUDDamage = m_bitsDamageType;
-		
+
 		// Clear off non-time-based damage indicators
 		int iTimeBasedDamage = g_pGameRules->Damage_GetTimeBased();
 		m_bitsDamageType &= iTimeBasedDamage;
@@ -3385,12 +3410,12 @@ void CHL2_Player::UpdateClientData( void )
 
 	// Update Flashlight
 #ifdef HL2_EPISODIC
-	if ( Flashlight_UseLegacyVersion() == false )
+	if (Flashlight_UseLegacyVersion() == false)
 	{
-		if ( FlashlightIsOn() && sv_infinite_aux_power.GetBool() == false )
+		if (FlashlightIsOn() && sv_infinite_aux_power.GetBool() == false)
 		{
 			m_HL2Local.m_flFlashBattery -= FLASH_DRAIN_TIME * gpGlobals->frametime;
-			if ( m_HL2Local.m_flFlashBattery < 0.0f )
+			if (m_HL2Local.m_flFlashBattery < 0.0f)
 			{
 				FlashlightTurnOff();
 				m_HL2Local.m_flFlashBattery = 0.0f;
@@ -3399,7 +3424,7 @@ void CHL2_Player::UpdateClientData( void )
 		else
 		{
 			m_HL2Local.m_flFlashBattery += FLASH_CHARGE_TIME * gpGlobals->frametime;
-			if ( m_HL2Local.m_flFlashBattery > 100.0f )
+			if (m_HL2Local.m_flFlashBattery > 100.0f)
 			{
 				m_HL2Local.m_flFlashBattery = 100.0f;
 			}
