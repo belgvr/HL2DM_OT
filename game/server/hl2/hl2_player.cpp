@@ -65,6 +65,9 @@
 extern ConVar weapon_showproficiency;
 extern ConVar autoaim_max_dist;
 
+ConVar sv_red_screen_on_damage("sv_red_screen_on_damage", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Desativa a tela vermelha ao morrer. 0 = desativado (padrão), 1 = ativado (comportamento original).");
+
+
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
 // version of the player's hull, not the hitboxes for the player's model
@@ -3357,17 +3360,20 @@ void CHL2_Player::UpdateClientData( void )
 			}
 		}
 
-		CSingleUserRecipientFilter user( this );
-		user.MakeReliable();
-		UserMessageBegin( user, "Damage" );
-			WRITE_BYTE( m_DmgSave );
-			WRITE_BYTE( m_DmgTake );
-			WRITE_LONG( visibleDamageBits );
-			WRITE_FLOAT( damageOrigin.x );	//BUG: Should be fixed point (to hud) not floats
-			WRITE_FLOAT( damageOrigin.y );	//BUG: However, the HUD does _not_ implement bitfield messages (yet)
-			WRITE_FLOAT( damageOrigin.z );	//BUG: We use WRITE_VEC3COORD for everything else
-		MessageEnd();
-	
+		if (IsAlive() || sv_red_screen_on_damage.GetBool())
+		{
+			CSingleUserRecipientFilter user(this);
+			user.MakeReliable();
+			UserMessageBegin(user, "Damage");
+			WRITE_BYTE(m_DmgSave);
+			WRITE_BYTE(m_DmgTake);
+			WRITE_LONG(visibleDamageBits);
+			WRITE_FLOAT(damageOrigin.x);
+			WRITE_FLOAT(damageOrigin.y);
+			WRITE_FLOAT(damageOrigin.z);
+			MessageEnd();
+		}
+
 		m_DmgTake = 0;
 		m_DmgSave = 0;
 		m_bitsHUDDamage = m_bitsDamageType;
