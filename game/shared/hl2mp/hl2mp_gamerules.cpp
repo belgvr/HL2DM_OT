@@ -45,6 +45,7 @@
 #include "recipientfilter.h"  
 #include "beam_shared.h"
 
+
 void OnDeathBeamSpriteChanged(IConVar* var, const char* pOldValue, float flOldValue);
 
 
@@ -2652,8 +2653,10 @@ void CHL2MPRules::ShowDamageDisplay(CBasePlayer* pAttacker, CBasePlayer* pVictim
 
 bool CHL2MPRules::WasBounceKill(const CTakeDamageInfo& info)
 {
-	return (info.GetDamageType() & DMG_BOUNCE_KILL);
+	bool result = (info.GetDamageType() & DMG_BOUNCE_KILL);
+	return result;
 }
+
 
 void CHL2MPRules::DisplayKillerInfo(CHL2MP_Player* pVictim, CHL2MP_Player* pKiller, const char* weaponName, int hitGroup, bool wasAirKill, bool wasBounceKill, int bounceCount)
 {
@@ -2829,61 +2832,17 @@ void CHL2MPRules::SendColoredKillerMessage(CHL2MP_Player* pVictim, const char* m
 		ClientPrint(pVictim, HUD_PRINTTALK, message);
 }
 
-//bool CHL2MPRules::WasAirKill(CHL2MP_Player* pVictim, const CTakeDamageInfo& info)
-//{
-//	if (!pVictim)
-//		return false;
-//
-//	// PASSO 2: O VETO DO CHÃO
-//	trace_t ground_tr;
-//	Vector vecStart = pVictim->GetAbsOrigin();
-//	Vector vecEnd = vecStart - Vector(0, 0, 16);
-//
-//	UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &ground_tr);
-//
-//	if (ground_tr.fraction < 1.0f)
-//	{
-//		// Log para depuração ATIVADO
-//		Msg("WasAirKill VETO: Jogador considerado no chao. Fracao do trace: %.2f\n", ground_tr.fraction);
-//		return false;
-//	}
-//
-//	// PASSO 3: CONFIRMAÇÃO DO AIRKILL
-//	Vector velocity = pVictim->GetAbsVelocity();
-//	float verticalSpeed = fabs(velocity.z);
-//	if (verticalSpeed > sv_killerinfo_airkill_velocity_threshold.GetFloat())
-//	{
-//		// Log para depuração ATIVADO
-//		Msg("WasAirKill SUCESSO: Velocidade vertical (%.2f) maior que o limite (%.2f)\n", verticalSpeed, sv_killerinfo_airkill_velocity_threshold.GetFloat());
-//		return true;
-//	}
-//
-//	trace_t height_tr;
-//	float heightThreshold = sv_killerinfo_airkill_height_threshold.GetFloat();
-//	vecEnd = vecStart - Vector(0, 0, heightThreshold);
-//
-//	UTIL_TraceLine(vecStart, vecEnd, MASK_PLAYERSOLID, pVictim, COLLISION_GROUP_NONE, &height_tr);
-//
-//	if (height_tr.fraction > 0.99f)
-//	{
-//		// Log para depuração ATIVADO
-//		Msg("WasAirKill SUCESSO: Altura maior que o limite (%.2f)\n", heightThreshold);
-//		return true;
-//	}
-//
-//	Msg("WasAirKill FALHA: Nao passou em nenhuma condicao de confirmacao.\n");
-//	return false;
-//}
-
 int CHL2MPRules::GetBounceCount(const CTakeDamageInfo& info)
 {
 	CBaseEntity* pInflictor = info.GetInflictor();
 	if (pInflictor && FClassnameIs(pInflictor, "crossbow_bolt"))
 	{
-		return pInflictor->GetHealth();
+		int bounces = pInflictor->GetHealth();
+		return bounces;
 	}
 	return 0;
 }
+
 
 void CHL2MPRules::LevelShutdown(void)
 {

@@ -100,6 +100,8 @@ public:
 	bool CreateVPhysics(void);
 	unsigned int PhysicsSolidMaskForEntity() const;
 	static CCrossbowBolt* BoltCreate(const Vector& vecOrigin, const QAngle& angAngles, int iDamage, CBasePlayer* pentOwner = NULL);
+	int GetBounceCount(void) { return m_iBounceCount; }  // <-- ADICIONE ESTA LINHA
+
 
 
 protected:
@@ -111,6 +113,7 @@ protected:
 
 	int m_iDamage;
 	bool m_bHasBounced;
+	int m_iBounceCount;
 
 	DECLARE_DATADESC();
 	DECLARE_SERVERCLASS();
@@ -129,6 +132,7 @@ DEFINE_FUNCTION(DelayedRemoveThink),
 // These are recreated on reload, they don't need storage
 DEFINE_FIELD(m_pGlowSprite, FIELD_EHANDLE),
 DEFINE_FIELD(m_pBoltTrail, FIELD_EHANDLE),
+
 END_DATADESC()
 
 
@@ -337,6 +341,7 @@ void CCrossbowBolt::Spawn(void)
 	m_nSkin = BOLT_SKIN_GLOW;
 	//life counter
 	m_iHealth = 0;
+	m_iBounceCount = 0;
 }
 
 // ==================================================================================================
@@ -391,7 +396,9 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 
 		if (pOwner->IsPlayer() && pOther->IsNPC())
 		{
-			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, DMG_NEVERGIB);
+			int damageType = DMG_NEVERGIB;
+			if (m_iHealth > 0) damageType |= DMG_BOUNCE_KILL;  // <-- ADICIONE ESTA LINHA
+			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, damageType);
 			dmgInfo.AdjustPlayerDamageInflictedForSkillLevel();
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
@@ -399,7 +406,9 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 		}
 		else
 		{
-			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, DMG_BULLET | DMG_NEVERGIB);
+			int damageType = DMG_BULLET | DMG_NEVERGIB;
+			if (m_iHealth > 0) damageType |= DMG_BOUNCE_KILL;  // <-- ADICIONE ESTA LINHA
+			CTakeDamageInfo dmgInfo(this, pOwner, m_iDamage, damageType);
 			CalculateMeleeDamageForce(&dmgInfo, vecNormalizedVel, tr.endpos, 0.7f);
 			dmgInfo.SetDamagePosition(tr.endpos);
 			pOther->DispatchTraceAttack(dmgInfo, vecNormalizedVel, &tr);
@@ -468,8 +477,8 @@ void CCrossbowBolt::BoltTouch(CBaseEntity* pOther)
 				SetLocalAngles(reflectAngles);
 				SetAbsVelocity(vReflection * speed * sv_crossbow_bolt_bounce_velocity_drop.GetFloat());
 				m_bHasBounced = true;
+				m_iHealth++; 
 				SetGravity(sv_crossbow_bolt_bounce_gravity_scale.GetFloat());
-
 				if (sv_crossbow_bounce_new_sound.GetBool())
 				{
 					EmitSound("Weapon_Crossbow.BoltHitWorldNEW");
