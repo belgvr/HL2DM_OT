@@ -36,6 +36,10 @@ void Host_Say( edict_t *pEdict, bool teamonly );
 ConVar sv_motd_unload_on_dismissal( "sv_motd_unload_on_dismissal", "0", 0, "If enabled, the MOTD contents will be unloaded when the player closes the MOTD." );
 ConVar sv_displaymotd( "sv_displaymotd", "1", 0, "If enabled, display the MOTD to players after server entry." );
 
+ConVar sv_connect_msg_mode("sv_connect_msg_mode", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Connection message mode: 0 = legacy, 1 = colored text");
+ConVar sv_connect_new_mode_sound("sv_connect_new_mode_sound", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Play a sound when a player connects in new mode (sv_connect_msg_mode 1)");
+ConVar sv_connect_new_mode_sound_file("sv_connect_new_mode_sound_file", "npc/turret_floor/deploy.wav", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Sound to play when a player connects in new mode (sv_connect_msg_mode 1)");
+
 extern CBaseEntity*	FindPickerEntityClass( CBasePlayer *pPlayer, char *classname );
 extern bool			g_fGameOver;
 extern int g_voters;
@@ -71,11 +75,37 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	}
 
 	// notify other clients of player joining the game
-	UTIL_ClientPrintAll( HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>" );
+	if (sv_connect_msg_mode.GetInt() == 1)
+	{
+		char rawMessage[256];
+		Q_snprintf(rawMessage, sizeof(rawMessage), "{#00ff00}> {#ffffff}Player {#00ff00}%s {#ffffff}is Connected", sName[0] != 0 ? sName : "<unconnected>");
+
+		char formattedMessage[256];
+		UTIL_FormatColors(rawMessage, formattedMessage, sizeof(formattedMessage));
+
+		for (int i = 1; i <= gpGlobals->maxClients; i++)
+		{
+			CBasePlayer* pLoopPlayer = UTIL_PlayerByIndex(i);
+			if (pLoopPlayer && pLoopPlayer->IsConnected())
+			{
+				ClientPrint(pLoopPlayer, HUD_PRINTTALK, formattedMessage);
+
+				if (sv_connect_new_mode_sound.GetBool())
+				{
+					enginesound->PrecacheSound(sv_connect_new_mode_sound_file.GetString(), true);
+					pLoopPlayer->EmitSound(sv_connect_new_mode_sound_file.GetString());
+				}
+			}
+		}
+	}
+	else
+	{
+		UTIL_ClientPrintAll(HUD_PRINTNOTIFY, "#Game_connected", sName[0] != 0 ? sName : "<unconnected>");
+	}
 
 	if ( HL2MPRules()->IsTeamplay() == true )
 	{
-		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1\n", pPlayer->GetTeam()->GetName() );
+		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1/n", pPlayer->GetTeam()->GetName() );
 	}
 
 	if ( pPlayer->GetTeamNumber() == TEAM_SPECTATOR )
