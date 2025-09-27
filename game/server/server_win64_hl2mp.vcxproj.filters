@@ -73,6 +73,9 @@
     <Filter Include="VPC Scripts">
       <UniqueIdentifier>{308191AE-A754-30DF-D5BD-5928E19D585F}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\HL2MP\Chatsounds">
+      <UniqueIdentifier>{8f1e0b68-c329-4190-a415-5275016095c9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\..\lib\public\x64\choreoobjects.lib">
@@ -2036,6 +2039,9 @@
     <ClInclude Include="hl2mp_savescores.h">
       <Filter>Source Files\HL2MP</Filter>
     </ClInclude>
+    <ClInclude Include="hl2mp\chatsounds\hl2mp_chatsounds.h">
+      <Filter>Source Files\HL2MP\Chatsounds</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gamedll_replay.cpp">
@@ -3921,6 +3927,9 @@
     </ClCompile>
     <ClCompile Include="hl2mp_savescores.cpp">
       <Filter>Source Files\HL2MP</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp\chatsounds\hl2mp_chatsounds.cpp">
+      <Filter>Source Files\HL2MP\Chatsounds</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

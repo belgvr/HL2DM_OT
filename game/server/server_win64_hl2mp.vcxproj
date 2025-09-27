@@ -343,6 +343,7 @@ exit 1
     <ClInclude Include="..\..\public\ihltv.h" />
     <ClInclude Include="..\..\public\ihltvdirector.h" />
     <ClInclude Include="..\..\public\vstdlib\IKeyValuesSystem.h" />
+    <ClInclude Include="hl2mp\chatsounds\hl2mp_chatsounds.h" />
     <ClInclude Include="hl2mp_savescores.h" />
     <ClInclude Include="ilagcompensationmanager.h" />
     <ClInclude Include="..\..\public\vgui\ILocalize.h" />
@@ -1092,6 +1093,7 @@ exit 1
     <ClCompile Include="..\shared\func_ladder.cpp" />
     <ClCompile Include="func_ladder_endpoint.cpp" />
     <ClCompile Include="func_lod.cpp" />
+    <ClCompile Include="hl2mp\chatsounds\hl2mp_chatsounds.cpp" />
     <ClCompile Include="hl2mp_savescores.cpp" />
     <ClCompile Include="hl2\Func_Monitor.cpp" />
     <ClCompile Include="func_movelinear.cpp" />
